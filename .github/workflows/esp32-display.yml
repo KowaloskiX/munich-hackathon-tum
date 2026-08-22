@@ -1,0 +1,30 @@
+name: ESP32 display firmware
+
+on:
+  push:
+    paths:
+      - "firmware/esp32-display/**"
+      - ".github/workflows/esp32-display.yml"
+  pull_request:
+    paths:
+      - "firmware/esp32-display/**"
+      - ".github/workflows/esp32-display.yml"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PlatformIO
+        run: python -m pip install "platformio==6.1.19"
+      - name: Test pure state logic
+        run: pio test -d firmware/esp32-display -e native
+      - name: Check mock backend syntax
+        run: python -m py_compile firmware/esp32-display/tools/mock_hmi_backend.py
+      - name: Build Waveshare ESP32-S3 target
+        run: pio run -d firmware/esp32-display -e waveshare-s3-touch-lcd-1_28
+      - name: Build standalone screen demo
+        run: pio run -d firmware/esp32-display -e waveshare-s3-touch-lcd-1_28-demo

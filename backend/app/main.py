@@ -19,11 +19,14 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import mockgen
+from .config import settings
+from .hmi import HmiStatus, HmiStream
 from .models import AnomalyIn, EventType, FleetSnapshot, Heartbeat, LiveEvent
 from .orchestrator import handle_anomaly
 from .state import AppState
 
 state = AppState()
+hmi_stream = HmiStream()
 
 
 def _flag(name: str, default: bool = True) -> bool:
@@ -43,7 +46,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     tasks: list[asyncio.Task[None]] = [asyncio.create_task(_offline_sweeper())]
     if _flag("MOCK_HEARTBEAT"):
         tasks.append(asyncio.create_task(mockgen.heartbeat_loop(state)))
-    if _flag("MOCK_ANOMALY"):
+    # With a real agent (devin), don't auto-fire synthetic anomalies — each one
+    # is a real multi-minute session. Trigger anomalies manually via POST /ingest.
+    if _flag("MOCK_ANOMALY") and settings.agent != "devin":
         tasks.append(asyncio.create_task(mockgen.anomaly_loop(state)))
     try:
         yield
@@ -70,6 +75,12 @@ async def health() -> dict[str, str]:
 @app.get("/nodes", response_model=FleetSnapshot)
 async def get_nodes() -> FleetSnapshot:
     return state.snapshot()
+
+
+@app.get("/v1/hmi/status", response_model=HmiStatus)
+async def get_hmi_status() -> HmiStatus:
+    """Aggregate SOC status for the ESP32 display firmware (see app/hmi.py)."""
+    return hmi_stream.build(state)
 
 
 @app.post("/heartbeat")
