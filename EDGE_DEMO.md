@@ -48,14 +48,20 @@ curl -sX POST localhost:8100/ingest -H 'content-type: application/json' -d "$ATT
 #   edge log: "esp-01 v=-: in 3 forwarded 3 dropped 0"
 #   then:     "loaded v2 for esp-01 (deauth_flood)"
 
-# Shot 2 — same attack: edge DROPS the 2 mgmt frames, forwards only the benign one
+# Shot 2 — same attack: edge DROPS the 2 mgmt frames and enforces silently
 curl -sX POST localhost:8100/ingest -H 'content-type: application/json' -d "$ATTACK"
-#   edge log: "esp-01 v=v2: in 3 forwarded 1 dropped 2"
+#   edge log: "esp-01 v=v2: in 3 forwarded 0 dropped 2"
 ```
 
-Proof the drop is real: the backend's incident for shot 2 shows **1 frame
-captured** (not 3) — the two attack frames were removed at the edge and never
-arrived. See `GET /incidents/{id}/report.md`.
+The attack is now handled by the deployed filter, so the edge drops it and does
+**not** wake the backend (no spurious new incident). Instead it reports the real
+drop via `POST /enforcement`, which the backend records against the original
+incident and streams as an **edge-sourced** `FRAME_BLOCKED` — the dashboard shows
+"blocked 2 frames at edge (filter v2)", and `GET /incidents/{id}/report.md` shows
+the enforcement counts under *Enforcement (in-path, sentinel-edge)*.
+
+Enforcement is the edge's job alone: the backend detects + publishes the filter
+and never fabricates a blocked count.
 
 ## Pointing the real sniffer at the edge
 
