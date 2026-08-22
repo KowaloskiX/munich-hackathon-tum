@@ -119,6 +119,8 @@ class AppState:
             self.counters.frames_blocked += n
             if event.node_id and event.node_id in self.nodes:
                 self.nodes[event.node_id].blocked += n
+        elif event.type is EventType.LINK_VERDICT and event.payload.get("verdict") == "malicious":
+            self.counters.threats_detected += 1
         self.events.append(event)
         self.broadcaster.publish(event)
 

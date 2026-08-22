@@ -15,7 +15,11 @@ export type EventType =
   | "VERIFY_PASSED"
   | "OTA_DEPLOYING"
   | "DEPLOYED"
-  | "FRAME_BLOCKED";
+  | "FRAME_BLOCKED"
+  | "LINK_SUBMITTED"
+  | "LINK_BROWSING"
+  | "LINK_RESEARCHING"
+  | "LINK_VERDICT";
 
 export interface NodeView {
   node_id: string;
