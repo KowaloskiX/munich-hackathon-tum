@@ -432,3 +432,39 @@ flowchart TD
 
 ### TL;DR
 You own the spine (FastAPI backend + orchestrator + WebSocket) and the dashboard. Freeze 4 data contracts in hour 1, build everything on a mock event generator, swap to real sources at integration. The dashboard visualizing the autonomous loop is the pitch. Never cut verification or autonomy.
+
+---
+
+## 13. Controlled Red ESP (safe synthetic radio demo)
+
+The hardware demo uses a dedicated ESP32 as a bounded synthetic anomaly
+generator. It does not change any frozen backend contract and never transmits
+the embedded management frame as a real 802.11 deauthentication frame.
+
+```mermaid
+flowchart LR
+    HOTSPOT[Phone hotspot 2.4 GHz] --- RED[Red ESP32]
+    HOTSPOT --- SNIFFERS[3 demo sniffer ESPs]
+    HOTSPOT --- OLED[OLED status ESP]
+    LAPTOP[Laptop / red-esp.local] -->|web control| RED
+    BUTTON[Physical arm + emergency stop] --> RED
+    RED -->|marked ESP-NOW broadcast TUMD| SNIFFERS & OLED
+    SNIFFERS -->|Contract 1| INGEST[/ingest/]
+```
+
+The `TUMD` envelope contains a simulation flag, run/sequence metadata, a logical
+frame count, an embedded frame sample, and a checksum. For
+`synthetic_deauth_flood`, the sample starts with the real deauth frame-control
+bytes (`0xC0 0x00`), so the existing agent and C oracle operate on representative
+input after a sniffer unwraps it. Over the air it remains a vendor-specific
+ESP-NOW action frame and cannot disconnect Wi-Fi clients.
+
+Selectable profiles are `synthetic_deauth_flood`, `traffic_spike`,
+`sequence_replay`, `sequence_jump`, `identity_churn`, and `malformed_payload`.
+No ESP IP/MAC allowlist is needed. Selection happens in a local web UI and
+execution additionally requires a 1.5-second physical button hold. Runs stop
+after at most 10 seconds and 500 physical packets. The default deauth profile
+uses 10 physical packets/s × 80 logical frames, producing an 800 frames/s
+anomaly without a real flood. See [ESP_DEMO.md](ESP_DEMO.md) for the complete
+five-board runbook and [esp-attacker/README.md](esp-attacker/README.md) for the
+transmitter.

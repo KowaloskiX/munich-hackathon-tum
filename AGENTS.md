@@ -11,7 +11,10 @@ anomalies → an AI agent reads the raw capture and **writes a C filter** → an
 No human in the loop. Full design in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Layout: `backend/` (FastAPI spine + orchestrator + oracle), `dashboard/`
-(React/Vite live view), `backend/oracle/` (C harness + filters + fixtures).
+(React/Vite live view), `backend/oracle/` (C harness + filters + fixtures),
+`esp-attacker/` (bounded Red ESP32 lab traffic generator), `esp-sniffer-demo/`
+(ESP-NOW-to-HTTP bridge), `esp-oled-monitor/` (local alarm display), and
+`esp-common/` (the shared marked synthetic-frame protocol).
 
 ## Local CI — NON-NEGOTIABLE
 
@@ -23,6 +26,11 @@ Scoped commands while iterating:
 - Backend Python edited → `make back-lint back-types back-test`
 - Dashboard edited → `make front-lint front-types front-test`
 - A filter or the oracle harness edited → `make oracle-build`
+- Red ESP profile/core edited → `make red-esp-test`
+- Red ESP Arduino integration edited → additionally
+  `cd esp-attacker && pio run -e esp32dev`
+- Demo receiver edited → `cd esp-sniffer-demo && pio run -e esp32dev`
+- OLED monitor edited → `cd esp-oled-monitor && pio run -e esp32dev`
 - Auto-fix formatting/lint → `make fix`
 
 First time on a machine → `make doctor` (tools, pins, ports), then
@@ -74,3 +82,6 @@ skill instead of keeping it in your head.
   (mock loops on by default; `MOCK=0` for all-real, `MOCK_HEARTBEAT=0` /
   `MOCK_ANOMALY=0` for partial integration).
 - Dashboard: `cd dashboard && npm run dev` → http://localhost:5173
+- Red ESP: copy `esp-attacker/include/lab_secrets.example.h` to the ignored
+  `lab_secrets.h`, then `cd esp-attacker && pio run -e esp32dev --target upload`.
+- Full five-board hardware procedure: [ESP_DEMO.md](ESP_DEMO.md).

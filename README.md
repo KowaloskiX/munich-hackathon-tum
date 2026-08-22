@@ -8,6 +8,10 @@ Full design: [ARCHITECTURE.md](ARCHITECTURE.md). Rules for humans and agents:
 [AGENTS.md](AGENTS.md). ESP-specific validation is documented in
 [docs/ESP_ARCHITECTURE_REVIEW.md](docs/ESP_ARCHITECTURE_REVIEW.md).
 
+A controlled lab anomaly generator lives in
+[esp-attacker/README.md](esp-attacker/README.md); its hardware demo runbook is
+[ESP_DEMO.md](ESP_DEMO.md).
+
 ## Quickstart
 
 ```bash
@@ -58,6 +62,7 @@ a real security signal.
 | `backend/app/agent_stub.py` | stand-in for the real agent call, same contract |
 | `dashboard/src/reducer.ts` | pure WS-event fold, unit-tested without React |
 | `firmware/esp32-display/` | fail-safe ESP32-S3 status terminal and host tests |
+| `esp-attacker/` | bounded synthetic anomaly generator for the live demo |
 
 ## What is enforced, not just described
 
