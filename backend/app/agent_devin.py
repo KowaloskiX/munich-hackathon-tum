@@ -232,6 +232,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-verify", dest="verify", action="store_false", help="skip oracle verify"
     )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=0,
+        help="on oracle FAIL, feed the log back to Devin and retry (needs --verify)",
+    )
     parser.set_defaults(verify=True)
     args = parser.parse_args(argv)
 
@@ -242,26 +248,31 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     agent = DevinAgent(client=build_mock_client() if args.mock else None)
-    try:
-        out = agent.call(payload)
-    except DevinAgentError as exc:
-        print(f"❌ Devin agent failed: {exc}")
-        return 1
+    from .oracle import run_oracle
 
-    print(f"attack_class : {out.attack_class}")
-    print(f"confidence   : {out.confidence}")
-    print(f"explanation  : {out.explanation}")
-    if agent.session_url:
-        print(f"session      : {agent.session_url}")
-    if agent.last_acus is not None:
-        cost = f"{agent.last_acus} ACU" + (f" (~${agent.last_usd})" if agent.last_usd else "")
-        print(f"cost         : {cost}")
-    print("---- filter.c ----")
-    print(out.filter_c_code)
-    print("------------------")
+    out: AgentOut | None = None
+    for attempt in range(args.retries + 1):
+        try:
+            out = agent.call(payload)
+        except DevinAgentError as exc:
+            print(f"❌ Devin agent failed: {exc}")
+            return 1
 
-    if args.verify:
-        from .oracle import run_oracle
+        print(f"\n=== attempt {attempt + 1} ===")
+        print(f"attack_class : {out.attack_class}")
+        print(f"confidence   : {out.confidence}")
+        print(f"explanation  : {out.explanation}")
+        if agent.session_url:
+            print(f"session      : {agent.session_url}")
+        if agent.last_acus is not None:
+            cost = f"{agent.last_acus} ACU" + (f" (~${agent.last_usd})" if agent.last_usd else "")
+            print(f"cost         : {cost}")
+        print("---- filter.c ----")
+        print(out.filter_c_code)
+        print("------------------")
+
+        if not args.verify:
+            break
 
         verdict = run_oracle(out.filter_c_code)
         mark = "✅" if verdict.passed else "❌"
@@ -269,9 +280,18 @@ def main(argv: list[str] | None = None) -> int:
             f"{mark} oracle: passed={verdict.passed} tpr={verdict.tpr} fpr={verdict.fpr} "
             f"({verdict.tests_passed}/{verdict.tests_total})"
         )
+        if verdict.passed or attempt == args.retries:
+            break
+        print("↻ feeding failure back to Devin for another attempt…")
+        payload = AgentIn(
+            frame_hex=frames,
+            anomaly_stats=payload.anomaly_stats,
+            prev_filter=out.filter_c_code,
+            failure_log=verdict.log,
+        )
 
     if settings.langfuse_enabled:
-        print(f"langfuse: trace sent to {settings.langfuse_host}")
+        print(f"langfuse: trace(s) sent to {settings.langfuse_host}")
     tracing.flush()
     return 0
 
