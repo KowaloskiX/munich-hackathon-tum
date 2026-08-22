@@ -65,14 +65,19 @@ class DevinAgent:
             raise DevinAgentError("DEVIN_API_KEY is not set (use --mock or set .env)")
         self.client = client or DevinClient()
         self._session_id: str | None = None
+        self.session_url: str | None = None
+        self.last_acus: float | None = None
+        self.last_usd: float | None = None
 
     def call(self, payload: AgentIn) -> AgentOut:
         trace = tracing.start_trace(
-            "devin.agent", input={"stats": payload.anomaly_stats.model_dump()}
+            "devin.agent",
+            input={"frame_hex": payload.frame_hex, "stats": payload.anomaly_stats.model_dump()},
         )
 
         # Retry path: reuse the open session with a follow-up message.
         if payload.failure_log and self._session_id:
+            model_input = f"[retry] failure log:\n{payload.failure_log}"
             with tracing.span(
                 trace, "devin.retry_message", input={"log": payload.failure_log[:2000]}
             ):
@@ -83,21 +88,55 @@ class DevinAgent:
                 )
         else:
             prompt = build_devin_prompt(payload)
-            with tracing.span(
-                trace, "devin.create_session", input={"prompt_chars": len(prompt)}
-            ) as sp:
-                session = self.client.create_session(
-                    prompt, structured_output_schema=STRUCTURED_OUTPUT_SCHEMA
-                )
-                self._session_id = session.session_id
-                sp.update(output={"session_id": session.session_id, "url": session.url})
+            model_input = prompt
+            session = self.client.create_session(
+                prompt, structured_output_schema=STRUCTURED_OUTPUT_SCHEMA
+            )
+            self._session_id = session.session_id
+            self.session_url = session.url
 
         session = self._poll(trace)
         data = _extract_json(session.structured_output)
         out = _to_agent_out(data)
-        trace_out = {"attack_class": out.attack_class, "confidence": out.confidence}
-        with tracing.span(trace, "devin.result", output=trace_out):
+
+        # Cost: Devin bills in ACUs; convert to USD if a rate is configured.
+        self.last_acus = session.acus_consumed
+        self.last_usd = (
+            round(self.last_acus * settings.devin_usd_per_acu, 4)
+            if self.last_acus is not None and settings.devin_usd_per_acu
+            else None
+        )
+        meta = {
+            "session_url": self.session_url,
+            "status": session.status,
+            "status_detail": session.status_detail,
+            "acus_consumed": self.last_acus,
+            "usd": self.last_usd,
+        }
+
+        # Record the Devin session as a generation: prompt in, filter out.
+        with tracing.generation(
+            trace,
+            "devin.session",
+            model="devin",
+            input=model_input,
+            output=session.structured_output,
+            metadata=meta,
+        ):
             pass
+
+        tracing.update_trace(
+            trace,
+            output={
+                "attack_class": out.attack_class,
+                "confidence": out.confidence,
+                "explanation": out.explanation,
+                "filter_c_code": out.filter_c_code,
+            },
+            metadata=meta,
+        )
+        if self.last_acus is not None:
+            tracing.score(trace, "acus_consumed", self.last_acus)
         return out
 
     def _poll(self, trace: tracing.Trace) -> Any:
@@ -212,6 +251,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"attack_class : {out.attack_class}")
     print(f"confidence   : {out.confidence}")
     print(f"explanation  : {out.explanation}")
+    if agent.session_url:
+        print(f"session      : {agent.session_url}")
+    if agent.last_acus is not None:
+        cost = f"{agent.last_acus} ACU" + (f" (~${agent.last_usd})" if agent.last_usd else "")
+        print(f"cost         : {cost}")
     print("---- filter.c ----")
     print(out.filter_c_code)
     print("------------------")

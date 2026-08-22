@@ -32,6 +32,7 @@ class DevinSession(BaseModel):
     status: str | None = None
     status_detail: str | None = None
     structured_output: Any = None
+    acus_consumed: float | None = None
 
     @property
     def has_output(self) -> bool:

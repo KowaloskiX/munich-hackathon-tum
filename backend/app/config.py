@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     devin_org_id: str = ""  # auto-discovered via GET /self when blank
     devin_poll_interval_s: float = 5.0
     devin_timeout_s: float = 900.0  # sessions can run several minutes
+    # Cost tracking: Devin bills in ACUs. Set a rate to also report USD (0 = off).
+    devin_usd_per_acu: float = 0.0
 
     # Langfuse (local instance is fine, e.g. http://localhost:3000).
     langfuse_public_key: str = ""

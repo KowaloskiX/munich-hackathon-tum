@@ -29,11 +29,23 @@ class _NoopSpan:
 
 class Trace(Protocol):
     def span(self, **kwargs: Any) -> Span: ...
+    def generation(self, **kwargs: Any) -> Span: ...
+    def update(self, **kwargs: Any) -> None: ...
+    def score(self, **kwargs: Any) -> None: ...
 
 
 class _NoopTrace:
     def span(self, **kwargs: Any) -> Span:
         return _NoopSpan()
+
+    def generation(self, **kwargs: Any) -> Span:
+        return _NoopSpan()
+
+    def update(self, **kwargs: Any) -> None:
+        return None
+
+    def score(self, **kwargs: Any) -> None:
+        return None
 
 
 _client: Any | None = None
@@ -79,6 +91,30 @@ def span(trace: Trace, name: str, **kwargs: Any) -> Iterator[Span]:
     finally:
         with contextlib.suppress(Exception):
             s.end()
+
+
+@contextlib.contextmanager
+def generation(trace: Trace, name: str, **kwargs: Any) -> Iterator[Span]:
+    """Open a generation (model call) on `trace` — renders richly in the UI."""
+    try:
+        g: Span = trace.generation(name=name, **kwargs)
+    except Exception:
+        g = _NoopSpan()
+    try:
+        yield g
+    finally:
+        with contextlib.suppress(Exception):
+            g.end()
+
+
+def update_trace(trace: Trace, **kwargs: Any) -> None:
+    with contextlib.suppress(Exception):
+        trace.update(**kwargs)
+
+
+def score(trace: Trace, name: str, value: float, comment: str | None = None) -> None:
+    with contextlib.suppress(Exception):
+        trace.score(name=name, value=value, comment=comment)
 
 
 def flush() -> None:
