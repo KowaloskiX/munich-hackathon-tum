@@ -1,104 +1,276 @@
 import "./App.css";
 
+import { useState } from "react";
+
+import { selectAttackHistory, selectAttackPackets, selectFrameFeed } from "./dashboardView";
+import type { AttackRecord } from "./dashboardView";
+import type { NodeView, TimelineLine } from "./types";
 import { useLive } from "./useLive";
-import type { NodeView, Stage } from "./types";
 
-const PIPELINE: { key: Stage; label: string }[] = [
-  { key: "trigger", label: "① Anomaly" },
-  { key: "agent", label: "② Agent writes filter" },
-  { key: "verify", label: "③ Oracle verifies" },
-  { key: "ota", label: "④ OTA deploy" },
-];
+const EVENT_NAMES: Record<TimelineLine["type"], string> = {
+  NODE_UP: "Node online",
+  NODE_DOWN: "Node offline",
+  ANOMALY_DETECTED: "Anomaly",
+  AGENT_ANALYZING: "Analysis",
+  FILTER_GENERATED: "Filter generated",
+  VERIFYING: "Oracle replay",
+  VERIFY_FAILED: "Verification failed",
+  VERIFY_PASSED: "Verification passed",
+  OTA_DEPLOYING: "OTA deploy",
+  DEPLOYED: "Filter deployed",
+  FRAME_BLOCKED: "Frame blocked",
+};
 
-const STAGE_ORDER: Stage[] = ["idle", "trigger", "agent", "verify", "ota", "done"];
+function formatClock(ts: number): string {
+  const milliseconds = ts < 1_000_000_000_000 ? ts * 1000 : ts;
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(milliseconds));
+}
 
-function StatTile({ label, value, accent }: { label: string; value: number; accent?: string }) {
+function compactNumber(value: number): string {
+  return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+function displayRouterName(value: string): string {
+  return value.replace(/\besp(?=-|\b)/gi, "router");
+}
+
+function Wordmark() {
   return (
-    <div className="tile" style={accent ? { borderColor: accent } : undefined}>
-      <div className="tile-value" style={accent ? { color: accent } : undefined}>
-        {value.toLocaleString()}
-      </div>
-      <div className="tile-label">{label}</div>
+    <div className="wordmark" role="img" aria-label="Sentinel autonomous defense">
+      <span className="wordmark-mark" aria-hidden="true">
+        <img src="/logo.jpg" alt="" />
+      </span>
+      <span>Sentinel</span>
+      <span className="wordmark-edition">ROUTER</span>
     </div>
   );
 }
 
-function NodeTile({ node }: { node: NodeView }) {
+function SignalIcon() {
   return (
-    <div className={`node node-${node.state.toLowerCase()}`}>
-      <div className="node-id">{node.label}</div>
-      <div className="node-state">{node.state}</div>
-      <div className="node-meta">
-        {node.fw_version} · {node.blocked.toLocaleString()} blocked
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4.8 14.7a10.2 10.2 0 0 1 14.4 0M7.7 17.5a6.1 6.1 0 0 1 8.6 0M10.6 20.3a2 2 0 0 1 2.8 0" />
+    </svg>
+  );
+}
+
+function RouterBoard({ state }: { state: NodeView["state"] }) {
+  return (
+    <svg className="router-board" viewBox="0 0 120 56" role="img" aria-label={`Router ${state.toLowerCase()}`}>
+      <rect className="board-base" x="8" y="15" width="104" height="32" rx="5" />
+      <path className="board-antenna" d="M19 34h8V25h8v9h8V25h8v9h8" />
+      <rect className="board-chip" x="67" y="23" width="24" height="18" rx="3" />
+      <path className="board-trace" d="M59 32h8m24 0h11M79 23v-7" />
+      <circle className="board-led" cx="101" cy="23" r="2.5" />
+    </svg>
+  );
+}
+
+function NodeCard({ node }: { node: NodeView }) {
+  const label = displayRouterName(node.label);
+
+  return (
+    <article
+      className="sensor-card"
+      data-state={node.state.toLowerCase()}
+      aria-label={`${label}, ${node.state.toLowerCase()}, firmware ${node.fw_version}`}
+    >
+      <span className="sensor-card-top">
+        <span className="sensor-identity">
+          <span className="sensor-status" />
+          {label}
+        </span>
+        <span className="sensor-state">{node.state}</span>
+      </span>
+      <RouterBoard state={node.state} />
+    </article>
+  );
+}
+
+function SensorRail({ nodes }: { nodes: NodeView[] }) {
+  return (
+    <section className="sensor-stage flow-card" aria-label="Router sensor rail">
+      <div className="rail-wrap">
+        <div className="rail-axis" aria-hidden="true">
+          <span>RF edge</span>
+          <span>Packet path</span>
+        </div>
+        <div className="node-rail">
+          {nodes.length === 0 ? (
+            <div className="rail-empty">
+              <SignalIcon />
+              <span>Waiting for sensor heartbeat</span>
+            </div>
+          ) : (
+            nodes.map((node) => <NodeCard key={node.node_id} node={node} />)
+          )}
+        </div>
       </div>
-    </div>
+    </section>
+  );
+}
+
+function FrameFeed({ timeline }: { timeline: TimelineLine[] }) {
+  const frames = selectFrameFeed(timeline, 9);
+
+  return (
+    <aside className="frame-log flow-card" aria-labelledby="frames-heading">
+      <div className="panel-heading">
+        <h2 id="frames-heading">Frame feed</h2>
+        <span className="live-wave" role="status" aria-label="Feed active">
+          <i />
+          live
+        </span>
+      </div>
+
+      <div className="frame-columns" aria-hidden="true">
+        <span>Time</span>
+        <span>Source</span>
+        <span>Event</span>
+      </div>
+
+      <div className="frame-list" aria-live="polite">
+        {frames.length === 0 ? (
+          <div className="frame-empty">
+            <span className="scan-line" />
+            Listening for live traffic
+          </div>
+        ) : (
+          frames.map((frame) => (
+            <div className="frame-row" data-tone={frame.tone} key={frame.id}>
+              <time>{formatClock(frame.ts)}</time>
+              <span className="frame-source">{frame.node_id ? displayRouterName(frame.node_id) : "system"}</span>
+              <span className="frame-event">
+                <strong>{EVENT_NAMES[frame.type]}</strong>
+                <small>{displayRouterName(frame.text)}</small>
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function attackId(attack: AttackRecord): string {
+  return `ATK-${String(attack.id).padStart(4, "0")}`;
+}
+
+function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; activeAttack: string | null }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const attacks = selectAttackHistory(timeline, activeAttack).slice(0, 6);
+
+  return (
+    <section className="attack-history" aria-labelledby="attack-history-heading">
+      <div className="attack-history-heading">
+        <div>
+          <h2 id="attack-history-heading">Attack history</h2>
+          <p>Detected incidents and Devin response state</p>
+        </div>
+        <span>{attacks.length} attacks</span>
+      </div>
+
+      <div className="attack-history-columns" aria-hidden="true">
+        <span>Attack</span>
+        <span>Router</span>
+        <span>Packets</span>
+        <span>Status</span>
+        <span>Time</span>
+        <span />
+      </div>
+
+      <div className="attack-history-list">
+        {attacks.length === 0 ? (
+          <div className="attack-history-empty">
+            <strong>No attacks recorded</strong>
+            <span>Waiting for an anomaly detection event.</span>
+          </div>
+        ) : (
+          attacks.map((attack) => {
+            const expanded = expandedId === attack.id;
+            const packets = expanded ? selectAttackPackets(attack) : [];
+            const packetPanelId = `attack-${attack.id}-packets`;
+            return (
+              <article className="attack-history-item" data-expanded={expanded || undefined} key={attack.id}>
+                <button
+                  className="attack-history-toggle"
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-controls={packetPanelId}
+                  onClick={() => setExpandedId(expanded ? null : attack.id)}
+                >
+                  <span className="attack-identity">
+                    <strong>{attack.name}</strong>
+                    <small>{attackId(attack)}</small>
+                  </span>
+                  <span>{displayRouterName(attack.nodeId)}</span>
+                  <strong className="attack-packet-count">{attack.packetCount}</strong>
+                  <span className="attack-status">{attack.status}</span>
+                  <time>{formatClock(attack.ts)}</time>
+                  <span className="attack-toggle-label">{expanded ? "Hide packets" : "View packets"}</span>
+                </button>
+
+                {expanded && (
+                  <div className="attack-packet-window" id={packetPanelId}>
+                    <div className="attack-packet-heading">
+                      <strong>Connected packet sample</strong>
+                      <span>{packets.length} of {attack.packetCount} packets</span>
+                    </div>
+                    <div className="attack-packet-columns" aria-hidden="true">
+                      <span>Packet ID</span>
+                      <span>Router</span>
+                      <span>Frame</span>
+                      <span>Match</span>
+                    </div>
+                    <div className="attack-packet-list">
+                      {packets.map((packet) => (
+                        <div className="attack-packet-row" key={packet.id}>
+                          <code>{packet.id}</code>
+                          <span>{displayRouterName(packet.nodeId)}</span>
+                          <span>{packet.frameType}</span>
+                          <span>{packet.match}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })
+        )}
+      </div>
+    </section>
   );
 }
 
 export default function App() {
-  const { state, connected } = useLive();
+  const { state } = useLive();
   const nodes = Object.values(state.nodes).sort((a, b) => a.node_id.localeCompare(b.node_id));
-  const activeIdx = STAGE_ORDER.indexOf(state.stage);
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>
-          <span className="shield">🛡</span> Autonomous Anomaly Defense
-        </h1>
-        <div className={`conn ${connected ? "on" : "off"}`}>
-          {connected ? "LIVE" : "reconnecting…"}
+    <div className="dashboard-shell">
+      <header className="topbar">
+        <Wordmark />
+        <div className="topbar-metrics" role="group" aria-label="Fleet totals">
+          <div><strong>{state.counters.active_nodes}</strong><span>nodes</span></div>
+          <div><strong>{state.counters.threats_detected}</strong><span>threats</span></div>
+          <div><strong>{state.counters.filters_deployed}</strong><span>filters</span></div>
+          <div><strong>{compactNumber(state.counters.frames_blocked)}</strong><span>blocked</span></div>
         </div>
       </header>
 
-      <section className="counters">
-        <StatTile label="Active nodes" value={state.counters.active_nodes} />
-        <StatTile label="Threats detected" value={state.counters.threats_detected} accent="#e0a53f" />
-        <StatTile label="Filters deployed" value={state.counters.filters_deployed} accent="#4ad98a" />
-        <StatTile label="Frames blocked" value={state.counters.frames_blocked} accent="#d94a4a" />
-      </section>
-
-      <section className="main">
-        <div className="panel grid-panel">
-          <h2>Fleet</h2>
-          <div className="node-grid">
-            {nodes.length === 0 && <div className="empty">waiting for nodes…</div>}
-            {nodes.map((n) => (
-              <NodeTile key={n.node_id} node={n} />
-            ))}
-          </div>
-        </div>
-
-        <div className="panel pipe-panel">
-          <h2>Defense loop {state.activeAttack ? `· ${state.activeAttack}` : ""}</h2>
-          <div className="pipeline">
-            {PIPELINE.map((step) => {
-              const idx = STAGE_ORDER.indexOf(step.key);
-              const cls = idx < activeIdx ? "past" : idx === activeIdx ? "active" : "future";
-              return (
-                <div key={step.key} className={`pstep ${cls}`}>
-                  <div className="pdot" />
-                  <div className="plabel">{step.label}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="pipe-note">
-            No human in the loop — deploy only after the oracle passes on held-out captures.
-          </div>
-        </div>
-      </section>
-
-      <section className="panel timeline-panel">
-        <h2>Live timeline</h2>
-        <ul className="timeline">
-          {state.timeline.map((l) => (
-            <li key={l.id} className={`line ${l.tone}`}>
-              {l.text}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <main className="workspace">
+        <SensorRail nodes={nodes} />
+        <FrameFeed timeline={state.timeline} />
+        <section className="defense-workspace flow-card" aria-label="Attack history">
+          <AttackHistory timeline={state.timeline} activeAttack={state.activeAttack} />
+        </section>
+      </main>
     </div>
   );
 }
