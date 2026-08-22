@@ -1,0 +1,17 @@
+run me localhost frontend on this branch
+
+---
+
+can we though adjust the UI somehow more to the current backend now? also change the style. it looks so much ai generated
+
+---
+
+nah, I much more prefer the stylish one. this one looks like its built for geeks
+
+---
+
+actually revert to the first frontend and simply adjust the backend to it please
+
+---
+
+czyli frontend wyswietla backend ta?
