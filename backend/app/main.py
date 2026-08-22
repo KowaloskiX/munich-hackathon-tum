@@ -20,11 +20,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import mockgen
 from .config import settings
+from .hmi import HmiStatus, HmiStream
 from .models import AnomalyIn, EventType, FleetSnapshot, Heartbeat, LiveEvent
 from .orchestrator import handle_anomaly
 from .state import AppState
 
 state = AppState()
+hmi_stream = HmiStream()
 
 
 def _flag(name: str, default: bool = True) -> bool:
@@ -73,6 +75,12 @@ async def health() -> dict[str, str]:
 @app.get("/nodes", response_model=FleetSnapshot)
 async def get_nodes() -> FleetSnapshot:
     return state.snapshot()
+
+
+@app.get("/v1/hmi/status", response_model=HmiStatus)
+async def get_hmi_status() -> HmiStatus:
+    """Aggregate SOC status for the ESP32 display firmware (see app/hmi.py)."""
+    return hmi_stream.build(state)
 
 
 @app.post("/heartbeat")
