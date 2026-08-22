@@ -1,0 +1,59 @@
+name: Release QGIS Plugin
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build plugin ZIP
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ASSET_NAME="qgis_mcp_plugin_v${VERSION//./-}.zip"
+          # Match __pycache__ at any depth: the handlers live in a subpackage,
+          # so a top-level-only pattern shipped their .pyc files to users.
+          zip -r "$ASSET_NAME" qgis_mcp_plugin/ -x "*__pycache__*"
+          echo "ASSET_NAME=$ASSET_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET_NAME }}
+
+      # Publishing to plugins.qgis.org needs a per-plugin token, created while
+      # logged in at https://plugins.qgis.org/plugins/qgis_mcp_plugin/tokens/create/
+      # and stored as the QGIS_PLUGIN_TOKEN repository secret. Without the
+      # secret this step is skipped, so the GitHub release still works.
+      #
+      # auto_approve_after_scan only takes effect for uploaders holding the
+      # can_approve permission; for everyone else the version waits for manual
+      # approval after the security scan, which is the normal flow.
+      - name: Publish to the QGIS Plugin Hub
+        env:
+          QGIS_PLUGIN_TOKEN: ${{ secrets.QGIS_PLUGIN_TOKEN }}
+        run: |
+          if [ -z "$QGIS_PLUGIN_TOKEN" ]; then
+            echo "QGIS_PLUGIN_TOKEN is not set - skipping the Hub upload."
+            exit 0
+          fi
+          status=$(curl -sS -w '%{http_code}' -o response.txt -X POST \
+            "https://plugins.qgis.org/plugins/api/qgis_mcp_plugin/version/add/" \
+            -H "Authorization: Bearer $QGIS_PLUGIN_TOKEN" \
+            -F "package=@${ASSET_NAME}" \
+            -F "auto_approve_after_scan=true")
+          echo "HTTP $status"
+          cat response.txt
+          if [ "$status" -ge 300 ]; then
+            echo "::error::Hub upload failed with HTTP $status"
+            exit 1
+          fi
+          echo "Uploaded. The security scan runs asynchronously - check the Security tab:"
+          echo "https://plugins.qgis.org/plugins/qgis_mcp_plugin/version/${GITHUB_REF_NAME#v}/"
