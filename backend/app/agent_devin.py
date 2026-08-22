@@ -20,7 +20,7 @@ from . import tracing
 from .config import settings
 from .devin_client import DevinClient
 from .models import AgentIn, AgentOut, AnomalyStats
-from .prompts import STRUCTURED_OUTPUT_SPEC, build_devin_prompt
+from .prompts import STRUCTURED_OUTPUT_SCHEMA, build_devin_prompt
 
 _FILTERS_DIR = Path(__file__).resolve().parent.parent / "oracle/filters"
 _FIXTURES = Path(__file__).resolve().parent.parent / "oracle/fixtures"
@@ -87,7 +87,7 @@ class DevinAgent:
                 trace, "devin.create_session", input={"prompt_chars": len(prompt)}
             ) as sp:
                 session = self.client.create_session(
-                    prompt, structured_output=STRUCTURED_OUTPUT_SPEC
+                    prompt, structured_output_schema=STRUCTURED_OUTPUT_SCHEMA
                 )
                 self._session_id = session.session_id
                 sp.update(output={"session_id": session.session_id, "url": session.url})
@@ -107,17 +107,17 @@ class DevinAgent:
         while True:
             session = self.client.get_session(self._session_id)
             polls += 1
-            if session.is_terminal or session.structured_output is not None:
+            if session.has_output:
                 with tracing.span(
-                    trace, "devin.poll_done", output={"polls": polls, "status": session.status_enum}
+                    trace, "devin.poll_done", output={"polls": polls, "status": session.status}
                 ):
                     pass
-                if session.structured_output is None:
-                    raise DevinAgentError(
-                        f"session {self._session_id} ended ({session.status_enum}) "
-                        "with no structured_output"
-                    )
                 return session
+            if session.is_dead:
+                raise DevinAgentError(
+                    f"session {self._session_id} ended ({session.status}/"
+                    f"{session.status_detail}) with no structured_output"
+                )
             if time.monotonic() > deadline:
                 raise DevinAgentError(
                     f"Devin session {self._session_id} timed out after {settings.devin_timeout_s}s"
@@ -127,38 +127,52 @@ class DevinAgent:
 
 # --- offline mock client (no key / no network) ---------------------------
 def build_mock_client(filter_code: str | None = None) -> DevinClient:
-    """A DevinClient wired to a scripted transport returning a canned filter."""
+    """A DevinClient wired to a scripted transport returning a canned filter (v3 shapes)."""
     code = filter_code if filter_code is not None else (_FILTERS_DIR / "deauth.c").read_text()
-    structured = json.dumps(
-        {
-            "attack_class": "deauth_flood",
-            "confidence": 0.95,
-            "filter_c_code": code,
-            "explanation": "Blocks 802.11 mgmt deauth/disassoc frames; data/beacons pass.",
-        }
-    )
+    structured = {
+        "attack_class": "deauth_flood",
+        "confidence": 0.95,
+        "filter_c_code": code,
+        "explanation": "Blocks 802.11 mgmt deauth/disassoc frames; data/beacons pass.",
+    }
     state = {"gets": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST" and request.url.path.endswith("/sessions"):
-            return httpx.Response(
-                200, json={"session_id": "mock-session", "url": "https://app.devin.ai/mock"}
-            )
-        if request.method == "POST" and request.url.path.endswith("/message"):
+        path = request.url.path
+        if request.method == "POST" and path.endswith("/messages"):
             return httpx.Response(200, json={"ok": True})
+        if request.method == "POST" and path.endswith("/sessions"):
+            return httpx.Response(
+                200,
+                json={
+                    "session_id": "mock-session",
+                    "url": "https://app.devin.ai/sessions/mock",
+                    "status": "new",
+                },
+            )
         if request.method == "GET":
             state["gets"] += 1
-            # First poll "working", then done — mimics real latency shape.
+            # First poll still running, then output appears — mimics real latency.
             if state["gets"] < 2:
                 return httpx.Response(
-                    200, json={"status_enum": "working", "structured_output": None}
+                    200,
+                    json={
+                        "status": "running",
+                        "status_detail": "working",
+                        "structured_output": None,
+                    },
                 )
             return httpx.Response(
-                200, json={"status_enum": "finished", "structured_output": structured}
+                200,
+                json={
+                    "status": "running",
+                    "status_detail": "waiting_for_user",
+                    "structured_output": structured,
+                },
             )
         return httpx.Response(404, json={"error": "unmapped"})
 
-    return DevinClient(api_key="mock", transport=httpx.MockTransport(handler))
+    return DevinClient(api_key="mock", org_id="mock", transport=httpx.MockTransport(handler))
 
 
 # --- standalone CLI -------------------------------------------------------

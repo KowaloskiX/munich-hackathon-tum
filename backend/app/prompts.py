@@ -29,6 +29,18 @@ STRUCTURED_OUTPUT_SPEC = (
     '"explanation" (string: one short paragraph on the attack and the filter).'
 )
 
+# JSON Schema passed to Devin v3 (structured_output_schema) to enforce the shape.
+STRUCTURED_OUTPUT_SCHEMA: dict = {
+    "type": "object",
+    "properties": {
+        "attack_class": {"type": "string"},
+        "confidence": {"type": "number"},
+        "filter_c_code": {"type": "string"},
+        "explanation": {"type": "string"},
+    },
+    "required": ["attack_class", "filter_c_code"],
+}
+
 _SIGNATURE = "bool block_frame(const uint8_t *f, size_t n)"
 
 

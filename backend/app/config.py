@@ -14,11 +14,13 @@ class Settings(BaseSettings):
     # Which agent backend the orchestrator talks to.
     agent: str = "stub"  # "stub" | "devin"
 
-    # Devin external API (v1). Key looks like "cog_..." for service users.
+    # Devin external API (v3). PATs (cog_...) and service-user keys use v3;
+    # the legacy v1 endpoints reject PATs with 403.
     devin_api_key: str = ""
-    devin_base_url: str = "https://api.devin.ai/v1"
+    devin_base_url: str = "https://api.devin.ai/v3"
+    devin_org_id: str = ""  # auto-discovered via GET /self when blank
     devin_poll_interval_s: float = 5.0
-    devin_timeout_s: float = 900.0  # sessions run ~5-10 min
+    devin_timeout_s: float = 900.0  # sessions can run several minutes
 
     # Langfuse (local instance is fine, e.g. http://localhost:3000).
     langfuse_public_key: str = ""

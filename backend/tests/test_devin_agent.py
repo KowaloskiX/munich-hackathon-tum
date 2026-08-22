@@ -1,6 +1,5 @@
-"""DevinAgent drives sessions correctly over a mocked transport (no network)."""
+"""DevinAgent drives v3 sessions correctly over a mocked transport (no network)."""
 
-import json
 from pathlib import Path
 
 import httpx
@@ -22,6 +21,15 @@ def _payload(**kw) -> AgentIn:
     )
 
 
+def _good_output() -> dict:
+    return {
+        "attack_class": "deauth_flood",
+        "confidence": 0.9,
+        "filter_c_code": DEAUTH,
+        "explanation": "x",
+    }
+
+
 def test_call_returns_filter_that_passes_oracle():
     from app.oracle import run_oracle
 
@@ -37,49 +45,72 @@ def test_prompt_contains_frames_signature_and_spec():
     assert "filter_c_code" in prompt
 
 
-def test_retry_sends_followup_message_and_repolls():
+def test_retry_sends_followup_message_and_reuses_session():
     calls: list[str] = []
-    good = json.dumps(
-        {
-            "attack_class": "deauth_flood",
-            "confidence": 0.9,
-            "filter_c_code": DEAUTH,
-            "explanation": "x",
-        }
-    )
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         calls.append(f"{request.method} {path}")
-        if request.method == "POST" and path.endswith("/sessions"):
-            return httpx.Response(200, json={"session_id": "s1", "url": "u"})
-        if request.method == "POST" and path.endswith("/message"):
+        if request.method == "POST" and path.endswith("/messages"):
             return httpx.Response(200, json={"ok": True})
-        return httpx.Response(200, json={"status_enum": "finished", "structured_output": good})
+        if request.method == "POST" and path.endswith("/sessions"):
+            return httpx.Response(200, json={"session_id": "s1", "url": "u", "status": "new"})
+        return httpx.Response(
+            200,
+            json={
+                "status": "running",
+                "status_detail": "finished",
+                "structured_output": _good_output(),
+            },
+        )
 
-    agent = DevinAgent(client=DevinClient(api_key="k", transport=httpx.MockTransport(handler)))
+    agent = DevinAgent(
+        client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
+    )
     agent.call(_payload())  # opens session s1
     agent.call(_payload(failure_log="fpr=0.5 too many false positives", prev_filter=DEAUTH))
 
-    assert any(c.endswith("/session/s1/message") for c in calls)
-    # exactly one session created, message used for the retry
+    assert any(c.endswith("/messages") for c in calls)
+    # exactly one session created; the retry reuses it via a message.
     assert sum(1 for c in calls if c.endswith("/sessions")) == 1
 
 
 def test_unparseable_output_raises():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "POST" and request.url.path.endswith("/sessions"):
-            return httpx.Response(200, json={"session_id": "s1"})
+            return httpx.Response(200, json={"session_id": "s1", "status": "new"})
         return httpx.Response(
-            200, json={"status_enum": "finished", "structured_output": "not json {{"}
+            200,
+            json={
+                "status": "running",
+                "status_detail": "finished",
+                "structured_output": "not json {{",
+            },
         )
 
-    agent = DevinAgent(client=DevinClient(api_key="k", transport=httpx.MockTransport(handler)))
+    agent = DevinAgent(
+        client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
+    )
     with pytest.raises(DevinAgentError):
         agent.call(_payload())
 
 
-def test_missing_key_without_client_raises():
-    # settings.devin_api_key is empty in the test env -> constructing without a client fails.
+def test_dead_session_without_output_raises():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith("/sessions"):
+            return httpx.Response(200, json={"session_id": "s1", "status": "new"})
+        return httpx.Response(200, json={"status": "error", "structured_output": None})
+
+    agent = DevinAgent(
+        client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
+    )
+    with pytest.raises(DevinAgentError):
+        agent.call(_payload())
+
+
+def test_missing_key_without_client_raises(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "devin_api_key", "")
     with pytest.raises(DevinAgentError):
         DevinAgent()
