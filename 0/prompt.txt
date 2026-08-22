@@ -1532,3 +1532,23 @@ kurde no -> zabawa tych api to nie jest stricte deploy -> jak ten kod niby jest 
 ---
 
 no dobra wracając -> to jak w sumie nie robimy PRów itp (no bo nie robimy cn?) no to jaki sens mają 2 repo? to już lepiej chyba zostawić w jednym (skoro ten stan nie jest póki co zapisywany inaczej niż w pamięci)
+
+---
+
+i co teraz Deauth floodATK-0000router-01400Devin verifying01:35:24Hide thread
+Devin response thread14 steps · router-01Download report
+
+1. 01:35:24Anomalyrouter-01 anomaly: 400 frames in window
+2. 01:35:24Analysisrouter-01 agent analyzing (attempt 1)
+3. 01:35:32Sandboxrouter-01 sandbox: I’ll build the exact harness and sample files, then compile and iterate on only `filter.c` until the required rates pass.
+4. 01:35:47Filter generatedrouter-01 filter generated: deauth_flood
+5. 01:35:48Oracle replayrouter-01 verifying filter (replay test)
+6. 01:35:48Verification failedrouter-01 verify FAILED 0/0 (fpr=1)
+7. 01:35:49Analysisrouter-01 agent analyzing (attempt 2)
+8. 01:35:51Filter generatedrouter-01 filter generated: deauth_flood
+9. 01:35:51Oracle replayrouter-01 verifying filter (replay test)
+10. 01:35:51Verification failedrouter-01 verify FAILED 0/0 (fpr=1)
+11. 01:35:52Analysisrouter-01 agent analyzing (attempt 3)
+12. 01:35:54Filter generatedrouter-01 filter generated: deauth_flood
+13. 01:35:54Oracle replayrouter-01 verifying filter (replay test)
+14. 01:35:54Verification failedrouter-01 verify FAILED 0/0 (fpr=1)
