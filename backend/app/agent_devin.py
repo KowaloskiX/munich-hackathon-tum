@@ -70,6 +70,7 @@ class DevinAgent:
         self.last_acus: float | None = None
         self.last_usd: float | None = None
         self.last_cost_final: bool = False
+        self.last_duration_s: int | None = None
 
     def call(self, payload: AgentIn) -> AgentOut:
         trace = tracing.start_trace(
@@ -115,11 +116,15 @@ class DevinAgent:
         )
         cost_final = session.is_dead or session.status_detail == "finished"
         self.last_cost_final = cost_final
+        # Wall-clock is the only usage signal the API populates reliably;
+        # acus_consumed is frequently 0 here (Devin bills out-of-band).
+        self.last_duration_s = session.duration_s
         meta = {
             "session_url": self.session_url,
             "status": session.status,
             "status_detail": session.status_detail,
             "acus_consumed": self.last_acus,
+            "session_seconds": self.last_duration_s,
             "usd": self.last_usd,
             "cost_final": cost_final,
         }
@@ -150,6 +155,8 @@ class DevinAgent:
         if self.last_acus is not None:
             comment = "final" if cost_final else "provisional"
             tracing.score(trace, "acus_consumed", self.last_acus, comment=comment)
+        if self.last_duration_s is not None:
+            tracing.score(trace, "session_seconds", float(self.last_duration_s))
         if self.last_usd is not None:
             tracing.score(trace, "cost_usd", self.last_usd)
         return out
@@ -299,7 +306,8 @@ def main(argv: list[str] | None = None) -> int:
             if agent.last_acus is not None:
                 final = "" if agent.last_cost_final else " (provisional)"
                 usd = f" (~${agent.last_usd})" if agent.last_usd else ""
-                print(f"cost         : {agent.last_acus} ACU{usd}{final}")
+                dur = f", {agent.last_duration_s}s wall" if agent.last_duration_s else ""
+                print(f"cost         : {agent.last_acus} ACU{usd}{dur}{final}")
             print("---- filter.c ----")
             print(out.filter_c_code)
             print("------------------")

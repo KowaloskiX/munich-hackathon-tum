@@ -33,6 +33,14 @@ class DevinSession(BaseModel):
     status_detail: str | None = None
     structured_output: Any = None
     acus_consumed: float | None = None
+    created_at: int | None = None
+    updated_at: int | None = None
+
+    @property
+    def duration_s(self) -> int | None:
+        if self.created_at is not None and self.updated_at is not None:
+            return max(0, self.updated_at - self.created_at)
+        return None
 
     @property
     def has_output(self) -> bool:
