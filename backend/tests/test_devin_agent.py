@@ -108,6 +108,58 @@ def test_dead_session_without_output_raises():
         agent.call(_payload())
 
 
+def test_create_body_has_disposable_vm_and_acu_cap():
+    bodies: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path.endswith("/sessions"):
+            import json as _json
+
+            bodies.append(_json.loads(request.content))
+            return httpx.Response(200, json={"session_id": "s1", "status": "new"})
+        return httpx.Response(
+            200,
+            json={
+                "status": "running",
+                "status_detail": "finished",
+                "structured_output": _good_output(),
+            },
+        )
+
+    agent = DevinAgent(
+        client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
+    )
+    agent.call(_payload())
+    assert bodies[0]["resumable"] is False  # disposable VM, no idle billing
+    assert bodies[0]["max_acu_limit"] > 0  # hard cost ceiling
+
+
+def test_terminate_issues_delete():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.method)
+        if request.method == "POST" and request.url.path.endswith("/sessions"):
+            return httpx.Response(200, json={"session_id": "s1", "status": "new"})
+        if request.method == "DELETE":
+            return httpx.Response(200, json={"ok": True})
+        return httpx.Response(
+            200,
+            json={
+                "status": "running",
+                "status_detail": "finished",
+                "structured_output": _good_output(),
+            },
+        )
+
+    agent = DevinAgent(
+        client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
+    )
+    agent.call(_payload())
+    agent.terminate()
+    assert "DELETE" in calls
+
+
 def test_missing_key_without_client_raises(monkeypatch):
     from app.config import settings
 

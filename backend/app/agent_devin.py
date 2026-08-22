@@ -8,6 +8,7 @@ as a one-liner later. Standalone-runnable from the CLI (see __main__) with a
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import re
 import time
@@ -68,6 +69,7 @@ class DevinAgent:
         self.session_url: str | None = None
         self.last_acus: float | None = None
         self.last_usd: float | None = None
+        self.last_cost_final: bool = False
 
     def call(self, payload: AgentIn) -> AgentOut:
         trace = tracing.start_trace(
@@ -99,22 +101,33 @@ class DevinAgent:
         data = _extract_json(session.structured_output)
         out = _to_agent_out(data)
 
-        # Cost: Devin bills in ACUs; convert to USD if a rate is configured.
+        # Cost: acus_consumed is provisional while running. Re-fetch once to get
+        # the latest value, and record whether it is final (session stopped).
+        with contextlib.suppress(Exception):
+            refreshed = self.client.get_session(session.session_id)
+            if refreshed.acus_consumed is not None:
+                session = refreshed
         self.last_acus = session.acus_consumed
         self.last_usd = (
             round(self.last_acus * settings.devin_usd_per_acu, 4)
             if self.last_acus is not None and settings.devin_usd_per_acu
             else None
         )
+        cost_final = session.is_dead or session.status_detail == "finished"
+        self.last_cost_final = cost_final
         meta = {
             "session_url": self.session_url,
             "status": session.status,
             "status_detail": session.status_detail,
             "acus_consumed": self.last_acus,
             "usd": self.last_usd,
+            "cost_final": cost_final,
         }
 
-        # Record the Devin session as a generation: prompt in, filter out.
+        # Record the Devin session as a generation: prompt in, filter out, ACU cost.
+        usage: dict[str, Any] = {"unit": "ACU", "total": self.last_acus or 0}
+        if self.last_usd is not None:
+            usage["totalCost"] = self.last_usd
         with tracing.generation(
             trace,
             "devin.session",
@@ -122,6 +135,7 @@ class DevinAgent:
             input=model_input,
             output=session.structured_output,
             metadata=meta,
+            usage=usage,
         ):
             pass
 
@@ -138,6 +152,13 @@ class DevinAgent:
         if self.last_acus is not None:
             tracing.score(trace, "acus_consumed", self.last_acus)
         return out
+
+    def terminate(self) -> None:
+        """Tear down the current session's VM so it cannot idle-bill."""
+        if self._session_id:
+            with contextlib.suppress(Exception):
+                self.client.terminate(self._session_id)
+            self._session_id = None
 
     def _poll(self, trace: tracing.Trace) -> Any:
         assert self._session_id is not None
@@ -178,6 +199,8 @@ def build_mock_client(filter_code: str | None = None) -> DevinClient:
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
+        if request.method == "DELETE":
+            return httpx.Response(200, json={"ok": True})
         if request.method == "POST" and path.endswith("/messages"):
             return httpx.Response(200, json={"ok": True})
         if request.method == "POST" and path.endswith("/sessions"):
@@ -207,6 +230,7 @@ def build_mock_client(filter_code: str | None = None) -> DevinClient:
                     "status": "running",
                     "status_detail": "waiting_for_user",
                     "structured_output": structured,
+                    "acus_consumed": 0.25,
                 },
             )
         return httpx.Response(404, json={"error": "unmapped"})
@@ -238,6 +262,11 @@ def main(argv: list[str] | None = None) -> int:
         default=0,
         help="on oracle FAIL, feed the log back to Devin and retry (needs --verify)",
     )
+    parser.add_argument(
+        "--keep-session",
+        action="store_true",
+        help="do not terminate the Devin session on exit (leave the VM for inspection)",
+    )
     parser.set_defaults(verify=True)
     args = parser.parse_args(argv)
 
@@ -250,50 +279,56 @@ def main(argv: list[str] | None = None) -> int:
     agent = DevinAgent(client=build_mock_client() if args.mock else None)
     from .oracle import run_oracle
 
-    out: AgentOut | None = None
-    for attempt in range(args.retries + 1):
-        try:
-            out = agent.call(payload)
-        except DevinAgentError as exc:
-            print(f"❌ Devin agent failed: {exc}")
-            return 1
+    rc = 0
+    try:
+        for attempt in range(args.retries + 1):
+            try:
+                out = agent.call(payload)
+            except DevinAgentError as exc:
+                print(f"❌ Devin agent failed: {exc}")
+                rc = 1
+                break
 
-        print(f"\n=== attempt {attempt + 1} ===")
-        print(f"attack_class : {out.attack_class}")
-        print(f"confidence   : {out.confidence}")
-        print(f"explanation  : {out.explanation}")
-        if agent.session_url:
-            print(f"session      : {agent.session_url}")
-        if agent.last_acus is not None:
-            cost = f"{agent.last_acus} ACU" + (f" (~${agent.last_usd})" if agent.last_usd else "")
-            print(f"cost         : {cost}")
-        print("---- filter.c ----")
-        print(out.filter_c_code)
-        print("------------------")
+            print(f"\n=== attempt {attempt + 1} ===")
+            print(f"attack_class : {out.attack_class}")
+            print(f"confidence   : {out.confidence}")
+            print(f"explanation  : {out.explanation}")
+            if agent.session_url:
+                print(f"session      : {agent.session_url}")
+            if agent.last_acus is not None:
+                final = "" if agent.last_cost_final else " (provisional)"
+                usd = f" (~${agent.last_usd})" if agent.last_usd else ""
+                print(f"cost         : {agent.last_acus} ACU{usd}{final}")
+            print("---- filter.c ----")
+            print(out.filter_c_code)
+            print("------------------")
 
-        if not args.verify:
-            break
+            if not args.verify:
+                break
 
-        verdict = run_oracle(out.filter_c_code)
-        mark = "✅" if verdict.passed else "❌"
-        print(
-            f"{mark} oracle: passed={verdict.passed} tpr={verdict.tpr} fpr={verdict.fpr} "
-            f"({verdict.tests_passed}/{verdict.tests_total})"
-        )
-        if verdict.passed or attempt == args.retries:
-            break
-        print("↻ feeding failure back to Devin for another attempt…")
-        payload = AgentIn(
-            frame_hex=frames,
-            anomaly_stats=payload.anomaly_stats,
-            prev_filter=out.filter_c_code,
-            failure_log=verdict.log,
-        )
-
-    if settings.langfuse_enabled:
-        print(f"langfuse: trace(s) sent to {settings.langfuse_host}")
-    tracing.flush()
-    return 0
+            verdict = run_oracle(out.filter_c_code)
+            mark = "✅" if verdict.passed else "❌"
+            print(
+                f"{mark} oracle: passed={verdict.passed} tpr={verdict.tpr} fpr={verdict.fpr} "
+                f"({verdict.tests_passed}/{verdict.tests_total})"
+            )
+            if verdict.passed or attempt == args.retries:
+                break
+            print("↻ feeding failure back to Devin for another attempt…")
+            payload = AgentIn(
+                frame_hex=frames,
+                anomaly_stats=payload.anomaly_stats,
+                prev_filter=out.filter_c_code,
+                failure_log=verdict.log,
+            )
+    finally:
+        if settings.devin_terminate_on_done and not args.keep_session:
+            agent.terminate()
+            print("session      : terminated (VM torn down, no idle cost)")
+        if settings.langfuse_enabled:
+            print(f"langfuse: trace(s) sent to {settings.langfuse_host}")
+        tracing.flush()
+    return rc
 
 
 if __name__ == "__main__":

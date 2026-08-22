@@ -78,7 +78,12 @@ class DevinClient:
         prompt: str,
         structured_output_schema: dict[str, Any] | None = None,
     ) -> DevinSession:
-        body: dict[str, Any] = {"prompt": prompt}
+        body: dict[str, Any] = {
+            "prompt": prompt,
+            "resumable": settings.devin_resumable,
+        }
+        if settings.devin_max_acu_limit:
+            body["max_acu_limit"] = settings.devin_max_acu_limit
         if structured_output_schema:
             body["structured_output_required"] = True
             body["structured_output_schema"] = structured_output_schema
@@ -97,6 +102,11 @@ class DevinClient:
         resp = self._client.post(
             f"{self._sessions_base()}/{session_id}/messages", json={"message": message}
         )
+        resp.raise_for_status()
+
+    def terminate(self, session_id: str) -> None:
+        """Tear down the session's VM immediately (stops any idle billing)."""
+        resp = self._client.delete(f"{self._sessions_base()}/{session_id}")
         resp.raise_for_status()
 
     def close(self) -> None:
