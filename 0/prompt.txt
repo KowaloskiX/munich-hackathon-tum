@@ -1,0 +1,41 @@
+ok -> no i co teraz? zakładając że jeszcze nie mamy nic -> od czego zacząć?
+
+---
+
+kurwa pytam po polsku zjebie
+
+---
+
+kurde -> ale w ogóle czy ten pomysł ma sens? czy może coś podobnego? bo możliwe że są już obecnie rzeczy robiące takie rzeczy i niekoniecznie jako ai agent loop itp?
+
+---
+
+zderz z alternatywami, inna domena
+
+---
+
+a czy ten zjeb devin będzie mógł jakoś na tym VM swoim itp zasymulować i serio zweryfikować czy poprawka/patch serio działa? itp ? czy jest to techincznie możliwe i jak
+
+---
+
+no to brzmi lepiej, Twój backend odpala oracle niezależnie => wracając do planu -> co teraz w sumie? od czego zacząć pierwsze stepy (zakładając że nikt jeszcze nie zaczął)
+
+---
+
+ok > to planuj w sumie od razu 1-5 dokładnie
+
+---
+
+dodaj do setpu lokalne rzeczy CI typu lint, type checking, unit testy itp -> i wymuś w agents.md / claude.md w tym repo to źeby agentci to opdalali
+
+---
+
+continue
+
+---
+
+już nic nie ma na portach -> teraz daj mi PR z tym wszystkim
+
+---
+
+a i jeszcze dodaj pydantic (też do .md dla agentów) żeby lepiej ten typing działał
