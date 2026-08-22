@@ -33,7 +33,22 @@ Scoped commands while iterating:
 - OLED monitor edited → `cd esp-oled-monitor && pio run -e esp32dev`
 - Auto-fix formatting/lint → `make fix`
 
-First time on a machine → `make setup` (uv sync + npm install).
+First time on a machine → `make doctor` (tools, pins, ports), then
+`make setup` (uv sync + npm install). CI runs `make check` and nothing else.
+Optional commit-time subset: `uvx pre-commit install`.
+
+## Skills and commands
+
+Repeatable workflows and their foot-guns are written down, not remembered:
+
+- `.claude/skills/run-checks` — every gate, and what each one does not cover.
+- `.claude/skills/run-dev` — running the demo, mock flags, why the WS goes quiet.
+- `.claude/skills/write-filter` — the exact contract `oracle/harness.c` enforces.
+- `.claude/skills/change-contract` — the five files a contract change touches.
+- `.claude/commands/research`, `.claude/commands/deslop`.
+
+Doing something a second time and it has repeatable steps or a trap? Write a
+skill instead of keeping it in your head.
 
 ## Rules
 

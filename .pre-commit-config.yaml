@@ -1,0 +1,76 @@
+# Cheap gates on every commit. The real gate is `make check` (AGENTS.md) — this
+# is the fast subset plus the things a gate cannot catch after the fact: a leaked
+# key is leaked the moment it is pushed.
+#
+# Install once:  uvx pre-commit install
+# Run on all:    uvx pre-commit run --all-files
+#
+# Trap: pre-commit only sees files git knows about. With untracked files it
+# silently checks a subset. Run `git add --intent-to-add .` first.
+
+# qgis-mcp/ is a vendored third-party project; .entire/ is agent-session
+# metadata. Neither follows our conventions and neither should be rewritten by
+# our hooks.
+exclude: '^(qgis-mcp/|\.entire/)'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  # The agent loop needs an API key (Devin / Anthropic) and this repo has an
+  # .env.example inviting one next to it. Catch it before the push, not after.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  # doctor.sh has to work before any toolchain is installed, so it is plain bash
+  # — which means it gets its own linter.
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.11.0
+    hooks:
+      - id: shellcheck
+
+  # Pinned to the version uv resolves for the backend (ruff 0.16.4). A different
+  # rev here would reformat what `make back-lint` considers clean.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty (backend types)
+        entry: uv run --directory backend ty check app
+        language: system
+        pass_filenames: false
+        files: ^backend/app/.*\.py$
+
+      # Runs only when a contract file is touched: the two structural tests are
+      # ~0.1s, and this is the failure that is expensive to discover late.
+      - id: contract-sync
+        name: contracts mirrored + layering intact
+        entry: uv run --directory backend pytest tests/test_contract_sync.py tests/test_layering.py
+        language: system
+        pass_filenames: false
+        files: ^(backend/app/.*\.py|dashboard/src/(types|reducer)\.ts)$
+
+      - id: oxlint
+        name: oxlint (dashboard)
+        entry: bash -c 'cd dashboard && npx --no-install oxlint'
+        language: system
+        pass_filenames: false
+        files: ^dashboard/src/

@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # One job running the one gate. `make check` is what an agent is told to run
+    # locally (AGENTS.md), so CI runs exactly that — no second list to drift.
+    name: make check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.11"
+          working-directory: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      # The oracle gate compiles the agent's C filter. Without clang the whole
+      # verification step is a no-op, so fail here with an obvious message
+      # rather than inside a mktemp subshell.
+      - name: clang is present (the oracle needs it)
+        run: clang --version
+
+      # Frozen installs, NOT `make setup`. `uv sync` and `npm install` are allowed
+      # to update their lockfiles, so CI would end up testing dependency versions
+      # that are not the committed ones and still report green. `make setup` stays
+      # the human-friendly path; CI installs exactly what is locked.
+      - run: uv sync --frozen
+        working-directory: backend
+      - run: npm ci
+        working-directory: dashboard
+
+      - run: make check

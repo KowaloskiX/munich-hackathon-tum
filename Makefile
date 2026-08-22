@@ -9,7 +9,7 @@ ORACLE_CC ?= clang
         back-lint back-types back-test back-fix \
         front-lint front-types front-test \
         oracle-build red-esp-test \
-        setup
+        setup doctor
 
 ## check: run EVERYTHING (this is the gate)
 check: back-lint back-types back-test oracle-build red-esp-test front-lint front-types front-test
@@ -66,6 +66,10 @@ red-esp-test:
 	rc=$$?; rm -rf $$tmp; \
 	if [ $$rc -ne 0 ]; then echo "❌ red ESP core tests failed"; exit 1; fi; \
 	echo "✅ red ESP core tests OK"
+
+## doctor: is this machine able to run the demo at all (tools, pins, ports)
+doctor:
+	@./scripts/doctor.sh
 
 # --- first-time setup ----------------------------------------------------
 setup:
