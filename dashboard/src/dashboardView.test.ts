@@ -4,7 +4,15 @@ import { selectAttackHistory, selectAttackPackets, selectFrameFeed } from "./das
 import type { TimelineLine } from "./types";
 
 const timeline: TimelineLine[] = [
-  { id: 4, ts: 5, node_id: "esp-01", type: "VERIFYING", text: "esp-01 verifying filter", tone: "info" },
+  {
+    id: 4,
+    ts: 5,
+    node_id: "esp-01",
+    type: "VERIFYING",
+    text: "esp-01 verifying filter",
+    tone: "info",
+    incidentId: "inc-0001",
+  },
   {
     id: 3,
     ts: 4,
@@ -12,6 +20,7 @@ const timeline: TimelineLine[] = [
     type: "FILTER_GENERATED",
     text: "esp-01 filter generated: deauth_flood",
     tone: "info",
+    incidentId: "inc-0001",
   },
   {
     id: 2,
@@ -20,6 +29,7 @@ const timeline: TimelineLine[] = [
     type: "ANOMALY_DETECTED",
     text: "esp-01 anomaly: 400 frames in window",
     tone: "warn",
+    incidentId: "inc-0001",
   },
   {
     id: 1,
@@ -28,6 +38,7 @@ const timeline: TimelineLine[] = [
     type: "ANOMALY_DETECTED",
     text: "esp-02 anomaly: 21 frames in window",
     tone: "warn",
+    incidentId: "inc-0002",
   },
 ];
 
@@ -43,6 +54,7 @@ describe("dashboard attack views", () => {
     const record = selectAttackHistory(timeline, null)[0];
     expect(record).toMatchObject({
       id: 2,
+      incidentId: "inc-0001",
       ts: 3,
       nodeId: "esp-01",
       name: "Deauth flood",

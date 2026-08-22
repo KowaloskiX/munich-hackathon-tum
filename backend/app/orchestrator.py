@@ -23,7 +23,9 @@ from .models import (
     NodeState,
     OracleOut,
 )
+from .node_agent import EnforcementError, run_enforcement
 from .oracle import run_oracle
+from .prompts import SAMPLE_BENIGN
 from .state import AppState
 
 MAX_RETRIES = 2
@@ -52,8 +54,16 @@ async def handle_anomaly(
         agent_call = get_agent()
     node_id = anomaly.node_id
 
+    # A durable record for this incident: the report endpoint reads it, and the
+    # dashboard groups the live stream by its id (stamped into every payload).
+    incident = state.create_incident(node_id, anomaly.timestamp)
+    incident.frames = len(anomaly.frame_hex)
+
     def emit(etype: EventType, **payload: object) -> None:
-        state.emit(LiveEvent(type=etype, node_id=node_id, ts=time.time(), payload=payload))
+        payload["incident_id"] = incident.id
+        event = LiveEvent(type=etype, node_id=node_id, ts=time.time(), payload=payload)
+        incident.events.append(event)
+        state.emit(event)
 
     # The agent runs in a worker thread (to_thread); marshal its narration back
     # onto the loop thread before touching the (non-thread-safe) event queue.
@@ -99,6 +109,13 @@ async def handle_anomaly(
             self_fpr=agent_out.self_fpr,
             compiled=agent_out.compiled,
         )
+        incident.attack_class = agent_out.attack_class
+        incident.confidence = agent_out.confidence
+        incident.iterations = agent_out.iterations
+        incident.self_tpr = agent_out.self_tpr
+        incident.self_fpr = agent_out.self_fpr
+        incident.filter_c_code = agent_out.filter_c_code
+        incident.session_url = agent_out.session_url
 
         await sleep(step_delay)
         emit(EventType.VERIFYING, attempt=attempt + 1)
@@ -110,6 +127,7 @@ async def handle_anomaly(
             "attack_class": agent_out.attack_class,
         }
         if verdict.passed:
+            incident.oracle = verdict
             emit(EventType.VERIFY_PASSED, **result_payload)
             break
         emit(EventType.VERIFY_FAILED, attempt=attempt + 1, **result_payload)
@@ -131,10 +149,34 @@ async def handle_anomaly(
     state.set_node_state(node_id, NodeState.UPDATING)
     emit(EventType.OTA_DEPLOYING, attack_class=agent_out.attack_class)
 
+    # Publish the real filter for OTA (a node can pull + load it) and bump fw.
+    sample_frames = [*anomaly.frame_hex, *SAMPLE_BENIGN]
+    state.set_deployed_filter(
+        node_id, agent_out.filter_c_code, agent_out.attack_class, sample_frames
+    )
+
     await sleep(step_delay)
     state.set_node_state(node_id, NodeState.PROTECTED)
+    incident.deployed = True
+    incident.deployed_ts = time.time()
     emit(EventType.DEPLOYED, attack_class=agent_out.attack_class)
 
-    # The now-protected node starts dropping the attack traffic.
-    emit(EventType.FRAME_BLOCKED, count=anomaly.anomaly_stats.count_in_window or 42)
+    # Real enforcement: compile Devin's filter and run the incident's frames
+    # through the compiled machine code. The blocked count is measured, not
+    # invented. (Standalone software nodes do the same via POST /enforcement.)
+    try:
+        result = await asyncio.to_thread(
+            run_enforcement, agent_out.filter_c_code, anomaly.frame_hex
+        )
+    except EnforcementError as exc:
+        emit(EventType.AGENT_STEP, text=f"enforcement error: {exc}")
+        return True
+    incident.enforcement = result
+    emit(
+        EventType.FRAME_BLOCKED,
+        count=result.blocked,
+        passed=result.passed,
+        false_positives=result.false_positives,
+        real=True,
+    )
     return True

@@ -56,6 +56,36 @@ def test_counters_advance():
     assert state.counters.frames_blocked > 0
 
 
+def test_frame_blocked_count_is_measured_not_synthetic():
+    _, state = _run_loop()
+    blocked = next(e for e in state.events if e.type is EventType.FRAME_BLOCKED)
+    # The count comes from running the compiled filter on the real frame, and
+    # the one deauth frame is genuinely dropped. The event is flagged real.
+    assert blocked.payload["real"] is True
+    assert blocked.payload["count"] == 1
+    assert state.counters.frames_blocked == 1
+
+
+def test_deploy_publishes_the_real_filter_for_ota():
+    _, state = _run_loop()
+    deployed = state.deployed["esp-01"]
+    assert "block_frame" in deployed.filter_c_code  # the actual C, not a version string
+    assert deployed.fw_version == "v2"  # bumped from v1 on deploy
+
+
+def test_incident_is_recorded_and_id_stamped():
+    _, state = _run_loop()
+    assert len(state.incidents) == 1
+    incident = next(iter(state.incidents.values()))
+    # Every emitted event carries the incident id so the dashboard can group them.
+    assert all(e.payload.get("incident_id") == incident.id for e in state.events)
+    # The report backing is populated end to end.
+    assert incident.deployed is True
+    assert incident.oracle is not None and incident.oracle.passed
+    assert incident.enforcement is not None and incident.enforcement.blocked == 1
+    assert "block_frame" in incident.filter_c_code
+
+
 def test_unknown_node_is_auto_registered():
     state = AppState()
     assert "esp-new" not in state.nodes

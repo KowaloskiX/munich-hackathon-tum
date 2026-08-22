@@ -37,6 +37,15 @@ describe("reducer", () => {
     expect(s.nodes["esp-01"].blocked).toBe(42);
   });
 
+  it("stamps the server incident id onto timeline lines", () => {
+    let s = reduce(initialState, snapshot);
+    s = reduce(s, ev("ANOMALY_DETECTED", "esp-01", { count: 5, incident_id: "inc-0001" }));
+    expect(s.timeline[0].incidentId).toBe("inc-0001");
+    // absent incident_id falls back to null, never undefined
+    s = reduce(s, ev("NODE_UP", "esp-02"));
+    expect(s.timeline[0].incidentId).toBeNull();
+  });
+
   it("greys a node on NODE_DOWN and drops active count", () => {
     let s = reduce(initialState, snapshot);
     expect(s.counters.active_nodes).toBe(1);

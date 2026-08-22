@@ -121,6 +121,7 @@ class DevinAgent:
         session = self._poll(trace)
         data = _extract_json(session.structured_output)
         out = _to_agent_out(data)
+        out.session_url = self.session_url  # surface for the incident report
 
         # Cost: acus_consumed is provisional while running. Re-fetch once to get
         # the latest value, and record whether it is final (session stopped).

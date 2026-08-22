@@ -10,15 +10,26 @@ from collections import deque
 
 from .models import (
     Counters,
+    DeployedFilter,
     EventType,
     FleetSnapshot,
     Heartbeat,
+    IncidentReport,
+    IncidentSummary,
     LiveEvent,
     NodeState,
     NodeView,
 )
 
 OFFLINE_AFTER_S = 10.0
+
+
+def _next_version(current: str) -> str:
+    """Bump a `vN` firmware version; used when a new filter is deployed."""
+    try:
+        return f"v{int(current.lstrip('v')) + 1}"
+    except ValueError:
+        return "v2"
 
 
 class Node:
@@ -74,6 +85,11 @@ class AppState:
         self.events: deque[LiveEvent] = deque(maxlen=200)
         self.counters = Counters()
         self.broadcaster = Broadcaster()
+        # Real OTA: the filter each node should pull + load (see node_agent.py).
+        self.deployed: dict[str, DeployedFilter] = {}
+        # Durable per-incident record backing the incident report + history.
+        self.incidents: dict[str, IncidentReport] = {}
+        self._incident_seq = 0
 
     # --- ingest paths ----------------------------------------------------
     def apply_heartbeat(self, hb: Heartbeat) -> bool:
@@ -95,6 +111,50 @@ class AppState:
         if node is not None:
             node.state = state
             self._recount()
+
+    def set_deployed_filter(
+        self,
+        node_id: str,
+        filter_c_code: str,
+        attack_class: str,
+        sample_frames: list[str],
+    ) -> str:
+        """Publish a filter for OTA and bump the node's fw_version. Returns it."""
+        node = self.nodes.get(node_id)
+        current = node.fw_version if node else "v1"
+        version = _next_version(current)
+        self.deployed[node_id] = DeployedFilter(
+            fw_version=version,
+            filter_c_code=filter_c_code,
+            attack_class=attack_class,
+            sample_frames=list(sample_frames),
+        )
+        if node is not None:
+            node.fw_version = version
+        return version
+
+    # --- incidents -------------------------------------------------------
+    def create_incident(self, node_id: str, ts: float) -> IncidentReport:
+        self._incident_seq += 1
+        incident = IncidentReport(
+            id=f"inc-{self._incident_seq:04d}", node_id=node_id, started_ts=ts
+        )
+        self.incidents[incident.id] = incident
+        return incident
+
+    def list_incidents(self) -> list[IncidentSummary]:
+        return [
+            IncidentSummary(
+                id=inc.id,
+                node_id=inc.node_id,
+                started_ts=inc.started_ts,
+                attack_class=inc.attack_class,
+                deployed=inc.deployed,
+                blocked=inc.enforcement.blocked if inc.enforcement else 0,
+                oracle_passed=inc.oracle.passed if inc.oracle else None,
+            )
+            for inc in self.incidents.values()
+        ]
 
     def mark_offline(self, now: float) -> list[str]:
         """Flip stale nodes to OFFLINE. Returns node_ids newly offline."""

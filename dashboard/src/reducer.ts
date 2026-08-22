@@ -157,7 +157,16 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   let timeline = state.timeline;
   if (appendLine) {
     const { text, tone } = describe(e);
-    const line: TimelineLine = { id: state.seq, ts: e.ts, node_id: e.node_id, type: e.type, text, tone };
+    const incidentId = (e.payload.incident_id as string | undefined) ?? null;
+    const line: TimelineLine = {
+      id: state.seq,
+      ts: e.ts,
+      node_id: e.node_id,
+      type: e.type,
+      text,
+      tone,
+      incidentId,
+    };
     timeline = [line, ...state.timeline].slice(0, 60);
   }
 

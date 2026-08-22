@@ -83,6 +83,7 @@ class AgentOut(BaseModel):
     compiled: bool | None = None
     self_tpr: float | None = None
     self_fpr: float | None = None
+    session_url: str | None = None  # Devin session, for the incident report
 
 
 # --- Contract 4: Backend <-> Oracle --------------------------------------
@@ -127,3 +128,73 @@ class Counters(BaseModel):
 class FleetSnapshot(BaseModel):
     nodes: list[NodeView]
     counters: Counters
+
+
+# --- Contract 5: real OTA + software enforcement + incident reports -------
+# REST-only (not WS-crossing), so these are not part of the mirrored contract
+# checked by test_contract_sync — the dashboard reads the report as markdown.
+class DeployedFilter(BaseModel):
+    """The filter the backend has published for a node to pull over OTA."""
+
+    fw_version: str
+    filter_c_code: str
+    attack_class: str
+    sample_frames: list[str] = Field(default_factory=list)  # replay capture
+
+
+class FirmwarePayload(BaseModel):
+    """GET /firmware/{node_id}: the real compiled-elsewhere filter to load."""
+
+    node_id: str
+    fw_version: str
+    filter_c_code: str = ""
+    attack_class: str = ""
+    sample_frames: list[str] = Field(default_factory=list)
+
+
+class EnforcementResult(BaseModel):
+    """What a loaded filter actually did to a replayed frame stream."""
+
+    blocked: int  # frames the loaded filter dropped
+    passed: int  # frames it let through
+    attack_total: int  # attack frames replayed
+    benign_total: int  # benign baseline frames replayed
+    false_positives: int  # benign frames the filter wrongly dropped
+
+
+class EnforcementReport(BaseModel):
+    """POST /enforcement: a standalone software node reports real counts."""
+
+    node_id: str
+    fw_version: str = "v1"
+    blocked: int
+    passed: int
+
+
+class IncidentReport(BaseModel):
+    id: str
+    node_id: str
+    started_ts: float
+    attack_class: str = "unknown"
+    confidence: float = 0.0
+    frames: int = 0
+    filter_c_code: str = ""
+    iterations: int = 0
+    self_tpr: float | None = None
+    self_fpr: float | None = None
+    oracle: OracleOut | None = None
+    enforcement: EnforcementResult | None = None
+    deployed: bool = False
+    deployed_ts: float | None = None
+    session_url: str | None = None
+    events: list[LiveEvent] = Field(default_factory=list)
+
+
+class IncidentSummary(BaseModel):
+    id: str
+    node_id: str
+    started_ts: float
+    attack_class: str
+    deployed: bool
+    blocked: int
+    oracle_passed: bool | None = None
