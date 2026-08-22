@@ -45,6 +45,13 @@ First time on a machine → `make setup` (uv sync + npm install).
    `backend/oracle/fixtures/`.
 6. **Autonomy is the point.** Never insert a human approval step between the
    agent and OTA deploy. That turns the layer back into a copilot.
+7. **Type everything; validate at the boundary with pydantic.** Every payload
+   crossing a boundary (HTTP body, WS message, agent I/O, oracle I/O) is a
+   pydantic `BaseModel` in `backend/app/models.py` — never a bare `dict` or
+   positional tuple. New fields/messages get a model, not an ad-hoc dict. Give
+   every function a full signature (params + return); `ty check` must pass with
+   no `# type: ignore`. The TS side mirrors each model in
+   `dashboard/src/types.ts` — add both in the same change.
 
 ## Running it
 
