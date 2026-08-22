@@ -1455,3 +1455,35 @@ The "push a Devin-generated filter" mechanism already exists — **but it runs o
 The realistic hackathon path that matches what's already built is the **software enforcement node** (`python -m app.node_agent --backend URL --node esp-sw-01`, `node_agent.py:142-205`): Devin writes `block_frame`, the oracle verifies it on held-out captures, the node compiles+loads it live. Making a *physical* ESP32 do this would require net-new OTA-or-interpreter firmware that does not exist in any of the four projects today.</result>
 <usage><subagent_tokens>82919</subagent_tokens><tool_uses>29</tool_uses><duration_ms>236174</duration_ms></usage>
 </task-notification>
+
+---
+
+tak -> zupdateuj tak żeby było dobrze i działało
+
+---
+
+zanim merge - > to czy te wszystkie zmiany są nadal na worktree ╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/real-enforcement-report› 
+╰─$  i moge to lokalnie przetestować ?
+
+---
+
+no chyba zrobił ╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/real-enforcement-report› 
+╰─$ curl -sX POST localhost:8100/ingest -H 'content-type: application/json' -d '{"node_id":"esp-01","timestamp":0,"frame_hex":["c0003a01ffffffffffff001122334455001122334455","a0003a01aabbccddeeff001122334455001122334455","8000000000ffffffffffffaabbccddeeffaabbccddeeffc0006400"],"anomaly_stats":{"subtype":12,"count_in_window":400}}' 
+{"node_id":"esp-01","forwarded":3,"dropped":0,"fw_version":null}%      
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/real-enforcement-report› 
+╰─$ curl -sX POST localhost:8100/ingest -H 'content-type: application/json' -d '{"node_id":"esp-01","timestamp":0,"frame_hex":["c0003a01ffffffffffff001122334455001122334455","a0003a01aabbccddeeff001122334455001122334455","8000000000ffffffffffffaabbccddeeffaabbccddeeffc0006400"],"anomaly_stats":{"subtype":12,"count_in_window":400}}' 
+{"node_id":"esp-01","forwarded":1,"dropped":2,"fw_version":"v2"}%      
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/real-enforcement-report› 
+╰─$  -> i chyba działa -> ale w dashboardzie dalej widzę coś "niby się fixuje" (był ten stub) -> czy na real devin już teraz może deployować serio ten kod?
+
+---
+
+no ale jak działą (albo nie działa) ten "deploy" teraz? czy ten kod teraz się zaktualizuje i będzie widać w dashboardzie że powtórny atak nie przechodzi?
+
+---
+
+no ale jaką rolę pełni teraz to drugie repo?
+
+---
+
+skonsoliduj i dorób widok "blocked at edge"
