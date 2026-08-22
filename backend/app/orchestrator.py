@@ -28,7 +28,7 @@ from .prompts import SAMPLE_BENIGN
 from .state import AppState
 
 MAX_RETRIES = 2
-AGENT_CONN_RETRIES = 2  # extra tries on a transient network error (e.g. DNS blip)
+AGENT_CONN_RETRIES = 4  # extra tries on a transient network error (e.g. DNS blip)
 
 AgentFn = Callable[..., AgentOut]  # (AgentIn, on_step=None) -> AgentOut
 OracleFn = Callable[[str], OracleOut]
@@ -43,7 +43,7 @@ async def handle_anomaly(
     step_delay: float = 0.6,
     max_retries: int = MAX_RETRIES,
     agent_conn_retries: int = AGENT_CONN_RETRIES,
-    conn_backoff: float = 1.0,
+    conn_backoff: float = 2.0,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> bool:
     """Run one full autonomous loop for an anomaly. Returns True if deployed.
