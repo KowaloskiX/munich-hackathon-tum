@@ -14,6 +14,7 @@ export interface AttackRecord {
   name: string;
   packetCount: number;
   status: AttackStatus;
+  events: TimelineLine[]; // this incident's own thread, oldest -> newest
 }
 
 export interface AttackPacket {
@@ -74,6 +75,7 @@ export function selectAttackHistory(timeline: TimelineLine[], activeAttack: stri
       name: formatAttackName(attackClass),
       packetCount: parsePacketCount(anomaly.text),
       status,
+      events: related.slice().reverse(), // oldest -> newest for a readable thread
     };
   });
 }

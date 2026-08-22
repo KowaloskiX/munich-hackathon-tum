@@ -52,6 +52,22 @@ def test_counters_advance():
     assert state.counters.frames_blocked > 0
 
 
+def test_unknown_node_is_auto_registered():
+    state = AppState()
+    assert "esp-new" not in state.nodes
+    anomaly = AnomalyIn(
+        node_id="esp-new",
+        timestamp=1.0,
+        frame_hex=DEAUTH,
+        anomaly_stats=AnomalyStats(subtype=12, count_in_window=5),
+    )
+    asyncio.run(
+        handle_anomaly(state, anomaly, agent_call=call_agent, step_delay=0.0, sleep=_nosleep)
+    )
+    assert "esp-new" in state.nodes  # appeared in the fleet
+    assert any(e.type is EventType.NODE_UP and e.node_id == "esp-new" for e in state.events)
+
+
 def test_agent_failure_is_graceful():
     """A dead agent (e.g. Devin unreachable) must not crash the loop."""
 

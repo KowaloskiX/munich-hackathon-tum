@@ -2,7 +2,7 @@ import "./App.css";
 
 import { useState } from "react";
 
-import { selectAttackHistory, selectAttackPackets, selectFrameFeed } from "./dashboardView";
+import { selectAttackHistory, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
 import type { NodeView, TimelineLine } from "./types";
 import { useLive } from "./useLive";
@@ -194,15 +194,14 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
         ) : (
           attacks.map((attack) => {
             const expanded = expandedId === attack.id;
-            const packets = expanded ? selectAttackPackets(attack) : [];
-            const packetPanelId = `attack-${attack.id}-packets`;
+            const panelId = `attack-${attack.id}-thread`;
             return (
               <article className="attack-history-item" data-expanded={expanded || undefined} key={attack.id}>
                 <button
                   className="attack-history-toggle"
                   type="button"
                   aria-expanded={expanded}
-                  aria-controls={packetPanelId}
+                  aria-controls={panelId}
                   onClick={() => setExpandedId(expanded ? null : attack.id)}
                 >
                   <span className="attack-identity">
@@ -213,31 +212,24 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
                   <strong className="attack-packet-count">{attack.packetCount}</strong>
                   <span className="attack-status">{attack.status}</span>
                   <time>{formatClock(attack.ts)}</time>
-                  <span className="attack-toggle-label">{expanded ? "Hide packets" : "View packets"}</span>
+                  <span className="attack-toggle-label">{expanded ? "Hide thread" : "View thread"}</span>
                 </button>
 
                 {expanded && (
-                  <div className="attack-packet-window" id={packetPanelId}>
-                    <div className="attack-packet-heading">
-                      <strong>Connected packet sample</strong>
-                      <span>{packets.length} of {attack.packetCount} packets</span>
+                  <div className="attack-thread" id={panelId}>
+                    <div className="attack-thread-heading">
+                      <strong>Devin response thread</strong>
+                      <span>{attack.events.length} steps · {displayRouterName(attack.nodeId)}</span>
                     </div>
-                    <div className="attack-packet-columns" aria-hidden="true">
-                      <span>Packet ID</span>
-                      <span>Router</span>
-                      <span>Frame</span>
-                      <span>Match</span>
-                    </div>
-                    <div className="attack-packet-list">
-                      {packets.map((packet) => (
-                        <div className="attack-packet-row" key={packet.id}>
-                          <code>{packet.id}</code>
-                          <span>{displayRouterName(packet.nodeId)}</span>
-                          <span>{packet.frameType}</span>
-                          <span>{packet.match}</span>
-                        </div>
+                    <ol className="attack-thread-list">
+                      {attack.events.map((ev) => (
+                        <li className="attack-thread-step" data-tone={ev.tone} key={ev.id}>
+                          <time>{formatClock(ev.ts)}</time>
+                          <span className="attack-thread-name">{EVENT_NAMES[ev.type]}</span>
+                          <span className="attack-thread-text">{displayRouterName(ev.text)}</span>
+                        </li>
                       ))}
-                    </div>
+                    </ol>
                   </div>
                 )}
               </article>

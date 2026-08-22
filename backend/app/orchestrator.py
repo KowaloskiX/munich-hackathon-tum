@@ -18,6 +18,7 @@ from .models import (
     AgentOut,
     AnomalyIn,
     EventType,
+    Heartbeat,
     LiveEvent,
     NodeState,
     OracleOut,
@@ -60,6 +61,12 @@ async def handle_anomaly(
 
     def on_step(msg: str) -> None:
         loop.call_soon_threadsafe(lambda: emit(EventType.AGENT_STEP, text=msg))
+
+    # Auto-register an unknown node so a fresh sniffer (or a manual /ingest)
+    # shows up in the fleet instead of an anomaly against a node nobody sees.
+    if node_id not in state.nodes:
+        state.apply_heartbeat(Heartbeat(node_id=node_id, timestamp=anomaly.timestamp))
+        emit(EventType.NODE_UP)
 
     state.set_node_state(node_id, NodeState.ALERT)
     emit(

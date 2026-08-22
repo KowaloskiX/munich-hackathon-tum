@@ -757,3 +757,72 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Per-incident agent thread (expanded attack row) */
+.attack-thread {
+  margin: 4px 0 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-low);
+}
+
+.attack-thread-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.attack-thread-heading strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.attack-thread-heading span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.attack-thread-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.attack-thread-step {
+  display: grid;
+  grid-template-columns: 74px 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--line-strong);
+}
+
+.attack-thread-step time {
+  color: var(--muted);
+  font-size: 10px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.attack-thread-name {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.attack-thread-text {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.attack-thread-step[data-tone="warn"] { border-left-color: var(--accent); }
+.attack-thread-step[data-tone="bad"] { border-left-color: var(--alert); }
+.attack-thread-step[data-tone="ok"] { border-left-color: #2f8f5b; }
+.attack-thread-step[data-tone="ok"] .attack-thread-name { color: #2f8f5b; }
+.attack-thread-step[data-tone="bad"] .attack-thread-name { color: var(--alert); }

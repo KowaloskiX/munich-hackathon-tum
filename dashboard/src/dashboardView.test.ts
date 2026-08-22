@@ -38,7 +38,8 @@ describe("dashboard attack views", () => {
   });
 
   it("groups an anomaly with its packet count, identity, and latest Devin status", () => {
-    expect(selectAttackHistory(timeline, null)[0]).toEqual({
+    const record = selectAttackHistory(timeline, null)[0];
+    expect(record).toMatchObject({
       id: 2,
       ts: 3,
       nodeId: "esp-01",
@@ -46,6 +47,8 @@ describe("dashboard attack views", () => {
       packetCount: 400,
       status: "Devin verifying",
     });
+    // its own thread, oldest -> newest, scoped to this incident's node
+    expect(record.events.map((e) => e.id)).toEqual([2, 3, 4]);
   });
 
   it("builds a bounded packet sample linked to an attack", () => {
