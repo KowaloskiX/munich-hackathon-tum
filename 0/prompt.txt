@@ -1,0 +1,18 @@
+can you research the structure in my repo and also the "skeleton-repo" i haave on my pc to gather some practical stuff and code practices, also maybe potentially interesting claude skills or sth
+
+---
+
+okej, to dorzuć te najważniejsze rzeczy (te mongo itp nie sa dla nas relewantne)
+
+---
+
+is everything verified properly now. list me key stuff that we added
+
+---
+
+mam odpalic dockera zeby wszystko zweryfikowane?
+
+---
+
+to co miales na mysli .github/workflows/ci.yml nigdy nie odpalony — brak pusha. Nieznane do pierwszego runu: czy astral-sh/setup-uv@v5 + make setup przechodzą na runnerze i czy ubuntu-latest ma clanga (krok clang --version jest właśnie po to, by padło czytelnie).
+Skille i komendy to markdown — treść sprawdzona ręcznie przeciw kodowi, ale nic jej nie wykonuje. Jeśli harness.c się zmieni, write-filter się rozjedzie po cichu.
