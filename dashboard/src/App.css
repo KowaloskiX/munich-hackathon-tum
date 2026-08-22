@@ -357,13 +357,14 @@ button {
 .frame-list {
   min-height: 0;
   flex: 1;
-  display: grid;
-  grid-auto-rows: minmax(52px, 1fr);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .frame-row {
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: 54px;
   align-items: center;
   padding: 9px 10px;
   border-top: 1px solid var(--line);
