@@ -71,15 +71,13 @@ function RouterBoard({ state }: { state: NodeView["state"] }) {
   );
 }
 
-function NodeCard({ node, active }: { node: NodeView; active: boolean }) {
+function NodeCard({ node }: { node: NodeView }) {
   const label = displayRouterName(node.label);
 
   return (
-    <button
+    <article
       className="sensor-card"
       data-state={node.state.toLowerCase()}
-      data-active={active || undefined}
-      type="button"
       aria-label={`${label}, ${node.state.toLowerCase()}, firmware ${node.fw_version}`}
     >
       <span className="sensor-card-top">
@@ -90,11 +88,11 @@ function NodeCard({ node, active }: { node: NodeView; active: boolean }) {
         <span className="sensor-state">{node.state}</span>
       </span>
       <RouterBoard state={node.state} />
-    </button>
+    </article>
   );
 }
 
-function SensorRail({ nodes, activeNode }: { nodes: NodeView[]; activeNode: string | null }) {
+function SensorRail({ nodes }: { nodes: NodeView[] }) {
   return (
     <section className="sensor-stage flow-card" aria-label="Router sensor rail">
       <div className="rail-wrap">
@@ -109,7 +107,7 @@ function SensorRail({ nodes, activeNode }: { nodes: NodeView[]; activeNode: stri
               <span>Waiting for sensor heartbeat</span>
             </div>
           ) : (
-            nodes.map((node) => <NodeCard key={node.node_id} node={node} active={node.node_id === activeNode} />)
+            nodes.map((node) => <NodeCard key={node.node_id} node={node} />)
           )}
         </div>
       </div>
@@ -267,7 +265,7 @@ export default function App() {
       </header>
 
       <main className="workspace">
-        <SensorRail nodes={nodes} activeNode={state.activeNode} />
+        <SensorRail nodes={nodes} />
         <FrameFeed timeline={state.timeline} />
         <section className="defense-workspace flow-card" aria-label="Attack history">
           <AttackHistory timeline={state.timeline} activeAttack={state.activeAttack} />

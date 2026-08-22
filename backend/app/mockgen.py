@@ -15,7 +15,7 @@ from .models import AnomalyIn, AnomalyStats, EventType, Heartbeat, HeartbeatStat
 from .orchestrator import handle_anomaly
 from .state import AppState
 
-FAKE_NODES = ["esp-01", "esp-02", "esp-03", "esp-04", "esp-05"]
+FAKE_NODES = ["esp-01", "esp-02"]
 
 DEAUTH_FRAMES = [
     "c0003a01ffffffffffff00112233445500112233445500700700",
