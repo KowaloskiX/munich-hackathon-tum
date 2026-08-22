@@ -248,6 +248,16 @@ body {
   font-size: 13px;
 }
 
+.agent-badge {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--blue);
+  background: rgba(74, 144, 217, 0.1);
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
 .pipe-note {
   margin-top: 14px;
   font-size: 11px;

@@ -8,6 +8,7 @@ export type EventType =
   | "NODE_DOWN"
   | "ANOMALY_DETECTED"
   | "AGENT_ANALYZING"
+  | "AGENT_STEP"
   | "FILTER_GENERATED"
   | "VERIFYING"
   | "VERIFY_FAILED"
@@ -64,6 +65,12 @@ export interface TimelineLine {
   tone: "info" | "warn" | "ok" | "bad";
 }
 
+export interface AgentInfo {
+  iterations: number | null;
+  self_tpr: number | null;
+  self_fpr: number | null;
+}
+
 export interface DashState {
   nodes: Record<string, NodeView>;
   counters: Counters;
@@ -71,5 +78,6 @@ export interface DashState {
   stage: Stage;
   activeNode: string | null;
   activeAttack: string | null;
+  agent: AgentInfo;
   seq: number;
 }

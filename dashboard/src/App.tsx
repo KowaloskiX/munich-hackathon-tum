@@ -83,8 +83,18 @@ export default function App() {
               );
             })}
           </div>
+          {state.agent.iterations !== null && (
+            <div className="agent-badge">
+              🤖 Devin worked in its sandbox: {state.agent.iterations} compile/test
+              {state.agent.iterations === 1 ? " cycle" : " cycles"}
+              {state.agent.self_tpr !== null && (
+                <> · self-test TPR {state.agent.self_tpr} / FPR {state.agent.self_fpr}</>
+              )}
+            </div>
+          )}
           <div className="pipe-note">
-            No human in the loop — deploy only after the oracle passes on held-out captures.
+            No human in the loop — deploy only after the <b>independent</b> oracle passes on
+            held-out captures (separate from Devin's own sandbox self-test).
           </div>
         </div>
       </section>

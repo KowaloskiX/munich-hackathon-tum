@@ -10,6 +10,7 @@ export const initialState: DashState = {
   stage: "idle",
   activeNode: null,
   activeAttack: null,
+  agent: { iterations: null, self_tpr: null, self_fpr: null },
   seq: 0,
 };
 
@@ -33,8 +34,12 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
       return { text: `⚠ ${node} anomaly — ${p.count ?? "?"} frames in window`, tone: "warn" };
     case "AGENT_ANALYZING":
       return { text: `${node} agent analyzing (attempt ${p.attempt ?? 1})`, tone: "info" };
-    case "FILTER_GENERATED":
-      return { text: `${node} filter generated → ${p.attack_class ?? "?"}`, tone: "info" };
+    case "AGENT_STEP":
+      return { text: `🤖 ${node} sandbox: ${p.text ?? ""}`, tone: "info" };
+    case "FILTER_GENERATED": {
+      const iters = p.iterations ? ` (${p.iterations} iters in sandbox)` : "";
+      return { text: `${node} filter generated → ${p.attack_class ?? "?"}${iters}`, tone: "info" };
+    }
     case "VERIFYING":
       return { text: `${node} verifying filter (replay test)`, tone: "info" };
     case "VERIFY_FAILED":
@@ -69,6 +74,7 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   const counters = { ...state.counters };
   let activeNode = state.activeNode;
   let activeAttack = state.activeAttack;
+  let agent = state.agent;
 
   switch (e.type) {
     case "NODE_UP":
@@ -93,9 +99,15 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
       nodes = setNodeState(state, e.node_id, "ALERT");
       counters.threats_detected += 1;
       activeNode = e.node_id;
+      agent = { iterations: null, self_tpr: null, self_fpr: null };
       break;
     case "FILTER_GENERATED":
       activeAttack = (e.payload.attack_class as string) ?? activeAttack;
+      agent = {
+        iterations: (e.payload.iterations as number) ?? null,
+        self_tpr: (e.payload.self_tpr as number) ?? null,
+        self_fpr: (e.payload.self_fpr as number) ?? null,
+      };
       break;
     case "OTA_DEPLOYING":
       nodes = setNodeState(state, e.node_id, "UPDATING");
@@ -126,5 +138,15 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   const line: TimelineLine = { id: state.seq, ts: e.ts, node_id: e.node_id, type: e.type, text, tone };
   const timeline = [line, ...state.timeline].slice(0, 60);
 
-  return { ...state, nodes, counters, timeline, stage, activeNode, activeAttack, seq: state.seq + 1 };
+  return {
+    ...state,
+    nodes,
+    counters,
+    timeline,
+    stage,
+    activeNode,
+    activeAttack,
+    agent,
+    seq: state.seq + 1,
+  };
 }

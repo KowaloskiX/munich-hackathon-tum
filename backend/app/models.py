@@ -24,6 +24,7 @@ class EventType(StrEnum):
     NODE_DOWN = "NODE_DOWN"
     ANOMALY_DETECTED = "ANOMALY_DETECTED"
     AGENT_ANALYZING = "AGENT_ANALYZING"
+    AGENT_STEP = "AGENT_STEP"
     FILTER_GENERATED = "FILTER_GENERATED"
     VERIFYING = "VERIFYING"
     VERIFY_FAILED = "VERIFY_FAILED"
@@ -77,6 +78,11 @@ class AgentOut(BaseModel):
     confidence: float
     filter_c_code: str
     explanation: str = ""
+    # Evidence the agent actually worked in its VM (write->compile->test->fix).
+    iterations: int = 0
+    compiled: bool | None = None
+    self_tpr: float | None = None
+    self_fpr: float | None = None
 
 
 # --- Contract 4: Backend <-> Oracle --------------------------------------

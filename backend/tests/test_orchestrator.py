@@ -52,6 +52,16 @@ def test_counters_advance():
     assert state.counters.frames_blocked > 0
 
 
+def test_agent_steps_and_iterations_surface():
+    _, state = _run_loop()
+    types = [e.type for e in state.events]
+    # The stub narrates its sandbox work -> AGENT_STEP events reach the stream.
+    assert EventType.AGENT_STEP in types
+    # FILTER_GENERATED carries the sandbox iteration count for the dashboard badge.
+    fg = next(e for e in state.events if e.type is EventType.FILTER_GENERATED)
+    assert "iterations" in fg.payload
+
+
 def test_default_agent_resolves_from_config():
     # agent_call=None -> get_agent() -> stub (conftest forces settings.agent=stub).
     state = AppState()
