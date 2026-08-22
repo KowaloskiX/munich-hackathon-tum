@@ -26,6 +26,10 @@ from .prompts import SAMPLE_ATTACK, STRUCTURED_OUTPUT_SCHEMA, build_devin_prompt
 
 StepFn = Callable[[str], None]
 
+# Prefix marking a heartbeat/progress step (the dashboard shows these as a live,
+# update-in-place status line rather than appending each to the timeline).
+_PROGRESS_PREFIX = "⏳"
+
 _FILTERS_DIR = Path(__file__).resolve().parent.parent / "oracle/filters"
 
 
@@ -202,7 +206,8 @@ class DevinAgent:
 
     def _poll(self, trace: tracing.Trace) -> Any:
         assert self._session_id is not None
-        deadline = time.monotonic() + settings.devin_timeout_s
+        start = time.monotonic()
+        deadline = start + settings.devin_timeout_s
         polls = 0
         while True:
             self._drain_messages()
@@ -215,6 +220,11 @@ class DevinAgent:
                 ):
                     pass
                 return session
+            # Constant heartbeat so the UI shows progress during the long wait.
+            if self._on_step is not None:
+                elapsed = int(time.monotonic() - start)
+                detail = session.status_detail or session.status or "working"
+                self._on_step(f"{_PROGRESS_PREFIX} Devin working {elapsed}s ({detail})")
             if session.is_dead:
                 raise DevinAgentError(
                     f"session {self._session_id} ended ({session.status}/"

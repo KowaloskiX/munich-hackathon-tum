@@ -79,5 +79,7 @@ export interface DashState {
   activeNode: string | null;
   activeAttack: string | null;
   agent: AgentInfo;
+  agentStatus: string | null; // live heartbeat while the agent works
+  error: string | null; // set when the agent is unreachable
   seq: number;
 }

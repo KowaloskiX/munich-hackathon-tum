@@ -41,9 +41,12 @@ def test_call_returns_filter_that_passes_oracle():
 def test_streams_sandbox_steps_and_parses_self_test():
     steps: list[str] = []
     out = DevinAgent(client=build_mock_client()).call(_payload(), on_step=steps.append)
-    # Devin's narration streamed once each (deduped by event_id across polls).
-    assert len(steps) == 2
-    assert any("compiled" in s for s in steps)
+    # Devin's narration streamed once each (deduped by event_id across polls);
+    # progress heartbeats (⏳) are separate and excluded here.
+    narration = [s for s in steps if not s.startswith("⏳")]
+    assert len(narration) == 2
+    assert any("compiled" in s for s in narration)
+    assert any(s.startswith("⏳") for s in steps)  # heartbeat present too
     # self-test evidence parsed from structured_output.
     assert out.iterations == 2
     assert out.self_tpr == 1.0

@@ -52,6 +52,23 @@ describe("reducer", () => {
     expect(s.timeline[0].text).toContain("compiled filter.c");
   });
 
+  it("shows progress as a live status without spamming the timeline", () => {
+    let s = reduce(initialState, snapshot);
+    const before = s.timeline.length;
+    s = reduce(s, ev("AGENT_STEP", "esp-01", { text: "⏳ Devin working 20s (working)" }));
+    expect(s.agentStatus).toContain("Devin working 20s");
+    expect(s.timeline.length).toBe(before); // not appended
+  });
+
+  it("surfaces an unreachable agent as a loud error", () => {
+    let s = reduce(initialState, snapshot);
+    s = reduce(s, ev("AGENT_STEP", "esp-01", { text: "agent unavailable: could not resolve host" }));
+    expect(s.error).toContain("unavailable");
+    // cleared when a fresh anomaly starts
+    s = reduce(s, ev("ANOMALY_DETECTED", "esp-01", { count: 1 }));
+    expect(s.error).toBeNull();
+  });
+
   it("captures Devin sandbox self-test from FILTER_GENERATED", () => {
     let s = reduce(initialState, snapshot);
     s = reduce(s, ev("ANOMALY_DETECTED", "esp-01", { count: 5 }));

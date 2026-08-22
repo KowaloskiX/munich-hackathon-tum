@@ -51,6 +51,10 @@ export default function App() {
         </div>
       </header>
 
+      {state.error && (
+        <div className="error-banner">⛔ Agent unreachable — {state.error}</div>
+      )}
+
       <section className="counters">
         <StatTile label="Active nodes" value={state.counters.active_nodes} />
         <StatTile label="Threats detected" value={state.counters.threats_detected} accent="#e0a53f" />
@@ -83,6 +87,7 @@ export default function App() {
               );
             })}
           </div>
+          {state.agentStatus && <div className="agent-status">{state.agentStatus}</div>}
           {state.agent.iterations !== null && (
             <div className="agent-badge">
               🤖 Devin worked in its sandbox: {state.agent.iterations} compile/test
