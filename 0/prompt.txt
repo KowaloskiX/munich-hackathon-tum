@@ -1487,3 +1487,36 @@ no ale jaką rolę pełni teraz to drugie repo?
 ---
 
 skonsoliduj i dorób widok "blocked at edge"
+
+---
+
+coś poszło nie tak ale nic tu nie widze na backend    connection open
+INFO:     127.0.0.1:64640 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64644 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64648 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64653 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64657 - "POST /ingest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64657 - "GET /firmware/esp-01 HTTP/1.1" 200 OK
