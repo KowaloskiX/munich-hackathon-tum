@@ -1,0 +1,99 @@
+ok -> no i co teraz? zakładając że jeszcze nie mamy nic -> od czego zacząć?
+
+---
+
+kurwa pytam po polsku zjebie
+
+---
+
+kurde -> ale w ogóle czy ten pomysł ma sens? czy może coś podobnego? bo możliwe że są już obecnie rzeczy robiące takie rzeczy i niekoniecznie jako ai agent loop itp?
+
+---
+
+zderz z alternatywami, inna domena
+
+---
+
+a czy ten zjeb devin będzie mógł jakoś na tym VM swoim itp zasymulować i serio zweryfikować czy poprawka/patch serio działa? itp ? czy jest to techincznie możliwe i jak
+
+---
+
+no to brzmi lepiej, Twój backend odpala oracle niezależnie => wracając do planu -> co teraz w sumie? od czego zacząć pierwsze stepy (zakładając że nikt jeszcze nie zaczął)
+
+---
+
+ok > to planuj w sumie od razu 1-5 dokładnie
+
+---
+
+dodaj do setpu lokalne rzeczy CI typu lint, type checking, unit testy itp -> i wymuś w agents.md / claude.md w tym repo to źeby agentci to opdalali
+
+---
+
+continue
+
+---
+
+już nic nie ma na portach -> teraz daj mi PR z tym wszystkim
+
+---
+
+a i jeszcze dodaj pydantic (też do .md dla agentów) żeby lepiej ten typing działał
+
+---
+
+a jest pre commit?
+
+---
+
+dobra nieważne -> co dalej ogólnie
+
+---
+
+no dobra to teraz możemy zająć się tym devinem -> jak to w ogóle kontrolować odpalać itp? robimy wcześniej czy co? da się to jakoś żeby lepiej kontrolować spiąć z rzeczami typu langgraph, langfuse itp? zrob research jeśli trzeba
+
+---
+
+ja muszę wymóg jest korzystać z tego devin na hackatonie -> wiec claude odpada -> ale rozumiem że jego mogę trackować na langfuse (mam jak coś running langfuse local)
+
+---
+
+kurde to będzie pitch 5 min na początku -> więc nie musi być full live demo na scenie
+
+---
+
+zaplanuj to dobrze przed implementacją -> żebym miał już initial werjsę jakąś standalone tego AI module z devin
+
+---
+
+on-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1●› 
+╰─$ uv run python -m app.agent_devin --fixtures  
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 222, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 193, in main
+    out = agent.call(payload)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 89, in call
+    session = self.client.create_session(
+        prompt, structured_output=STRUCTURED_OUTPUT_SPEC
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 60, in create_session
+    resp.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '403 Forbidden' for url 'https://api.devin.ai/v1/sessions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1●› 
+╰─$
+
+---
+
+no sprawdź bo coś nie działa
+
+---
+
+https://docs.devin.ai/api-reference/overview to moje jak coś to jest PAT
