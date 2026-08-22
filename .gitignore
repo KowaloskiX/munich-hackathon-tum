@@ -16,5 +16,10 @@ dashboard/.vite/
 *.out
 a.out
 
+# ESP lab credentials / local PlatformIO state
+esp-*/include/lab_secrets.h
+esp-*/.pio/
+esp-*/.vscode/
+
 # Editor / OS
 .DS_Store
