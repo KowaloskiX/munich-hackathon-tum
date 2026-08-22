@@ -30,21 +30,21 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
     case "NODE_DOWN":
       return { text: `${node} went offline`, tone: "bad" };
     case "ANOMALY_DETECTED":
-      return { text: `⚠ ${node} anomaly — ${p.count ?? "?"} frames in window`, tone: "warn" };
+      return { text: `${node} anomaly — ${p.count ?? "?"} frames in window`, tone: "warn" };
     case "AGENT_ANALYZING":
       return { text: `${node} agent analyzing (attempt ${p.attempt ?? 1})`, tone: "info" };
     case "FILTER_GENERATED":
-      return { text: `${node} filter generated → ${p.attack_class ?? "?"}`, tone: "info" };
+      return { text: `${node} filter generated — ${p.attack_class ?? "?"}`, tone: "info" };
     case "VERIFYING":
       return { text: `${node} verifying filter (replay test)`, tone: "info" };
     case "VERIFY_FAILED":
       return { text: `${node} verify FAILED ${p.tests ?? ""} (fpr=${p.fpr ?? "?"})`, tone: "bad" };
     case "VERIFY_PASSED":
-      return { text: `${node} verify PASSED ${p.tests ?? ""} ✓`, tone: "ok" };
+      return { text: `${node} verify PASSED ${p.tests ?? ""}`, tone: "ok" };
     case "OTA_DEPLOYING":
-      return { text: `${node} deploying filter OTA…`, tone: "info" };
+      return { text: `${node} deploying filter OTA`, tone: "info" };
     case "DEPLOYED":
-      return { text: `${node} PROTECTED — ${p.attack_class ?? "filter"} deployed ✓`, tone: "ok" };
+      return { text: `${node} PROTECTED — ${p.attack_class ?? "filter"} deployed`, tone: "ok" };
     case "FRAME_BLOCKED":
       return { text: `${node} blocked ${p.count ?? 1} attack frames`, tone: "ok" };
     default:
