@@ -50,3 +50,16 @@ def test_counters_advance():
     assert state.counters.threats_detected == 1
     assert state.counters.filters_deployed == 1
     assert state.counters.frames_blocked > 0
+
+
+def test_default_agent_resolves_from_config():
+    # agent_call=None -> get_agent() -> stub (conftest forces settings.agent=stub).
+    state = AppState()
+    anomaly = AnomalyIn(
+        node_id="esp-09",
+        timestamp=1.0,
+        frame_hex=DEAUTH,
+        anomaly_stats=AnomalyStats(subtype=12, count_in_window=200),
+    )
+    deployed = asyncio.run(handle_anomaly(state, anomaly, step_delay=0.0, sleep=_nosleep))
+    assert deployed is True
