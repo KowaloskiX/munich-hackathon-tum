@@ -85,19 +85,42 @@ class DevinClient:
         self,
         prompt: str,
         structured_output_schema: dict[str, Any] | None = None,
+        *,
+        attachment_urls: list[str] | None = None,
+        title: str | None = None,
+        tags: list[str] | None = None,
+        max_acu_limit: float | None = None,
+        bypass_approval: bool | None = None,
     ) -> DevinSession:
         body: dict[str, Any] = {
             "prompt": prompt,
             "resumable": settings.devin_resumable,
         }
-        if settings.devin_max_acu_limit:
-            body["max_acu_limit"] = settings.devin_max_acu_limit
+        acu_limit = settings.devin_max_acu_limit if max_acu_limit is None else max_acu_limit
+        if acu_limit:
+            body["max_acu_limit"] = acu_limit
+        if attachment_urls:
+            body["attachment_urls"] = attachment_urls
+        if title:
+            body["title"] = title
+        if tags:
+            body["tags"] = tags
+        if bypass_approval is not None:
+            body["bypass_approval"] = bypass_approval
         if structured_output_schema:
             body["structured_output_required"] = True
             body["structured_output_schema"] = structured_output_schema
         resp = self._client.post(self._sessions_base(), json=body)
         resp.raise_for_status()
         return DevinSession.model_validate(resp.json())
+
+    def upload_attachment(self, name: str, content: bytes, content_type: str) -> str:
+        resp = self._client.post(
+            f"/organizations/{self.org_id}/attachments",
+            files={"file": (name, content, content_type)},
+        )
+        resp.raise_for_status()
+        return str(resp.json()["url"])
 
     def get_session(self, session_id: str) -> DevinSession:
         resp = self._client.get(f"{self._sessions_base()}/{session_id}")

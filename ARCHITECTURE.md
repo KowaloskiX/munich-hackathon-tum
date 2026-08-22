@@ -210,6 +210,47 @@ Event types: `NODE_UP, NODE_DOWN, ANOMALY_DETECTED, AGENT_ANALYZING, FILTER_GENE
 
 ---
 
+### Contract 5 — Gmail threat review
+
+Email security is isolated from the frozen ESP event stream. Gmail emits mailbox history IDs through
+Cloud Pub/Sub; the backend resolves added messages, persists a durable analysis record, and emits a
+dedicated `/v1/email/live` event.
+
+```json
+{
+  "type": "EMAIL_FLAGGED",
+  "analysis_id": 42,
+  "ts": 1690000000.5,
+  "message": "Potential credential phishing requires review"
+}
+```
+
+Analysis state: `QUEUED → ANALYZING → CLEAR | PENDING_REVIEW | FAILED → REVIEWED`.
+Agent verdict: `CLEAR | FLAGGED | INCONCLUSIVE`. `FLAGGED` and `INCONCLUSIVE` require a human
+decision; no email is deleted, moved, or reported as Spam automatically.
+
+`GET /v1/email/messages?limit=50&page_token=...` browses Gmail history in 1–50 message pages and
+returns `next_page_token`, independently of the automatic monitoring mode. `POST /v1/email/import`
+accepts either selected Gmail IDs as
+`{ "message_ids": ["abc"], "limit": null }` or a no-preview quick import as
+`{ "message_ids": [], "limit": 10 }`. It returns
+`{ "scanned": 1, "imported": 1, "duplicates": 0 }`. Imported Gmail message IDs use the same
+durable deduplication and analysis queue as push events; quick import skips full Gmail downloads
+for IDs already present in the queue.
+
+```mermaid
+flowchart LR
+    GM["Gmail users.watch"] --> PS["Pub/Sub pull"]
+    PS --> HS["history.list + dedupe"]
+    HS --> DB["encrypted SQLite queue"]
+    DB --> DV["Devin triage / investigation"]
+    DV --> ER["evidence report"]
+    ER --> UI["human review"]
+    UI --> GL["Sentinel Gmail labels"]
+```
+
+---
+
 ## 5. Backend — build order (so you never block on the team)
 
 ```mermaid

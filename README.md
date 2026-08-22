@@ -7,6 +7,7 @@ authoritative aggregate state as `BEZPIECZNIE`, `ATAK` or `BRAK DANYCH`.
 Full design: [ARCHITECTURE.md](ARCHITECTURE.md). Rules for humans and agents:
 [AGENTS.md](AGENTS.md). ESP-specific validation is documented in
 [docs/ESP_ARCHITECTURE_REVIEW.md](docs/ESP_ARCHITECTURE_REVIEW.md).
+Gmail + Devin setup is documented in [docs/GMAIL_SETUP.md](docs/GMAIL_SETUP.md).
 
 ## Quickstart
 

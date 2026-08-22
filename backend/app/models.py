@@ -6,9 +6,9 @@ Do NOT change a contract without updating both sides + the mock.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class NodeState(StrEnum):
@@ -121,3 +121,281 @@ class Counters(BaseModel):
 class FleetSnapshot(BaseModel):
     nodes: list[NodeView]
     counters: Counters
+
+
+# --- Gmail threat review -------------------------------------------------
+class EmailMonitoringMode(StrEnum):
+    ALL = "ALL"
+    SELECTED = "SELECTED"
+
+
+class EmailAnalysisStatus(StrEnum):
+    QUEUED = "QUEUED"
+    ANALYZING = "ANALYZING"
+    CLEAR = "CLEAR"
+    PENDING_REVIEW = "PENDING_REVIEW"
+    FAILED = "FAILED"
+    REVIEWED = "REVIEWED"
+
+
+class EmailVerdict(StrEnum):
+    CLEAR = "CLEAR"
+    FLAGGED = "FLAGGED"
+    INCONCLUSIVE = "INCONCLUSIVE"
+
+
+class EmailReviewDecision(StrEnum):
+    CONFIRMED_DANGEROUS = "CONFIRMED_DANGEROUS"
+    NOT_DANGEROUS = "NOT_DANGEROUS"
+
+
+class EmailEventType(StrEnum):
+    RECEIVED = "EMAIL_RECEIVED"
+    ANALYSIS_STARTED = "EMAIL_ANALYSIS_STARTED"
+    ANALYSIS_COMPLETED = "EMAIL_ANALYSIS_COMPLETED"
+    FLAGGED = "EMAIL_FLAGGED"
+    FAILED = "EMAIL_ANALYSIS_FAILED"
+    REVIEWED = "EMAIL_REVIEWED"
+    CONNECTION_CHANGED = "GMAIL_CONNECTION_CHANGED"
+
+
+class EmailLabels(BaseModel):
+    scan: str = ""
+    pending_review: str = ""
+    confirmed_dangerous: str = ""
+    not_dangerous: str = ""
+
+
+class EmailConnectionStatus(BaseModel):
+    connected: bool
+    email: str | None = None
+    mode: EmailMonitoringMode = EmailMonitoringMode.ALL
+    watch_expiration: float | None = None
+    last_sync: float | None = None
+    labels: EmailLabels = Field(default_factory=EmailLabels)
+    csrf_token: str | None = None
+
+
+class EmailSettingsUpdate(BaseModel):
+    mode: EmailMonitoringMode
+
+
+class ThreatReason(BaseModel):
+    category: str
+    severity: str
+    evidence: str
+    artifact_ref: str | None = None
+
+
+class ThreatCheck(BaseModel):
+    artifact: str
+    action: str
+    result: str
+    why: str
+
+
+class ThreatReport(BaseModel):
+    verdict: EmailVerdict
+    risk_score: int = Field(ge=0, le=100)
+    confidence: float = Field(ge=0.0, le=1.0)
+    summary: str
+    reasons: list[ThreatReason] = Field(default_factory=list)
+    checks: list[ThreatCheck] = Field(default_factory=list)
+    recommended_actions: list[str] = Field(default_factory=list)
+
+
+class EmailTriagePlan(BaseModel):
+    complete: bool
+    requested_link_ids: list[str] = Field(default_factory=list)
+    requested_attachment_ids: list[str] = Field(default_factory=list)
+    report: ThreatReport | None = None
+
+
+class EmailAttachment(BaseModel):
+    id: str
+    filename: str
+    mime_type: str
+    size: int
+    sha256: str = ""
+
+
+class EmailLink(BaseModel):
+    id: str
+    url: str
+    host: str
+    display: str = ""
+
+
+class EmailPayload(BaseModel):
+    gmail_message_id: str
+    gmail_thread_id: str
+    from_address: str
+    reply_to: str = ""
+    return_path: str = ""
+    to_addresses: list[str] = Field(default_factory=list)
+    cc_addresses: list[str] = Field(default_factory=list)
+    subject: str
+    received_at: float
+    snippet: str
+    body: str
+    authentication_results: str = ""
+    links: list[EmailLink] = Field(default_factory=list)
+    attachments: list[EmailAttachment] = Field(default_factory=list)
+    truncated: bool = False
+
+
+class EmailAnalysisSummary(BaseModel):
+    id: int
+    gmail_message_id: str
+    from_address: str
+    subject: str
+    snippet: str
+    received_at: float
+    status: EmailAnalysisStatus
+    verdict: EmailVerdict | None = None
+    risk_score: int | None = None
+    review_decision: EmailReviewDecision | None = None
+
+
+class EmailAnalysisDetail(EmailAnalysisSummary):
+    report: ThreatReport | None = None
+    devin_session_url: str | None = None
+    error: str | None = None
+
+
+class EmailAnalysisList(BaseModel):
+    items: list[EmailAnalysisSummary]
+    next_cursor: int | None = None
+
+
+GmailMessageId = Annotated[str, Field(min_length=1, max_length=256, pattern=r"^[A-Za-z0-9_-]+$")]
+
+
+class EmailMessagePreview(BaseModel):
+    gmail_message_id: str
+    from_address: str
+    subject: str
+    snippet: str
+    received_at: float
+    already_imported: bool
+
+
+class EmailMessagePreviewList(BaseModel):
+    items: list[EmailMessagePreview]
+    next_page_token: str | None = None
+
+
+class EmailImportRequest(BaseModel):
+    message_ids: list[GmailMessageId] = Field(default_factory=list, max_length=50)
+    limit: int | None = Field(default=None, ge=1, le=50)
+
+    @model_validator(mode="after")
+    def exactly_one_import_source(self) -> EmailImportRequest:
+        if bool(self.message_ids) == (self.limit is not None):
+            raise ValueError("provide exactly one of message_ids or limit")
+        return self
+
+
+class EmailImportResult(BaseModel):
+    scanned: int
+    imported: int
+    duplicates: int
+
+
+class EmailReviewRequest(BaseModel):
+    decision: EmailReviewDecision
+
+
+class EmailLiveEvent(BaseModel):
+    type: EmailEventType
+    analysis_id: int | None = None
+    ts: float
+    message: str
+
+
+class GmailNotification(BaseModel):
+    emailAddress: str
+    historyId: str
+
+
+class GmailWatchResponse(BaseModel):
+    historyId: str
+    expiration: str
+
+
+class GmailTokenResponse(BaseModel):
+    access_token: str
+    expires_in: int
+    refresh_token: str | None = None
+
+
+class GmailProfile(BaseModel):
+    emailAddress: str
+
+
+class GmailLabel(BaseModel):
+    id: str
+    name: str
+
+
+class GmailLabelList(BaseModel):
+    labels: list[GmailLabel] = Field(default_factory=list)
+
+
+class GmailMessageRef(BaseModel):
+    id: str
+    threadId: str = ""
+
+
+class GmailMessageAdded(BaseModel):
+    message: GmailMessageRef
+
+
+class GmailMessageList(BaseModel):
+    messages: list[GmailMessageRef] = Field(default_factory=list)
+    nextPageToken: str | None = None
+
+
+class GmailHistoryRecord(BaseModel):
+    id: str
+    messagesAdded: list[GmailMessageAdded] = Field(default_factory=list)
+
+
+class GmailHistoryResponse(BaseModel):
+    history: list[GmailHistoryRecord] = Field(default_factory=list)
+    nextPageToken: str | None = None
+    historyId: str | None = None
+
+
+class GmailHeader(BaseModel):
+    name: str
+    value: str
+
+
+class GmailBody(BaseModel):
+    attachmentId: str | None = None
+    size: int = 0
+    data: str | None = None
+
+
+class GmailPart(BaseModel):
+    partId: str = ""
+    mimeType: str = ""
+    filename: str = ""
+    headers: list[GmailHeader] = Field(default_factory=list)
+    body: GmailBody = Field(default_factory=GmailBody)
+    parts: list[GmailPart] = Field(default_factory=list)
+
+
+class GmailMessage(BaseModel):
+    id: str
+    threadId: str
+    labelIds: list[str] = Field(default_factory=list)
+    snippet: str = ""
+    internalDate: str = "0"
+    payload: GmailPart
+
+
+class GmailAttachmentData(BaseModel):
+    data: str
+    size: int = 0

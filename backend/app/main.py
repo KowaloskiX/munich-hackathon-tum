@@ -20,6 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import mockgen
 from .config import settings
+from .email_routes import router as email_router
+from .email_service import get_email_service
 from .hmi import HmiStatus, HmiStream
 from .models import AnomalyIn, EventType, FleetSnapshot, Heartbeat, LiveEvent
 from .orchestrator import handle_anomaly
@@ -44,27 +46,37 @@ async def _offline_sweeper() -> None:
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     tasks: list[asyncio.Task[None]] = [asyncio.create_task(_offline_sweeper())]
+    email_service = None
     if _flag("MOCK_HEARTBEAT"):
         tasks.append(asyncio.create_task(mockgen.heartbeat_loop(state)))
     # With a real agent (devin), don't auto-fire synthetic anomalies — each one
     # is a real multi-minute session. Trigger anomalies manually via POST /ingest.
     if _flag("MOCK_ANOMALY") and settings.agent != "devin":
         tasks.append(asyncio.create_task(mockgen.anomaly_loop(state)))
+    if settings.email_security_enabled:
+        email_service = get_email_service()
+        tasks.append(asyncio.create_task(email_service.worker_loop()))
+        tasks.append(asyncio.create_task(email_service.maintenance_loop()))
+        email_service.start_subscriber(asyncio.get_running_loop())
     try:
         yield
     finally:
         for t in tasks:
             t.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        if email_service is not None:
+            email_service.stop_subscriber()
 
 
 app = FastAPI(title="Autonomous Anomaly Defense", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(email_router)
 
 
 @app.get("/health")

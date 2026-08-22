@@ -2,6 +2,7 @@ import "./App.css";
 
 import { useState } from "react";
 
+import { EmailSecurity } from "./EmailSecurity";
 import { selectAttackHistory, selectAttackPackets, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
 import type { NodeView, TimelineLine } from "./types";
@@ -250,27 +251,32 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
 
 export default function App() {
   const { state } = useLive();
+  const [view, setView] = useState<"network" | "email">("network");
   const nodes = Object.values(state.nodes).sort((a, b) => a.node_id.localeCompare(b.node_id));
 
   return (
     <div className="dashboard-shell">
       <header className="topbar">
         <Wordmark />
-        <div className="topbar-metrics" role="group" aria-label="Fleet totals">
+        {view === "network" ? <div className="topbar-metrics" role="group" aria-label="Fleet totals">
           <div><strong>{state.counters.active_nodes}</strong><span>nodes</span></div>
           <div><strong>{state.counters.threats_detected}</strong><span>threats</span></div>
           <div><strong>{state.counters.filters_deployed}</strong><span>filters</span></div>
           <div><strong>{compactNumber(state.counters.frames_blocked)}</strong><span>blocked</span></div>
-        </div>
+        </div> : <div className="topbar-section-title">EMAIL SECURITY</div>}
+        <nav className="workspace-nav" aria-label="Security workspace">
+          <button type="button" data-active={view === "network" || undefined} onClick={() => setView("network")}>Network</button>
+          <button type="button" data-active={view === "email" || undefined} onClick={() => setView("email")}>Email</button>
+        </nav>
       </header>
 
-      <main className="workspace">
+      {view === "email" ? <EmailSecurity /> : <main className="workspace">
         <SensorRail nodes={nodes} />
         <FrameFeed timeline={state.timeline} />
         <section className="defense-workspace flow-card" aria-label="Attack history">
           <AttackHistory timeline={state.timeline} activeAttack={state.activeAttack} />
         </section>
-      </main>
+      </main>}
     </div>
   );
 }

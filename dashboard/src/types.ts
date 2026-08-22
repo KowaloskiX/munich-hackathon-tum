@@ -73,3 +73,131 @@ export interface DashState {
   activeAttack: string | null;
   seq: number;
 }
+
+export type EmailMonitoringMode = "ALL" | "SELECTED";
+export type EmailAnalysisStatus = "QUEUED" | "ANALYZING" | "CLEAR" | "PENDING_REVIEW" | "FAILED" | "REVIEWED";
+export type EmailVerdict = "CLEAR" | "FLAGGED" | "INCONCLUSIVE";
+export type EmailReviewDecision = "CONFIRMED_DANGEROUS" | "NOT_DANGEROUS";
+export type EmailEventType =
+  | "EMAIL_RECEIVED"
+  | "EMAIL_ANALYSIS_STARTED"
+  | "EMAIL_ANALYSIS_COMPLETED"
+  | "EMAIL_FLAGGED"
+  | "EMAIL_ANALYSIS_FAILED"
+  | "EMAIL_REVIEWED"
+  | "GMAIL_CONNECTION_CHANGED";
+
+export interface EmailLabels {
+  scan: string;
+  pending_review: string;
+  confirmed_dangerous: string;
+  not_dangerous: string;
+}
+
+export interface EmailConnectionStatus {
+  connected: boolean;
+  email: string | null;
+  mode: EmailMonitoringMode;
+  watch_expiration: number | null;
+  last_sync: number | null;
+  labels: EmailLabels;
+  csrf_token: string | null;
+}
+
+export interface EmailSettingsUpdate {
+  mode: EmailMonitoringMode;
+}
+
+export interface ThreatReason {
+  category: string;
+  severity: string;
+  evidence: string;
+  artifact_ref: string | null;
+}
+
+export interface ThreatCheck {
+  artifact: string;
+  action: string;
+  result: string;
+  why: string;
+}
+
+export interface ThreatReport {
+  verdict: EmailVerdict;
+  risk_score: number;
+  confidence: number;
+  summary: string;
+  reasons: ThreatReason[];
+  checks: ThreatCheck[];
+  recommended_actions: string[];
+}
+
+export interface EmailAnalysisSummary {
+  id: number;
+  gmail_message_id: string;
+  from_address: string;
+  subject: string;
+  snippet: string;
+  received_at: number;
+  status: EmailAnalysisStatus;
+  verdict: EmailVerdict | null;
+  risk_score: number | null;
+  review_decision: EmailReviewDecision | null;
+}
+
+export interface EmailAnalysisDetail {
+  id: number;
+  gmail_message_id: string;
+  from_address: string;
+  subject: string;
+  snippet: string;
+  received_at: number;
+  status: EmailAnalysisStatus;
+  verdict: EmailVerdict | null;
+  risk_score: number | null;
+  review_decision: EmailReviewDecision | null;
+  report: ThreatReport | null;
+  devin_session_url: string | null;
+  error: string | null;
+}
+
+export interface EmailAnalysisList {
+  items: EmailAnalysisSummary[];
+  next_cursor: number | null;
+}
+
+export interface EmailMessagePreview {
+  gmail_message_id: string;
+  from_address: string;
+  subject: string;
+  snippet: string;
+  received_at: number;
+  already_imported: boolean;
+}
+
+export interface EmailMessagePreviewList {
+  items: EmailMessagePreview[];
+  next_page_token: string | null;
+}
+
+export interface EmailImportRequest {
+  message_ids: string[];
+  limit: number | null;
+}
+
+export interface EmailImportResult {
+  scanned: number;
+  imported: number;
+  duplicates: number;
+}
+
+export interface EmailReviewRequest {
+  decision: EmailReviewDecision;
+}
+
+export interface EmailLiveEvent {
+  type: EmailEventType;
+  analysis_id: number | null;
+  ts: number;
+  message: string;
+}

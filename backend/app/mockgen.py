@@ -11,7 +11,16 @@ import asyncio
 import random
 import time
 
-from .models import AnomalyIn, AnomalyStats, EventType, Heartbeat, HeartbeatStats, LiveEvent
+from .models import (
+    AnomalyIn,
+    AnomalyStats,
+    EmailEventType,
+    EmailLiveEvent,
+    EventType,
+    Heartbeat,
+    HeartbeatStats,
+    LiveEvent,
+)
 from .orchestrator import handle_anomaly
 from .state import AppState
 
@@ -22,6 +31,16 @@ DEAUTH_FRAMES = [
     "c0003a01aabbccddeeff00112233445500112233445500800700",
     "a0003a01ffffffffffff00112233445500112233445500900800",
 ]
+
+
+def sample_email_event() -> EmailLiveEvent:
+    """Typed mock for the dedicated email dashboard contract."""
+    return EmailLiveEvent(
+        type=EmailEventType.FLAGGED,
+        analysis_id=1,
+        ts=time.time(),
+        message="Potential phishing email requires review",
+    )
 
 
 async def heartbeat_loop(state: AppState, *, period: float = 3.0) -> None:
