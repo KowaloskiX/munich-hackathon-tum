@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
+from functools import partial
 
 from .agents import get_agent
 from .models import (
@@ -17,6 +18,7 @@ from .models import (
     AgentOut,
     AnomalyIn,
     EventType,
+    Heartbeat,
     LiveEvent,
     NodeState,
     OracleOut,
@@ -26,7 +28,7 @@ from .state import AppState
 
 MAX_RETRIES = 2
 
-AgentFn = Callable[[AgentIn], AgentOut]
+AgentFn = Callable[..., AgentOut]  # (AgentIn, on_step=None) -> AgentOut
 OracleFn = Callable[[str], OracleOut]
 
 
@@ -53,6 +55,19 @@ async def handle_anomaly(
     def emit(etype: EventType, **payload: object) -> None:
         state.emit(LiveEvent(type=etype, node_id=node_id, ts=time.time(), payload=payload))
 
+    # The agent runs in a worker thread (to_thread); marshal its narration back
+    # onto the loop thread before touching the (non-thread-safe) event queue.
+    loop = asyncio.get_running_loop()
+
+    def on_step(msg: str) -> None:
+        loop.call_soon_threadsafe(lambda: emit(EventType.AGENT_STEP, text=msg))
+
+    # Auto-register an unknown node so a fresh sniffer (or a manual /ingest)
+    # shows up in the fleet instead of an anomaly against a node nobody sees.
+    if node_id not in state.nodes:
+        state.apply_heartbeat(Heartbeat(node_id=node_id, timestamp=anomaly.timestamp))
+        emit(EventType.NODE_UP)
+
     state.set_node_state(node_id, NodeState.ALERT)
     emit(
         EventType.ANOMALY_DETECTED,
@@ -68,11 +83,20 @@ async def handle_anomaly(
     for attempt in range(max_retries + 1):
         await sleep(step_delay)
         emit(EventType.AGENT_ANALYZING, attempt=attempt + 1)
-        agent_out = await asyncio.to_thread(agent_call, agent_in)
+        try:
+            agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+        except Exception as exc:
+            emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
+            state.set_node_state(node_id, NodeState.ALERT)
+            return False
         emit(
             EventType.FILTER_GENERATED,
             attack_class=agent_out.attack_class,
             confidence=agent_out.confidence,
+            iterations=agent_out.iterations,
+            self_tpr=agent_out.self_tpr,
+            self_fpr=agent_out.self_fpr,
+            compiled=agent_out.compiled,
         )
 
         await sleep(step_delay)

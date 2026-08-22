@@ -44,4 +44,46 @@ describe("reducer", () => {
     expect(s.nodes["esp-01"].state).toBe("OFFLINE");
     expect(s.counters.active_nodes).toBe(0);
   });
+
+  it("streams AGENT_STEP into the timeline as sandbox activity", () => {
+    let s = reduce(initialState, snapshot);
+    s = reduce(s, ev("AGENT_STEP", "esp-01", { text: "compiled filter.c with gcc" }));
+    expect(s.timeline[0].text).toContain("sandbox");
+    expect(s.timeline[0].text).toContain("compiled filter.c");
+  });
+
+  it("shows progress as a live status without spamming the timeline", () => {
+    let s = reduce(initialState, snapshot);
+    const before = s.timeline.length;
+    s = reduce(s, ev("AGENT_STEP", "esp-01", { text: "⏳ Devin working 20s (working)" }));
+    expect(s.agentStatus).toContain("Devin working 20s");
+    expect(s.timeline.length).toBe(before); // not appended
+  });
+
+  it("surfaces an unreachable agent as a loud error", () => {
+    let s = reduce(initialState, snapshot);
+    s = reduce(s, ev("AGENT_STEP", "esp-01", { text: "agent unavailable: could not resolve host" }));
+    expect(s.error).toContain("unavailable");
+    // cleared when a fresh anomaly starts
+    s = reduce(s, ev("ANOMALY_DETECTED", "esp-01", { count: 1 }));
+    expect(s.error).toBeNull();
+  });
+
+  it("captures Devin sandbox self-test from FILTER_GENERATED", () => {
+    let s = reduce(initialState, snapshot);
+    s = reduce(s, ev("ANOMALY_DETECTED", "esp-01", { count: 5 }));
+    expect(s.agent.iterations).toBeNull(); // reset when a new anomaly starts
+    s = reduce(
+      s,
+      ev("FILTER_GENERATED", "esp-01", {
+        attack_class: "deauth_flood",
+        iterations: 3,
+        self_tpr: 1.0,
+        self_fpr: 0.0,
+      }),
+    );
+    expect(s.agent.iterations).toBe(3);
+    expect(s.agent.self_tpr).toBe(1.0);
+    expect(s.activeAttack).toBe("deauth_flood");
+  });
 });

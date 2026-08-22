@@ -11,7 +11,7 @@ from .agent_stub import call_agent as _stub_call
 from .config import settings
 from .models import AgentIn, AgentOut
 
-AgentFn = Callable[[AgentIn], AgentOut]
+AgentFn = Callable[..., AgentOut]  # (AgentIn, on_step=None) -> AgentOut
 
 
 @lru_cache(maxsize=1)

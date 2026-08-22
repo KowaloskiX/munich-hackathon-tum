@@ -91,10 +91,16 @@ async def post_heartbeat(hb: Heartbeat) -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _log_task_error(task: asyncio.Task[bool]) -> None:
+    if not task.cancelled() and (exc := task.exception()) is not None:
+        print(f"[ingest] handle_anomaly crashed: {exc!r}")
+
+
 @app.post("/ingest")
 async def post_ingest(anomaly: AnomalyIn) -> dict[str, str]:
     # Fire and forget: the loop drives itself and streams progress over WS.
-    asyncio.create_task(handle_anomaly(state, anomaly))  # noqa: RUF006
+    task = asyncio.create_task(handle_anomaly(state, anomaly))
+    task.add_done_callback(_log_task_error)
     return {"status": "accepted"}
 
 
