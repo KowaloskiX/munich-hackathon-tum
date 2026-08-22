@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NV72YRFHSNHE6D1C2YJX7D",
+  "session_id": "6b5899a1-5f05-4006-affb-49bb977848b6",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T22:59:44.379176Z",
+  "branch": "claude/edge-demo-doc",
+  "checkpoints_count": 6,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-8",
+  "turn_id": "94e5e0cbc5ea",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1358,
+    "cache_creation_tokens": 1044364,
+    "cache_read_tokens": 229795552,
+    "output_tokens": 598215,
+    "api_call_count": 682
+  },
+  "session_metrics": {
+    "turn_count": 48
+  }
+}
