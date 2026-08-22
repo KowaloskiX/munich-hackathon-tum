@@ -1,0 +1,130 @@
+mam to
+O, teraz gadamy — kolega z teamu (Igor?) trafił w coś mocnego. To jest jakościowo lepsze niż wszystko, co ci dawałem, i wiem dlaczego: ESP nie jest tu doklejone. Jest sercem — rozproszone tanie czujniki + agent jako „centrum inżynieryjne". To jest ta teza „daj branży inżyniera", tylko dobrze zrobiona. Dorzucam szczerą ocenę i rozwinięcie, bo nie wszystko w tym dokumencie jest równie realne na 48h.
+Twardo, który z trzech jest najlepszy pod hackathon:
+Idea 1 (cyber OT/ICS) — najlepsza narracja, najtrudniejsza technicznie. „Zero-day łatany OTA w czasie rzeczywistym" brzmi rewelacyjnie w pitchu. Ale w 48h najtrudniejsza: sniffowanie raw 2.4GHz w promiscuous mode, reverse-engineering payloadu, generacja filtra C++, kompilacja, OTA na rój — to pięć trudnych klocków w łańcuchu, gdzie każdy może paść. Ryzyko: nie dowieziecie pętli i zostanie ładny slajd.
+Idea 2 (predictive QA / defekty) — moim zdaniem najlepszy fit na hackathon. Bo ma coś, czego tamtym brakuje: wbudowaną, czystą weryfikację, która nie jest naciągana. Operator taguje GOOD/DEFECT na ekranie → to są etykiety prawdy → agent trenuje model → i od razu wiadomo, czy model jest dobry: accuracy na danych testowych. To jest ten „oracle", o który się wcześniej wykłócałem, tylko tu wychodzi naturalnie z problemu, nie na siłę. Plus łańcuch jest krótszy i każdy krok da się pokazać. Ekran dotykowy ma realną rolę (HMI do tagowania). To bym stawiał jako główny kandydat.
+Idea 3 (energy grid) — najambitniejsza, najmniej demowalna na scenie. Optymalizacja pod ceny prądu i pogodę jest super jako biznes, ale trudno pokazać „na żywo" w 2 dni, i weryfikacja („czy strategia optymalna") jest miękka. Odłożyłbym.
+Teraz jedna rzecz, którą musisz świadomie rozstrzygnąć w każdym z nich, bo dokument to trochę zamiata:
+Czy agent generuje FIRMWARE (pisze C++/model, kompiluje, OTA), czy agent ANALIZUJE i DECYDUJE? To wraca do tego, co sam mówiłeś — agent nie musi pisać kodu. W Idei 2 masz oba warianty:
+
+* Wariant „Devin pisze kod": agent trenuje model, generuje TFLite-micro, kompiluje, OTA na ESP. Bardziej „na temat Cognition" (output = kod), ale więcej klocków = więcej ryzyka.
+* Wariant „agent tylko analizuje": dane z ESP → agent w chmurze klasyfikuje/wykrywa defekt na żywo → decyzja wraca na ESP (zwolnij maszynę / flaga). Prostsze, pewniejsze na 48h, ale mniej „inżynier w pętli".
+
+Na hackathon Cognition postawiłbym na wersję z kodem, ale zredukowaną: nie generujcie całego custom RNN. Niech agent na oznaczonych danych dobierze/wygeneruje prosty klasyfikator (albo wygeneruje kod cech + próg), zwaliduje go na held-out danych (to jest wasza weryfikacja: accuracy > próg), i to jest artefakt. OTA możecie pokazać na jednej płytce, nie mówić że na 500.
+Parę analogicznych pomysłów w tym samym duchu „rozproszone ESP + agent-inżynier", gdyby coś z tych trzech nie siadło:
+Agent-akustyk maszyn: ESP z mikrofonami słuchają hałasu maszyn, operator taguje „ta zaczyna się psuć", agent uczy się sygnatury awarii i wgrywa detektor na edge — predictive maintenance przez dźwięk. Ta sama pętla co Idea 2, ale „słychać" na scenie (puszczacie nagranie zdrowej vs psującej się maszyny).
+Agent-kalibrator floty czujników: macie kilka ESP z tym samym czujnikiem, każdy mierzy trochę inaczej (dryf, offset). Agent zbiera dane, wykrywa który odstaje, generuje per-płytkę poprawkę kalibracyjną i wgrywa OTA. Weryfikacja twarda: po kalibracji odczyty wszystkich się zgadzają w tolerancji. Mały, domykalny, dobrze pokazywalny.
+Moja rekomendacja: idźcie w Ideę 2 (predictive QA), wariant z kodem ale okrojony, bo ma najlepszy stosunek wow-narracja / realne-do-dowiezienia / naturalna-weryfikacja. Idea 1 jako pitch jest seksowniejsza, ale to zakład wysokiego ryzyka — wybierzcie ją tylko jeśli wasza dwójka od hardware jest naprawdę mocna w RF/promiscuous i lubi ryzyko.
+Chcesz, żebym rozłożył Ideę 2 na architekturę (co na ESP, co taguje ekran, co dokładnie robi agent, co jest weryfikacją, co pokazujecie na scenie) + plan pierwszych godzin? Czy wolisz, żebym najpierw zderzył 1 vs 2 dokładniej, żebyście w teamie zdecydowali?
+chodzi o ten z de-auth detekcją: 1. Dynamiczny audytor cyberbezpieczeństwa (OT / ICS) Przemysł ciężki i infrastruktura krytyczna często działają na przestarzałych, niedokumentowanych maszynach, które łatwo zakłócić (np. ataki deauth, fałszowanie ramek radiowych). Twój Hardware: Gołe ESP32 działają jako pasywne sniffery (skanują anomalie w paśmie 2.4GHz i BLE) rozsiane po obiekcie. ESP z ekranem to terminal alarmowy (HMI) dla inżynierów. Ambitny Loop (Reverse Engineering & OTA): Gdy sniffery przechwycą nieznany, podejrzany payload lub nietypową sekwencję surowego ruchu radiowego, zrzut hex trafia do Devina. Agent analizuje ten nieudokumentowany ruch, odgaduje jego strukturę, wykrywa wektor ataku, a następnie samodzielnie pisze zoptymalizowany filtr bezpieczeństwa w C++. Następnie automatycznie kompiluje kod i inicjuje aktualizację OTA (Over-The-Air) wszystkich płytek ESP32, łatając podatność sieci klienta w czasie rzeczywistym. rozwin to, podaj analogiczne pomysly
+Thought for 1m 14s
+Teraz mówię to szczerze: to jest najlepszy pomysł z całej tej rozmowy i wreszcie ESP nie jest doklejone na siłę. Ale połowa tego dokumentu to marketing, a nie plan na 48h — więc rozłożę go na to, co jest solidne, co jest naciągane, i co dokładnie zrobić, żeby to wygrało, a nie było ładnym slajdem.
+Co jest tu naprawdę mocne (i czego dokument nie docenia)
+Ten pomysł ma coś, o co się z tobą wykłócałem, a co tu wychodzi naturalnie z problemu, nie na siłę: prawdziwą pętlę weryfikacji. I to jest sedno, dlaczego to pasuje do Cognition, a nie tylko wygląda ładnie:
+
+* Atak da się zapisać jako dane (surowe ramki radiowe = hex/pcap).
+* Obrona da się wyrazić jako kod (filtr/sygnatura w C, predykat po bajtach ramki).
+* Weryfikacja to replay test: masz oznaczony zbiór — ramki ataku (złe) + normalny ruch (dobre). Wygenerowany filtr musi złapać ~100% ataku I nie zablokować ani jednej legalnej ramki. To liczy się maszynowo w sekundy, bez człowieka. To jest wasz oracle — i jest twardy.
+
+Czyli pętla: sniffer wykrywa anomalię → hex leci do agenta → agent analizuje, rozpoznaje wektor, pisze filtr w C → replay test na host: TPR i FPR → jak nie łapie/ma false-positive'y, log wraca do agenta → poprawia → aż zielone → dopiero wtedy OTA. To jest dokładnie „write–run–test–fix", tyle że dla bezpieczeństwa sieci. Idealny fit.
+Co jest naciągane i co uciąć
+„Reverse-engineering nieznanego protokołu" — brzmi seksownie, ale deauth NIE jest nieznany. To ramka zarządzająca 802.11, typ 0 / subtyp 12 (0xC0), struktura udokumentowana od lat. Nie sprzedawajcie sędziom, że agent „rozszyfrowuje nieznane" — techniczny juror to przejrzy. Ale jest lepszy sposób, żeby to było prawdą (niżej).
+„OTA na wszystkie płytki naraz w czasie rzeczywistym" — realne (esp_https_ota / ArduinoOTA), ale OTA na rój w demo to ryzyko flakowania. Pokażcie OTA na jednej płytce na żywo, a o „całej flocie" mówcie w pitchu. Nie stawiajcie demo na tym, że pięć płytek zaktualizuje się synchronicznie na scenie.
+Detekcja to jest łatwa część. ESP32 w promiscuous mode łapie ramki deauth trywialnie — licz deauthy w oknie czasowym, próg, alarm. To zadziała pierwszego wieczoru. Trudność (i wartość) jest w agencie + pętli weryfikacji, nie w sniffowaniu.
+Reframe, który sprawia, że to wygrywa (i zabija zarzut „to demo")
+Nie hardkodujcie sygnatury deauth na ESP. Niech sniffer wykrywa statystyczną anomalię („nagle dużo ramek typu X, którego wcześniej nie było") i wysyła surowy hex — a to agent z hexa wnioskuje „to flood ramek deauth" i pisze konkretny filtr. Wtedy:
+
+1. System naprawdę „nie wie z góry", a analizę robi agent — o to chodzi w temacie.
+2. Możecie zademonstrować drugi, inny atak, którego nie zaprogramowaliście — np. beacon flood albo disassociation flood — i pokazać, że agent radzi sobie z nowym na żywo. To kasuje pułapkę „wired to one prepared example", o którą sędziowie się przyczepią.
+
+Rodzina ataków dostępnych przez promiscuous mode 2.4GHz (wszystkie rozróżnialne po typie/subtypie ramki + wolumenie): deauth flood, disassociation flood, beacon flood, auth flood, ewentualnie evil-twin/karma (anomalie w beaconach). Trenujecie „pokazowo" na deauth, a na scenie odpalacie beacon flood, żeby udowodnić generalizację.
+Kluczowy trik na oracle bez ciągłego flashowania: filtr, który pisze agent, to przenośny C — kompiluje się i na host, i na ESP32. Na host odpalacie go w test-harnessie (podajecie pcap ataku + pcap normalnego ruchu, liczycie detection rate i false-positive rate). Ten sam kod idzie potem OTA na płytkę. Jeden kod, dwa cele: host = weryfikacja, ESP = deployment. To jest eleganckie i wiarygodne.
+Architektura (konkret)
+
+```
+[Gołe ESP32 ×N — sniffery, promiscuous mode 2.4GHz]
+   │ wykrywają anomalię statystyczną, wysyłają surowy hex ramek + RSSI + timestamp
+   ▼
+[Backend / orchestrator — Python]
+   │ 1. dostaje podejrzany zrzut
+   │ 2. woła agenta (Devin API): "oto surowe ramki, zidentyfikuj atak, napisz filtr w C"
+   │ 3. bierze wygenerowany filtr → REPLAY TEST (pcap atak + pcap benign) → TPR/FPR
+   │ 4. FAIL → wysyła log z powrotem do agenta → iteruje
+   │ 5. PASS → kompiluje firmware → OTA na ESP
+   ▼
+[ESP32 z ekranem — HMI / terminal alarmowy]
+   pokazuje: wykryto atak → agent analizuje → filtr wygenerowany → testy X/X ✓ → WDROŻONO
+```
+
+Ekran dotykowy ma tu realną rolę (nie doklejoną): to konsola inżyniera SOC — pokazuje co się dzieje w pętli, status, i moment „patch deployed". Świetny element sceniczny.
+Zakres na 48h — co dowieźć, a co odpuścić
+MVP (must-have, to jest całe demo): jeden sniffer wykrywa anomalię → agent pisze filtr → replay test daje twarde pass/fail → OTA na jedną płytkę → płytka teraz odrzuca atak (pokazujecie licznik „zablokowano" rosnący). Plus drugi, nieznany wcześniej atak na żywo.
+Stretch (jeśli starczy czasu): rój kilku ESP, HMI z ładnym UI, więcej typów ataków, ESP-NOW do komunikacji między nodami.
+Największe ryzyka, których pilnujcie: (a) sniffowanie raw 802.11 na ESP32 bywa upierdliwe — przetestujcie promiscuous capture pierwszej nocy, zanim zbudujecie resztę; (b) pętla musi być realnie bez człowieka — jak ktoś klika „zatwierdź" między agentem a OTA, wracacie do „to copilot"; (c) trzymajcie oracle niezależny — agent pisze filtr, ale zbiory testowe (atak/benign pcap) przygotowujecie WY, żeby nie mógł ich naciągnąć.
+Ważne, praktyczne, nie pomijajcie
+Żeby to przetestować, potrzebujecie ramek ataku. Detekcja jest pasywna i w pełni legalna. Ale generowanie deauth to realny atak — więc:
+
+* Najbezpieczniej: odtwarzajcie z pliku pcap albo craftujcie ramki programowo i wstrzykujcie w kontrolowany sposób — żadnego ataku na żywo w powietrze.
+* Jeśli musicie na żywo: jedno dedykowane ESP nadaje deauth tylko w stronę waszej własnej ofiary-ESP, niska moc, wasz kanał, wasz sprzęt.
+* Nie deauthujcie sieci obiektu/hackatonu — to rozwala WiFi innym zespołom, prawie na pewno łamie regulamin venue i zależnie od jurysdykcji bywa nielegalne. Budowanie detektora jest w 100% legalne i pożądane; generowanie ataku trzymajcie w izolacji na własnym żelazie. Powiedzcie to wprost sędziom — pokazuje dojrzałość.
+
+Analogiczne pomysły w tym samym duchu
+Wspólny wzorzec (i to jest wasza prawdziwa teza): ESP sniffuje sygnał, którego do końca nie rozumie → agent odtwarza jego strukturę i buduje detektor jako kod → weryfikacja przez replay oznaczonych nagrań → OTA → następny nowy atak, pętla się powtarza. To reużywalny szkielet — te same klocki, inna domena:
+1. Anomalie na magistrali Modbus/RS485 (moim zdaniem BEZPIECZNIEJSZA wersja tej samej idei). ESP podpina się pasywnie pod przemysłową magistralę RS485, agent uczy się jak wygląda normalny ruch Modbus, wykrywa wstrzyknięte/zmalformowane ramki (klasyczny wektor ataku na OT), pisze filtr walidujący. Weryfikacja: replay dobrych + złych nagrań. To jest kanoniczny protokół OT, tapowanie RS485 jest pasywne i legalne, a testowe złe ramki puszczacie na własnej magistrali. Mniej ryzyka niż RF, ta sama narracja „inżynier dla infrastruktury krytycznej".
+2. Detektor rogue BLE. ESP skanuje BLE, agent uczy się „normalnego krajobrazu" urządzeń, wykrywa podszywające się/fałszywe beacony/spoofowane czujniki, generuje filtr. Ten sam loop, inne pasmo.
+3. NILM — rozpoznawanie urządzeń z sygnału prądowego. ESP z czujnikiem prądu „słucha" zagregowanego poboru, agent identyfikuje sygnatury włączanych urządzeń, generuje klasyfikator, weryfikacja na oznaczonych zdarzeniach, OTA. „Sniffuj sygnał fizyczny → agent buduje detektor → replay-verify → deploy."
+4. Predictive maintenance akustyczny/wibracyjny. ESP z mikrofonem/akcelerometrem, operator taguje „ta maszyna się psuje", agent uczy się sygnatury awarii, generuje edge-detektor, weryfikuje na held-out danych, OTA. Bonus: „słychać" na scenie (zdrowa vs psująca się maszyna). To Idea 2 z dokumentu w wersji dźwiękowej — tak samo domyka pętlę.
+5. Anti-jamming / klasyfikator zakłóceń RF. Agent uczy się odróżniać złośliwe zagłuszanie od zwykłej interferencji (mikrofalówka, inne WiFi), generuje klasyfikator. Trudniejsze, ale efektowne.
+Mój werdykt: deauth/RF jest najseksowniejszy w pitchu, ale wersja Modbus/RS485 (analog #1) jest realniejsza i bezpieczniejsza na 48h przy tej samej narracji OT/ICS. Jeśli wasza dwójka od hardware jest mocna w RF i lubi ryzyko — idźcie w deauth, jest bardziej wow. Jeśli chcecie pewniej dowieźć pętlę — Modbus. Oba wygrywają na tym samym: twardy, automatyczny oracle (replay test) + prawdziwa autonomia (trigger → filtr → weryfikacja → OTA, zero człowieka) + realny artefakt (działający filtr bezpieczeństwa).
+Chcesz, żebym rozpisał plan pierwszych godzin (kolejność, w której nie utkniecie — od „sprawdź czy promiscuous capture w ogóle działa" po pierwszą pełną pętlę), i szkielet promptu, który dostaje agent (co dokładnie ma zwrócić, żeby replay test mógł go automatycznie ocenić)? Powiedz tylko, na której wersji stajecie — RF/deauth czy Modbus.
+no tak deauth to przykład tylko -> ma ogólnie działać na anomalie -> i jak coś mamy 24 h (teraz już 19h) -> ja mam się zająć stroną webapp i no ogólnie całą kwestią nie hardware -> mamy mieć jakiś dashboard w którym będzie widać te espy aktywne itp mieć na to podgląd tam taki cały na całą operację -> no plus ogólnie software side co trzeba zrobić -> zaprojektuj jakiś póki co high level plan na to (i jak ewentualnie podzielić pracę )
+Thought for 45s
+Dobra, 19h i ty trzymasz cały software spine (backend + dashboard + integracja) — to jest wysoko-dźwigniowa robota, bo dashboard to w praktyce wasz pitch. Kryterium „Clarity: if we can't follow it, we can't credit it" wygrywa się właśnie ekranem, na którym widać pętlę działającą na żywo. Więc twoja część nie jest „dodatkiem", jest tym, co sędziowie zapamiętają.
+Najważniejsza rzecz na start, ważniejsza niż jakikolwiek kod: w pierwszej godzinie cały team ustala kontrakty danych (JSON schemas) i nikt nie czeka na nikogo. Jak to zrobicie, każdy buduje swój kawałek na mockach i spinacie na końcu. Jak tego nie zrobicie — zderzycie się w 15. godzinie i nie zdążycie.
+Architektura (spine, który ty ogarniasz)
+
+```
+[ESP sniffery] --POST /ingest--> [TWÓJ BACKEND/orchestrator] --> [moduł agenta (AI team)]
+[ESP heartbeat]--POST /heartbeat-->      |                          [moduł weryfikacji (AI team)]
+                                          |--WebSocket /live--> [TWÓJ DASHBOARD]
+[ESP] <--OTA-- [backend serwuje firmware]
+```
+
+Backend to serce: dostaje anomalię z ESP, woła moduł agenta, dostaje filtr C, woła moduł weryfikacji (replay test), na pass → wystawia firmware do OTA, i cały czas pcha eventy WebSocketem na dashboard. AI team daje ci dwie funkcje/serwisy z ustalonym wejściem-wyjściem — ty je tylko wołasz. Nie musisz umieć agenta ani weryfikacji, musisz znać ich kontrakt.
+Kontrakty do zamrożenia w 1. godzinie (to jest krytyczne)
+Cztery schematy, spisane wspólnie zanim ktokolwiek zacznie kodować:
+ESP → backend (anomalia): `node_id, timestamp, frame_hex[], rssi, anomaly_stats (np. liczba ramek typu X w oknie), guessed_type?`
+backend → agent (wejście): ten sam hex + kontekst. agent → backend (wyjście): `{ attack_class, confidence, filter_c_code, explanation }` — JSON, żeby dashboard mógł pokazać co agent „myśli".
+backend → weryfikacja (wejście): `filter_c_code`. weryfikacja → backend (wyjście): `{ passed: bool, tpr, fpr, tests_total, tests_passed, log }`.
+ESP → backend (heartbeat): `node_id, timestamp, state, stats` co ~2-5s (tak dashboard wie kto żyje).
+Jak te cztery są ustalone, ty budujesz cały dashboard i backend na fake eventach, zanim ESP czy agent w ogóle działają.
+Twoja część — kolejność budowy (żebyś nie utknął)
+
+1. Backend szkielet z mockiem (FastAPI — pasuje, bo orchestrator i tak woła Devina i weryfikację w Pythonie). In-memory stan: lista nodów, kolejka eventów. Endpoint `/ingest`, `/heartbeat`, WebSocket `/live`. Dorzuć fake generator — co parę sekund emituje sztuczny event (node up, anomalia, agent analizuje, testy 8/8, deployed). To odpala twój dashboard bez reszty teamu.
+2. Dashboard MVP na tym mocku, trzy panele:
+   * Mapa/siatka nodów — kafelki ESP: aktywny/martwy (po heartbeacie), last seen, label, stan (normal/alert, czerwony gdy atak).
+   * Live timeline operacji — feed eventów: „⚠ Node-3 anomalia → agent analizuje → filtr wygenerowany → testy 8/8 ✓ → OTA wdrożone". To jest wizualizacja pętli = wasz money shot na scenie.
+   * Panel operacji — liczniki: aktywne nody, wykryte zagrożenia, wdrożone filtry, zablokowane ramki (rosnący licznik robi wrażenie).
+3. Wizualizacja samej pętli (jak starczy czasu) — gdy leci atak, pokaż animowany pipeline trigger→agent→verify→OTA rozświetlający się krok po kroku. To dosłownie ilustruje „autonomy + verification" z kryteriów. Najwyższy zwrot na scenie.
+4. Podmiana mocków na realne — jak AI team i hardware dowiozą swoje, podłączasz prawdziwe eventy zamiast fake generatora. Dashboard się nie zmienia, tylko źródło danych.
+
+Podział pracy (5 osób, 19h)
+
+* Ty: backend/orchestrator + dashboard + integracja końcowa (spine). Najpierw mock, potem spinasz wszystkich.
+* Hardware A: firmware sniffera — promiscuous capture, detekcja anomalii statystycznej, wysyłka hex + heartbeat na twój `/ingest`. Pierwsza noc: sprawdzić czy raw capture w ogóle działa — to największe ryzyko sprzętowe, musi być zweryfikowane zanim reszta na tym stanie.
+* Hardware B: pipeline OTA (płytka pobiera/dostaje nowy firmware) + przygotowanie ataków testowych w izolacji (własne ESP atakuje własne ESP, nie sieć venue) + realne pcapy do weryfikacji.
+* AI A: moduł agenta — integracja z Devinem/LLM, prompt „oto hex, sklasyfikuj atak, napisz filtr w C", zwraca ustalony JSON. Buduje przeciw twojemu kontraktowi, nie czeka na ESP.
+* AI B: moduł weryfikacji (oracle) — bierze filtr C, kompiluje na host, odpala replay test na pcapach (atak + benign), liczy TPR/FPR, zwraca pass/fail. To jest wasz najmocniejszy element wobec sędziów — musi działać niezależnie.
+
+Każdy buduje pionowy plaster na mockach, integracja na końcu. Ty jesteś w centrum, więc ustal kontrakty i pilnuj, żeby wszyscy trzymali się schematów — to twoja druga rola oprócz kodu.
+Timeline (grubo, ~16h roboty + bufor + pitch)
+
+* h0-1: cały team — kontrakty, stack, repo, kto co. Nie pomijać.
+* h1-8: równolegle, wszyscy na mockach. Ty: backend + dashboard stoją na fake danych do końca tej fazy.
+* h8-13: integracja klocek po klocku. Najpierw ESP→backend (heartbeat widać na dashboardzie), potem agent, potem weryfikacja, na końcu OTA.
+* h13-17: pełna pętla end-to-end działa raz. Potem drugi, inny atak na żywo (kasuje zarzut „to demo"). Polish dashboardu.
+* h17-19: pitch, próba na sucho, bufor na to-co-się-zepsuje.
+
+Priorytety / linie cięcia (jak czas ucieka)
+Must-have to jedna pełna pętla na jednej płytce widoczna na dashboardzie + drugi atak. Reszta (rój, ładne UI, wiele typów) to bonus. Jak coś pada: OTA tnij do jednej płytki (nie flota), typów ataków tnij do dwóch, ale nigdy nie tnij pętli weryfikacji ani autonomii — to jest to, co was wyróżnia. Człowiek klikający „zatwierdź" między agentem a OTA = przegrywacie na „to copilot, not a layer".
+Chcesz, żebym rozpisał konkretniej twój backend (dokładne endpointy, format WebSocket eventów, szkielet FastAPI z mock generatorem, żebyś ruszył od razu) albo layout dashboardu (co gdzie, jakie komponenty)? Powiedz od czego chcesz zacząć, to dam ci gotowy szkielet do odbicia. -> zrób z tego plan md jakiś overall architerkutry z dużą ilością schematów mermind żeby w md się ładnie generowało
