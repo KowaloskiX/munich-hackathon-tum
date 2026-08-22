@@ -5,7 +5,7 @@ oracle verifies it on held-out captures. But an ESP32 in promiscuous mode is
 **receive-only** — it can detect malicious 802.11 frames, it cannot drop frames
 flowing between other devices. So the honest place to *enforce* the verified
 filter is a standing process **in the traffic path**: the
-[`sentinel-edge`](https://github.com/) gateway (separate repo).
+[`sentinel-edge`](https://github.com/PTQ-22/sentinel-edge) gateway (separate repo).
 
 ```
 ESP fleet ──frames──▶ sentinel-edge (:8100) ──survivors──▶ backend (:8000)
