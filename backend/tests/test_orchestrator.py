@@ -21,6 +21,7 @@ def _run_loop() -> tuple[bool, AppState]:
         timestamp=1.0,
         frame_hex=DEAUTH,
         anomaly_stats=AnomalyStats(subtype=12, count_in_window=200),
+        guessed_type="deauth_flood",
     )
     deployed = asyncio.run(
         handle_anomaly(
@@ -43,6 +44,9 @@ def test_loop_deploys_after_one_retry():
     assert types.index(EventType.VERIFY_PASSED) > types.index(EventType.VERIFY_FAILED)
     assert types[-1] is EventType.FRAME_BLOCKED
     assert EventType.DEPLOYED in types
+
+    detected = next(event for event in state.events if event.type is EventType.ANOMALY_DETECTED)
+    assert detected.payload["attack_class"] == "deauth_flood"
 
 
 def test_counters_advance():

@@ -35,7 +35,7 @@
 #endif
 
 #ifndef HMI_WEBSOCKET_PATH
-#define HMI_WEBSOCKET_PATH "/live"
+#define HMI_WEBSOCKET_PATH "/v1/hmi/live"
 #endif
 
 #ifndef HMI_NODE_ID
@@ -44,6 +44,10 @@
 
 #ifndef HMI_ENABLE_WEBSOCKET
 #define HMI_ENABLE_WEBSOCKET 0
+#endif
+
+#ifndef HMI_ENABLE_MULTICAST
+#define HMI_ENABLE_MULTICAST 0
 #endif
 
 #ifndef HMI_BUZZER_PIN
@@ -59,6 +63,7 @@ namespace app_config {
 inline constexpr bool kHasLocalConfig = HMI_HAS_LOCAL_CONFIG == 1;
 inline constexpr bool kDemoMode = HMI_DEMO_MODE == 1;
 inline constexpr bool kWebSocketEnabled = HMI_ENABLE_WEBSOCKET == 1;
+inline constexpr bool kMulticastEnabled = HMI_ENABLE_MULTICAST == 1;
 inline constexpr char kWifiSsid[] = HMI_WIFI_SSID;
 inline constexpr char kWifiPassword[] = HMI_WIFI_PASSWORD;
 inline constexpr char kBackendHost[] = HMI_BACKEND_HOST;
@@ -77,5 +82,7 @@ inline constexpr uint32_t kHttpTimeoutMs = 800;
 inline constexpr uint32_t kWifiRetryIntervalMs = 10000;
 inline constexpr uint32_t kBuzzerPulseMs = 180;
 inline constexpr size_t kMaximumJsonBytes = 4096;
+inline constexpr uint8_t kMulticastAddress[4] = {239, 255, 77, 78};
+inline constexpr uint16_t kMulticastPort = 37778;
 
 }  // namespace app_config

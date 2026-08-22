@@ -74,6 +74,7 @@ async def handle_anomaly(
         frames=len(anomaly.frame_hex),
         subtype=anomaly.anomaly_stats.subtype,
         count=anomaly.anomaly_stats.count_in_window,
+        attack_class=anomaly.guessed_type or "unknown",
     )
 
     agent_in = AgentIn(frame_hex=anomaly.frame_hex, anomaly_stats=anomaly.anomaly_stats)

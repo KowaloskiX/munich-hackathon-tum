@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import mockgen
 from .config import settings
+from .hardware_multicast import listen_for_markers, publish_hmi_status
 from .hmi import HmiStatus, HmiStream
 from .models import AnomalyIn, EventType, FleetSnapshot, Heartbeat, LiveEvent
 from .orchestrator import handle_anomaly
@@ -50,6 +51,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # is a real multi-minute session. Trigger anomalies manually via POST /ingest.
     if _flag("MOCK_ANOMALY") and settings.agent != "devin":
         tasks.append(asyncio.create_task(mockgen.anomaly_loop(state)))
+    if os.environ.get("HARDWARE_MULTICAST", "0") == "1":
+        tasks.append(asyncio.create_task(listen_for_markers(state)))
+        tasks.append(asyncio.create_task(publish_hmi_status(state, hmi_stream)))
     try:
         yield
     finally:
@@ -85,9 +89,10 @@ async def get_hmi_status() -> HmiStatus:
 
 @app.post("/heartbeat")
 async def post_heartbeat(hb: Heartbeat) -> dict[str, str]:
-    is_new = state.apply_heartbeat(hb)
+    received = hb.model_copy(update={"timestamp": time.time()})
+    is_new = state.apply_heartbeat(received)
     if is_new:
-        state.emit(LiveEvent(type=EventType.NODE_UP, node_id=hb.node_id, ts=time.time()))
+        state.emit(LiveEvent(type=EventType.NODE_UP, node_id=received.node_id, ts=time.time()))
     return {"status": "ok"}
 
 
@@ -98,6 +103,10 @@ def _log_task_error(task: asyncio.Task[bool]) -> None:
 
 @app.post("/ingest")
 async def post_ingest(anomaly: AnomalyIn) -> dict[str, str]:
+    if anomaly.node_id not in state.nodes:
+        received = Heartbeat(node_id=anomaly.node_id, timestamp=time.time())
+        state.apply_heartbeat(received)
+        state.emit(LiveEvent(type=EventType.NODE_UP, node_id=anomaly.node_id, ts=time.time()))
     # Fire and forget: the loop drives itself and streams progress over WS.
     task = asyncio.create_task(handle_anomaly(state, anomaly))
     task.add_done_callback(_log_task_error)
@@ -121,6 +130,25 @@ async def live(ws: WebSocket) -> None:
         while True:
             event = await queue.get()
             await ws.send_json(event.model_dump(mode="json"))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        state.broadcaster.unsubscribe(queue)
+
+
+@app.websocket("/v1/hmi/live")
+async def hmi_live(ws: WebSocket, node_id: str = "hmi-01") -> None:
+    """Ordered aggregate status feed for the fail-safe ESP32 HMI."""
+    await ws.accept()
+    queue = state.broadcaster.subscribe()
+    last_seq = -1
+    try:
+        while True:
+            event = hmi_stream.event(state, node_id)
+            if event.seq != last_seq:
+                await ws.send_json(event.model_dump(mode="json"))
+                last_seq = event.seq
+            await queue.get()
     except WebSocketDisconnect:
         pass
     finally:

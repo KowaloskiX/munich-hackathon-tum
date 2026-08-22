@@ -60,6 +60,7 @@ async def anomaly_loop(state: AppState, *, min_gap: float = 8.0, max_gap: float 
             anomaly_stats=AnomalyStats(
                 frame_type="mgmt", subtype=12, count_in_window=random.randint(120, 400)
             ),
+            guessed_type="deauth_flood",
         )
         await handle_anomaly(state, anomaly)
         await asyncio.sleep(random.uniform(min_gap, max_gap))
