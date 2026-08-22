@@ -43,7 +43,7 @@ function Wordmark() {
   return (
     <div className="wordmark" role="img" aria-label="Sentinel autonomous defense">
       <span className="wordmark-mark" aria-hidden="true">
-        <span />
+        <img src="/logo.jpg" alt="" />
       </span>
       <span>Sentinel</span>
       <span className="wordmark-edition">ROUTER</span>

@@ -1,13 +1,14 @@
 :root {
-  --bg: #101110;
-  --surface: #151615;
-  --surface-low: #121312;
-  --line: #292b29;
-  --line-strong: #3a3d39;
-  --text: #e6e8e4;
-  --muted: #a4a8a1;
-  --accent: #a8bba4;
-  --alert: #bd8882;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-low: #f7f7f5;
+  --line: #e7e7e2;
+  --line-strong: #cfcfc8;
+  --text: #1f201d;
+  --muted: #73756e;
+  --accent: #fa7618;
+  --accent-soft: #fff3e9;
+  --alert: #b85232;
   --radius: 3px;
   --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
@@ -59,40 +60,20 @@ button {
 
 .wordmark-mark {
   position: relative;
-  width: 28px;
+  width: 32px;
   aspect-ratio: 1;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   border-radius: var(--radius);
-  background: var(--accent);
+  background: var(--bg);
 }
 
-.wordmark-mark::before,
-.wordmark-mark::after,
-.wordmark-mark span {
-  position: absolute;
-  background: #10200e;
-  content: "";
-}
-
-.wordmark-mark::before,
-.wordmark-mark::after {
-  width: 14px;
-  height: 1px;
-}
-
-.wordmark-mark::before {
-  transform: rotate(45deg);
-}
-
-.wordmark-mark::after {
-  transform: rotate(-45deg);
-}
-
-.wordmark-mark span {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+.wordmark-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.7);
 }
 
 .wordmark-edition {
@@ -229,7 +210,7 @@ button {
 .sensor-card:hover,
 .sensor-card:focus-visible {
   border-color: var(--line-strong);
-  background: #121612;
+  background: var(--surface-low);
 }
 
 .sensor-card:focus-visible {
@@ -294,19 +275,19 @@ button {
 }
 
 .board-base {
-  fill: #1b211b;
-  stroke: rgba(131, 199, 121, 0.42);
+  fill: var(--accent-soft);
+  stroke: color-mix(in srgb, var(--accent) 48%, white);
 }
 
 .board-chip {
   fill: var(--bg);
-  stroke: rgba(232, 237, 229, 0.25);
+  stroke: var(--line-strong);
 }
 
 .board-antenna,
 .board-trace {
   fill: none;
-  stroke: #929d8e;
+  stroke: #8c8e87;
   stroke-width: 1.3;
 }
 
@@ -402,7 +383,7 @@ button {
   min-height: 0;
   align-items: center;
   padding: 9px 10px;
-  border-top: 1px solid rgba(232, 237, 229, 0.07);
+  border-top: 1px solid var(--line);
 }
 
 .frame-row time,
@@ -558,7 +539,7 @@ button {
 }
 
 .attack-history-toggle:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-low);
 }
 
 .attack-history-toggle:focus-visible {
