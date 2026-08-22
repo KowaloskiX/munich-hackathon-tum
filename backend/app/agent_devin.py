@@ -21,10 +21,9 @@ from . import tracing
 from .config import settings
 from .devin_client import DevinClient
 from .models import AgentIn, AgentOut, AnomalyStats
-from .prompts import STRUCTURED_OUTPUT_SCHEMA, build_devin_prompt
+from .prompts import SAMPLE_ATTACK, STRUCTURED_OUTPUT_SCHEMA, build_devin_prompt
 
 _FILTERS_DIR = Path(__file__).resolve().parent.parent / "oracle/filters"
-_FIXTURES = Path(__file__).resolve().parent.parent / "oracle/fixtures"
 
 
 class DevinAgentError(RuntimeError):
@@ -251,15 +250,14 @@ def _load_frames(args: argparse.Namespace) -> list[str]:
     if args.frames_file:
         lines = Path(args.frames_file).read_text().splitlines()
         return [ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")]
-    # default --fixtures: the sample attack capture
-    lines = (_FIXTURES / "attack.hex").read_text().splitlines()
-    return [ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")]
+    # default: the bundled sample attack frames (never the oracle's held-out set)
+    return list(SAMPLE_ATTACK)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Standalone Devin anomaly-defense agent")
-    parser.add_argument("--frames-file", help="hex frames, one per line (default: sample fixtures)")
-    parser.add_argument("--fixtures", action="store_true", help="use bundled sample attack frames")
+    parser.add_argument("--frames-file", help="hex frames, one per line (default: samples)")
+    parser.add_argument("--sample", action="store_true", help="use bundled sample attack frames")
     parser.add_argument("--mock", action="store_true", help="offline: no API key / network")
     parser.add_argument(
         "--no-verify", dest="verify", action="store_false", help="skip oracle verify"
