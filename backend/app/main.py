@@ -26,6 +26,7 @@ from .hmi import HmiStatus, HmiStream
 from .models import (
     AnomalyIn,
     EnforcementReport,
+    EnforcementResult,
     EventType,
     FirmwarePayload,
     FleetSnapshot,
@@ -142,7 +143,16 @@ async def get_firmware(node_id: str) -> FirmwarePayload:
 
 @app.post("/enforcement")
 async def post_enforcement(rep: EnforcementReport) -> dict[str, str]:
-    """A software node reports what its loaded filter actually dropped."""
+    """The edge gateway reports what its loaded filter actually dropped.
+
+    Enforcement is the edge's job (the backend only detects + publishes), so
+    this is the single source of the real FRAME_BLOCKED counts. We attach the
+    counts to the node's deployed incident so the report + thread show them.
+    """
+    incident = state.latest_deployed_incident(rep.node_id)
+    incident_id = incident.id if incident else None
+    if incident is not None:
+        incident.enforcement = EnforcementResult(blocked=rep.blocked, passed=rep.passed)
     state.emit(
         LiveEvent(
             type=EventType.FRAME_BLOCKED,
@@ -152,6 +162,8 @@ async def post_enforcement(rep: EnforcementReport) -> dict[str, str]:
                 "count": rep.blocked,
                 "passed": rep.passed,
                 "fw_version": rep.fw_version,
+                "source": "edge",
+                "incident_id": incident_id,
                 "real": True,
             },
         )

@@ -67,14 +67,15 @@ def render_markdown(incident: IncidentReport) -> str:
         lines.append("- Not verified.")
     lines.append("")
 
-    lines.append("## Enforcement (compiled filter run on real frames)")
+    lines.append("## Enforcement (in-path, sentinel-edge)")
     if inc.enforcement is not None:
         e = inc.enforcement
         total = e.blocked + e.passed
         lines.append(f"- Blocked **{e.blocked}/{total}** frames the loaded filter processed")
-        lines.append(f"- False positives: {e.false_positives}/{e.benign_total} benign frames")
+        if e.false_positives is not None and e.benign_total is not None:
+            lines.append(f"- False positives: {e.false_positives}/{e.benign_total} benign frames")
     else:
-        lines.append("- Not measured.")
+        lines.append("- Not yet enforced (no edge gateway has reported for this filter).")
     lines.append("")
 
     lines.append("## Deployed filter (filter.c)")

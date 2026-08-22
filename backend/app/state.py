@@ -142,6 +142,13 @@ class AppState:
         self.incidents[incident.id] = incident
         return incident
 
+    def latest_deployed_incident(self, node_id: str) -> IncidentReport | None:
+        """Most recent deployed incident for a node (edge counts attach here)."""
+        for incident in reversed(self.incidents.values()):
+            if incident.node_id == node_id and incident.deployed:
+                return incident
+        return None
+
     def list_incidents(self) -> list[IncidentSummary]:
         return [
             IncidentSummary(

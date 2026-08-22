@@ -153,13 +153,18 @@ class FirmwarePayload(BaseModel):
 
 
 class EnforcementResult(BaseModel):
-    """What a loaded filter actually did to a replayed frame stream."""
+    """What a loaded filter actually did to frames in the traffic path.
+
+    `blocked`/`passed` are always known. The attack/benign breakdown is only
+    known when the caller labelled the stream (the oracle-style sample run); the
+    edge gateway drops by filter alone and leaves them None.
+    """
 
     blocked: int  # frames the loaded filter dropped
     passed: int  # frames it let through
-    attack_total: int  # attack frames replayed
-    benign_total: int  # benign baseline frames replayed
-    false_positives: int  # benign frames the filter wrongly dropped
+    attack_total: int | None = None  # attack frames replayed (if labelled)
+    benign_total: int | None = None  # benign baseline frames replayed
+    false_positives: int | None = None  # benign frames the filter wrongly dropped
 
 
 class EnforcementReport(BaseModel):

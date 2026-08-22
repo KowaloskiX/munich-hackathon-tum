@@ -65,19 +65,27 @@ def test_firmware_endpoint_when_nothing_deployed():
     assert fw.fw_version == "v1"
 
 
-def test_enforcement_endpoint_emits_real_frame_blocked():
+def test_enforcement_endpoint_emits_edge_frame_blocked_and_attaches_to_incident():
     main.state = AppState()
-    main.state.apply_heartbeat(Heartbeat(node_id="esp-sw-01", timestamp=1.0))
+    main.state.apply_heartbeat(Heartbeat(node_id="esp-01", timestamp=1.0))
+    # A deployed incident for the node — the edge's counts attach here.
+    incident = main.state.create_incident("esp-01", 1.0)
+    incident.deployed = True
     asyncio.run(
         main.post_enforcement(
-            EnforcementReport(node_id="esp-sw-01", fw_version="v2", blocked=7, passed=3)
+            EnforcementReport(node_id="esp-01", fw_version="v2", blocked=7, passed=3)
         )
     )
+    # The edge is the single source of the real blocked count.
     assert main.state.counters.frames_blocked == 7
     event = main.state.events[-1]
     assert event.type is EventType.FRAME_BLOCKED
-    assert event.payload["real"] is True
+    assert event.payload["source"] == "edge"
     assert event.payload["count"] == 7
+    assert event.payload["incident_id"] == incident.id
+    # And it lands on the incident so the report/thread can show it.
+    assert incident.enforcement is not None
+    assert incident.enforcement.blocked == 7 and incident.enforcement.passed == 3
 
 
 def test_report_endpoint_404_for_unknown_incident():

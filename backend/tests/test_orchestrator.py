@@ -42,8 +42,10 @@ def test_loop_deploys_after_one_retry():
     # Stub over-blocks first (fail), narrows on retry (pass), then deploys.
     assert EventType.VERIFY_FAILED in types
     assert types.index(EventType.VERIFY_PASSED) > types.index(EventType.VERIFY_FAILED)
-    assert types[-1] is EventType.FRAME_BLOCKED
-    assert EventType.DEPLOYED in types
+    # The backend is the brain: the loop ends at DEPLOYED. Enforcement (and the
+    # FRAME_BLOCKED counts) happen on the edge gateway, not here.
+    assert types[-1] is EventType.DEPLOYED
+    assert EventType.FRAME_BLOCKED not in types
 
     detected = next(event for event in state.events if event.type is EventType.ANOMALY_DETECTED)
     assert detected.payload["attack_class"] == "deauth_flood"
@@ -53,17 +55,8 @@ def test_counters_advance():
     _, state = _run_loop()
     assert state.counters.threats_detected == 1
     assert state.counters.filters_deployed == 1
-    assert state.counters.frames_blocked > 0
-
-
-def test_frame_blocked_count_is_measured_not_synthetic():
-    _, state = _run_loop()
-    blocked = next(e for e in state.events if e.type is EventType.FRAME_BLOCKED)
-    # The count comes from running the compiled filter on the real frame, and
-    # the one deauth frame is genuinely dropped. The event is flagged real.
-    assert blocked.payload["real"] is True
-    assert blocked.payload["count"] == 1
-    assert state.counters.frames_blocked == 1
+    # The backend does not enforce, so it never fabricates a blocked count.
+    assert state.counters.frames_blocked == 0
 
 
 def test_deploy_publishes_the_real_filter_for_ota():
@@ -79,10 +72,11 @@ def test_incident_is_recorded_and_id_stamped():
     incident = next(iter(state.incidents.values()))
     # Every emitted event carries the incident id so the dashboard can group them.
     assert all(e.payload.get("incident_id") == incident.id for e in state.events)
-    # The report backing is populated end to end.
+    # The report backing is populated end to end (enforcement is filled later,
+    # by the edge gateway's POST /enforcement — None until then).
     assert incident.deployed is True
     assert incident.oracle is not None and incident.oracle.passed
-    assert incident.enforcement is not None and incident.enforcement.blocked == 1
+    assert incident.enforcement is None
     assert "block_frame" in incident.filter_c_code
 
 

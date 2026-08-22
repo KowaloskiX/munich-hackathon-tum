@@ -54,8 +54,13 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
       return { text: `${node} deploying filter OTA`, tone: "info" };
     case "DEPLOYED":
       return { text: `${node} PROTECTED: ${p.attack_class ?? "filter"} deployed`, tone: "ok" };
-    case "FRAME_BLOCKED":
+    case "FRAME_BLOCKED": {
+      if (p.source === "edge") {
+        const v = p.fw_version ? ` (filter ${p.fw_version})` : "";
+        return { text: `${node} blocked ${p.count ?? 0} frames at edge${v}`, tone: "ok" };
+      }
       return { text: `${node} blocked ${p.count ?? 1} attack frames`, tone: "ok" };
+    }
     default:
       return { text: e.type, tone: "info" };
   }

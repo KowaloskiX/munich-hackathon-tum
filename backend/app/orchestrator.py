@@ -23,7 +23,6 @@ from .models import (
     NodeState,
     OracleOut,
 )
-from .node_agent import EnforcementError, run_enforcement
 from .oracle import run_oracle
 from .prompts import SAMPLE_BENIGN
 from .state import AppState
@@ -161,22 +160,8 @@ async def handle_anomaly(
     incident.deployed_ts = time.time()
     emit(EventType.DEPLOYED, attack_class=agent_out.attack_class)
 
-    # Real enforcement: compile Devin's filter and run the incident's frames
-    # through the compiled machine code. The blocked count is measured, not
-    # invented. (Standalone software nodes do the same via POST /enforcement.)
-    try:
-        result = await asyncio.to_thread(
-            run_enforcement, agent_out.filter_c_code, anomaly.frame_hex
-        )
-    except EnforcementError as exc:
-        emit(EventType.AGENT_STEP, text=f"enforcement error: {exc}")
-        return True
-    incident.enforcement = result
-    emit(
-        EventType.FRAME_BLOCKED,
-        count=result.blocked,
-        passed=result.passed,
-        false_positives=result.false_positives,
-        real=True,
-    )
+    # The backend is the brain: detect -> Devin -> oracle -> publish the filter.
+    # It does NOT enforce. Enforcement happens in the traffic path on the
+    # sentinel-edge gateway, which pulls this filter over /firmware, drops
+    # matching frames, and reports real counts back via POST /enforcement.
     return True
