@@ -76,7 +76,12 @@ async def handle_anomaly(
     for attempt in range(max_retries + 1):
         await sleep(step_delay)
         emit(EventType.AGENT_ANALYZING, attempt=attempt + 1)
-        agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+        try:
+            agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+        except Exception as exc:
+            emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
+            state.set_node_state(node_id, NodeState.ALERT)
+            return False
         emit(
             EventType.FILTER_GENERATED,
             attack_class=agent_out.attack_class,

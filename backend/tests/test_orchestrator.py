@@ -52,6 +52,29 @@ def test_counters_advance():
     assert state.counters.frames_blocked > 0
 
 
+def test_agent_failure_is_graceful():
+    """A dead agent (e.g. Devin unreachable) must not crash the loop."""
+
+    def boom(_payload, on_step=None):
+        raise ConnectionError("nodename nor servname provided")
+
+    state = AppState()
+    anomaly = AnomalyIn(
+        node_id="esp-07",
+        timestamp=1.0,
+        frame_hex=DEAUTH,
+        anomaly_stats=AnomalyStats(subtype=12, count_in_window=5),
+    )
+    deployed = asyncio.run(
+        handle_anomaly(state, anomaly, agent_call=boom, step_delay=0.0, sleep=_nosleep)
+    )
+    assert deployed is False
+    types = [e.type for e in state.events]
+    assert EventType.AGENT_STEP in types
+    assert any("unavailable" in str(e.payload.get("text", "")) for e in state.events)
+    assert state.counters.filters_deployed == 0
+
+
 def test_agent_steps_and_iterations_surface():
     _, state = _run_loop()
     types = [e.type for e in state.events]
