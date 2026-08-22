@@ -8,9 +8,14 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _disable_langfuse():
+def _isolate_external(monkeypatch):
+    """No test may touch a real Langfuse or a real Devin session."""
+    from app import agents
     from app.config import settings
 
-    settings.langfuse_public_key = ""
-    settings.langfuse_secret_key = ""
+    monkeypatch.setattr(settings, "langfuse_public_key", "")
+    monkeypatch.setattr(settings, "langfuse_secret_key", "")
+    monkeypatch.setattr(settings, "agent", "stub")  # never resolve real Devin
+    agents.get_agent.cache_clear()
     yield
+    agents.get_agent.cache_clear()
