@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NR08NYVSPAKF2DENGMR828",
+  "strategy": "manual-commit",
+  "branch": "codex/esp32-sniffer-oled-bridge",
+  "checkpoints_count": 4,
+  "files_touched": [
+    ".gitignore",
+    "backend/app/hmi.py",
+    "backend/app/main.py",
+    "backend/app/mockgen.py",
+    "backend/app/orchestrator.py",
+    "backend/tests/test_hmi.py",
+    "backend/tests/test_orchestrator.py",
+    "firmware/esp32-display/README.md",
+    "firmware/esp32-display/include/app_config.h",
+    "firmware/esp32-display/src/backend_client.cpp",
+    "firmware/esp32-display/src/backend_client.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 244,
+    "cache_creation_tokens": 317921,
+    "cache_read_tokens": 12128476,
+    "output_tokens": 51685,
+    "api_call_count": 122
+  }
+}
