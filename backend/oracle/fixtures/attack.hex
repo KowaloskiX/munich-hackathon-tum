@@ -1,0 +1,7 @@
+# Attack capture: deauth / disassoc flood. Every frame SHOULD be blocked.
+# FC byte 0xC0 = deauthentication, 0xA0 = disassociation.
+c000_3a01_ffffffffffff_00112233_4455_00112233_4455_0070_0700
+c000_3a01_aabbccddeeff_00112233_4455_00112233_4455_0080_0700
+c000_0000_ffffffffffff_112233445566_112233445566_1010_0700
+a000_3a01_ffffffffffff_00112233_4455_00112233_4455_0090_0800
+a000_3a01_aabbccddeeff_00112233_4455_00112233_4455_00a0_0800

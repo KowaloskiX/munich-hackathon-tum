@@ -1,0 +1,7 @@
+# Benign capture: normal traffic. Every frame should PASS (not be blocked).
+# 0x80 = beacon, 0x08 = data, 0x40 = probe request, 0xb4 = RTS (control), 0x50 = probe resp.
+8000_0000_ffffffffffff_aabbccddeeff_aabbccddeeff_c000_6400
+0842_2c00_112233445566_aabbccddeeff_112233445566_0010_dead
+4000_0000_ffffffffffff_00112233_4455_ffffffffffff_0000_0700
+b400_3a01_aabbccddeeff_00112233_4455
+5000_3a01_112233445566_aabbccddeeff_aabbccddeeff_0020_6400
