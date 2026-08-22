@@ -11,6 +11,9 @@ dashboard/node_modules/
 dashboard/dist/
 dashboard/.vite/
 
+# PlatformIO
+.pio/
+
 # C build artifacts
 *.o
 *.out
@@ -21,3 +24,4 @@ a.out
 
 # Secrets
 .env
+firmware/esp32-display/include/secrets.h
