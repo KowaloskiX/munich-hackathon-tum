@@ -147,11 +147,19 @@ async def handle_anomaly(
             "tests": f"{verdict.tests_passed}/{verdict.tests_total}",
             "attack_class": agent_out.attack_class,
         }
+        incident.oracle = verdict  # keep the verdict (pass or fail) for the report
         if verdict.passed:
-            incident.oracle = verdict
             emit(EventType.VERIFY_PASSED, **result_payload)
             break
-        emit(EventType.VERIFY_FAILED, attempt=attempt + 1, **result_payload)
+        # Surface WHY it failed (compile error / unparseable) so the dashboard
+        # shows a reason instead of a cryptic 0/0. First non-empty log line.
+        reason = next((ln.strip() for ln in verdict.log.splitlines() if ln.strip()), "")
+        emit(
+            EventType.VERIFY_FAILED,
+            attempt=attempt + 1,
+            reason=reason[:200],
+            **result_payload,
+        )
         # Feed the failure back so the agent narrows its next attempt.
         agent_in = AgentIn(
             frame_hex=anomaly.frame_hex,

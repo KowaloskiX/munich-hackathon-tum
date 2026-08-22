@@ -46,8 +46,10 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
     }
     case "VERIFYING":
       return { text: `${node} verifying filter (replay test)`, tone: "info" };
-    case "VERIFY_FAILED":
-      return { text: `${node} verify FAILED ${p.tests ?? ""} (fpr=${p.fpr ?? "?"})`, tone: "bad" };
+    case "VERIFY_FAILED": {
+      const why = p.reason ? ` — ${p.reason}` : ` (fpr=${p.fpr ?? "?"})`;
+      return { text: `${node} verify FAILED ${p.tests ?? ""}${why}`, tone: "bad" };
+    }
     case "VERIFY_PASSED":
       return { text: `${node} verify PASSED ${p.tests ?? ""}`, tone: "ok" };
     case "OTA_DEPLOYING":

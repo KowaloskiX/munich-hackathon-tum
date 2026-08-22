@@ -60,6 +60,21 @@ def _opt_float(data: dict[str, Any], key: str) -> float | None:
     return float(val) if isinstance(val, int | float) else None
 
 
+def _clean_c(code: str) -> str:
+    """Strip markdown fences a model sometimes wraps around the code.
+
+    The oracle compiles filter_c_code verbatim, so ```c ... ``` or stray prose
+    would be a syntax error. Extract the largest fenced block if present, else
+    just trim surrounding fence lines.
+    """
+    s = code.strip()
+    if "```" in s:
+        blocks = re.findall(r"```(?:[a-zA-Z+]*)?\n?(.*?)```", s, re.DOTALL)
+        if blocks:
+            s = max(blocks, key=len).strip()
+    return s
+
+
 def _to_agent_out(data: dict[str, Any]) -> AgentOut:
     if "filter_c_code" not in data:
         raise DevinAgentError("structured_output missing 'filter_c_code'")
@@ -67,7 +82,7 @@ def _to_agent_out(data: dict[str, Any]) -> AgentOut:
     return AgentOut(
         attack_class=str(data.get("attack_class", "unknown")),
         confidence=float(data.get("confidence", 0.0)),
-        filter_c_code=str(data["filter_c_code"]),
+        filter_c_code=_clean_c(str(data["filter_c_code"])),
         explanation=str(data.get("explanation", "")),
         iterations=int(data.get("iterations", 0) or 0),
         compiled=bool(compiled) if compiled is not None else None,

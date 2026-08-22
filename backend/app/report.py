@@ -63,6 +63,11 @@ def render_markdown(incident: IncidentReport) -> str:
         verdict = "PASS" if o.passed else "FAIL"
         lines.append(f"- Result: **{verdict}** {o.tests_passed}/{o.tests_total} tests")
         lines.append(f"- TPR {_pct(o.tpr)} / FPR {_pct(o.fpr)}")
+        if not o.passed and o.log:
+            lines.append("")
+            lines.append("```")
+            lines.append(o.log.strip()[:1500])
+            lines.append("```")
     else:
         lines.append("- Not verified.")
     lines.append("")
