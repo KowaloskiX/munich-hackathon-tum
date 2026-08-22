@@ -1,0 +1,1149 @@
+ok -> no i co teraz? zakładając że jeszcze nie mamy nic -> od czego zacząć?
+
+---
+
+kurwa pytam po polsku zjebie
+
+---
+
+kurde -> ale w ogóle czy ten pomysł ma sens? czy może coś podobnego? bo możliwe że są już obecnie rzeczy robiące takie rzeczy i niekoniecznie jako ai agent loop itp?
+
+---
+
+zderz z alternatywami, inna domena
+
+---
+
+a czy ten zjeb devin będzie mógł jakoś na tym VM swoim itp zasymulować i serio zweryfikować czy poprawka/patch serio działa? itp ? czy jest to techincznie możliwe i jak
+
+---
+
+no to brzmi lepiej, Twój backend odpala oracle niezależnie => wracając do planu -> co teraz w sumie? od czego zacząć pierwsze stepy (zakładając że nikt jeszcze nie zaczął)
+
+---
+
+ok > to planuj w sumie od razu 1-5 dokładnie
+
+---
+
+dodaj do setpu lokalne rzeczy CI typu lint, type checking, unit testy itp -> i wymuś w agents.md / claude.md w tym repo to źeby agentci to opdalali
+
+---
+
+continue
+
+---
+
+już nic nie ma na portach -> teraz daj mi PR z tym wszystkim
+
+---
+
+a i jeszcze dodaj pydantic (też do .md dla agentów) żeby lepiej ten typing działał
+
+---
+
+a jest pre commit?
+
+---
+
+dobra nieważne -> co dalej ogólnie
+
+---
+
+no dobra to teraz możemy zająć się tym devinem -> jak to w ogóle kontrolować odpalać itp? robimy wcześniej czy co? da się to jakoś żeby lepiej kontrolować spiąć z rzeczami typu langgraph, langfuse itp? zrob research jeśli trzeba
+
+---
+
+ja muszę wymóg jest korzystać z tego devin na hackatonie -> wiec claude odpada -> ale rozumiem że jego mogę trackować na langfuse (mam jak coś running langfuse local)
+
+---
+
+kurde to będzie pitch 5 min na początku -> więc nie musi być full live demo na scenie
+
+---
+
+zaplanuj to dobrze przed implementacją -> żebym miał już initial werjsę jakąś standalone tego AI module z devin
+
+---
+
+on-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1●› 
+╰─$ uv run python -m app.agent_devin --fixtures  
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 222, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 193, in main
+    out = agent.call(payload)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 89, in call
+    session = self.client.create_session(
+        prompt, structured_output=STRUCTURED_OUTPUT_SPEC
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 60, in create_session
+    resp.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '403 Forbidden' for url 'https://api.devin.ai/v1/sessions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1●› 
+╰─$
+
+---
+
+no sprawdź bo coś nie działa
+
+---
+
+https://docs.devin.ai/api-reference/overview to moje jak coś to jest PAT
+
+---
+
+<task-notification>
+<task-id>bxyl94d5k</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/bxyl94d5k.output</output-file>
+<status>completed</status>
+<summary>Background command "Run standalone agent vs real Devin v3" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+sprawdź przez mcp ale w tym langfuse są jakieś trace ale hujowe
+
+---
+
+kurwa to jest mój lokalny langfuse więc masz do niego mcp langfuse local
+
+---
+
+a tracking kosztów będzie?
+
+---
+
+Try again
+
+---
+
+<task-notification>
+<task-id>bef01whz8</task-id>
+<tool-use-id>toolu_01TXXCkZSuLQe8hEtXLt9Sgt</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/bef01whz8.output</output-file>
+<status>completed</status>
+<summary>Background command "Real Devin full loop with retries" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+to się upewnij że zgodnie z tymi docsamin tracking kosztów jest robione, tak samo sprawdź czy np te sesje (te VMki co się runnują nie mają jakiegoś nwm dalej leżenia active które by koszty jadło) -> no i wszystkie koszty mają być reliable w langfuse
+
+---
+
+<task-notification>
+<task-id>b1qkcu35g</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/b1qkcu35g.output</output-file>
+<status>completed</status>
+<summary>Background command "Real run to prove terminate + cost" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+kurde no to niby przeszło: ╰─$ uv run python -m app.agent_devin --fixtures --retries 2              1.82s 
+
+=== attempt 1 ===
+attack_class : deauth_disassoc_flood
+confidence   : 0.93
+explanation  : The capture is a Wi-Fi management-frame flood: 5 frames in a 1 s window that are all type=management with subtype 12 (deauthentication) plus subtype 10 (disassociation), sent both to the broadcast address ff:ff:ff:ff:ff:ff and to a specific station, with a spoofed AP as source. This is a classic deauth/disassoc flood used to knock OT/ICS stations off their AP (denial of service, or to force reassociation for handshake capture). The filter decodes only the Frame Control field structurally: protocol version must be 0, type bits [3:2] must be management, and subtype bits [7:4] must be 12 or 10; everything else (beacons, probe/assoc, control, and data frames) passes. It is byte-pattern independent, has no dependence on addresses or lengths, and compiles clean with clang -Wall -std=c11.
+session      : https://app.devin.ai/sessions/1d7cc95a2d624f929ce4ea0ff5ea7050
+cost         : 0.0 ACU (provisional)
+---- filter.c ----
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define FC_TYPE_MGMT 0x0u
+
+#define SUBTYPE_DISASSOC 10u
+#define SUBTYPE_DEAUTH   12u
+
+bool block_frame(const uint8_t *f, size_t n)
+{
+    if (f == NULL || n < 2u) {
+        return false;
+    }
+
+    uint8_t fc = f[0];
+    uint8_t version = (uint8_t)(fc & 0x03u);
+    uint8_t type = (uint8_t)((fc >> 2) & 0x03u);
+    uint8_t subtype = (uint8_t)((fc >> 4) & 0x0fu);
+
+    if (version != 0u) {
+        return false;
+    }
+
+    if (type != FC_TYPE_MGMT) {
+        return false;
+    }
+
+    return subtype == SUBTYPE_DEAUTH || subtype == SUBTYPE_DISASSOC;
+}
+
+------------------
+✅ oracle: passed=True tpr=1.0 fpr=0.0 (10/10)
+session      : terminated (VM torn down, no idle cost)
+langfuse: trace(s) sent to http://localhost:3001
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$    ale koszty mi wzrosły a langfuse pokazuje 0 usd i running Input
+
+
+{2 Items
+frame_hex: [5 Items
+0: "c000_3a01_ffffffffffff_00112233_4455_00112233_4455_0070_0700"
+1: "c000_3a01_aabbccddeeff_00112233_4455_00112233_4455_0080_0700"
+2: "c000_0000_ffffffffffff_112233445566_112233445566_1010_0700"
+3: "a000_3a01_ffffffffffff_00112233_4455_00112233_4455_0090_0800"
+4: "a000_3a01_aabbccddeeff_00112233_4455_00112233_4455_00a0_0800"
+]
+stats: {4 Items
+frame_type: "mgmt"
+subtype: 12
+count_in_window: 5
+window_ms: 1000
+}
+}
+Output
+
+
+{4 Items
+attack_class: "deauth_disassoc_flood"
+confidence: 0.93
+explanation: "The capture is a Wi-Fi management-frame flood: 5 frames in a 1 s window that are all type=management with subtype 12 (deauthentication) plus subtype 10 (disassociation), sent both to the broadcast address ff:ff:ff:ff:ff:ff and to a specific station, with a spoofed AP as source. This is a classic deauth/disassoc flood used to knock OT/ICS stations off their AP (denial of service, or to force reassociation for handshake capture). The filter decodes only the Frame Control field structurally: protocol
+
+...expand (292 more characters)
+"
+filter_c_code: "#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define FC_TYPE_MGMT 0x0u
+
+#define SUBTYPE_DISASSOC 10u
+#define SUBTYPE_DEAUTH   12u
+
+bool block_frame(const uint8_t *f, size_t n)
+{
+    if (f == NULL || n < 2u) {
+        return false;
+    }
+
+    uint8_t fc = f[0];
+    uint8_t version = (uint8_t)(fc & 0x03u);
+    uint8_t type = (uint8_t)((fc >> 2) & 0x03u);
+    uint8_t subtype = (uint8_t)((fc >> 4) & 0x0fu);
+
+    if (version != 0u) {
+        return false;
+    }
+
+    if (type != FC_TYPE_MGMT) {
+        return false;
+    }
+
+    return subtype == SUBTYPE_DEAUTH || subtype == SUBTYPE_DISASSOC;
+}
+"
+}
+Corrected Output
+
+
+JSON
+Click to add corrected output
+Metadata
+
+
+{6 Items
+session_url: "https://app.devin.ai/sessions/1d7cc95a2d624f929ce4ea0ff5ea7050"
+status: "running"
+status_detail: "working"
+acus_consumed: 0
+usd: null
+cost_final: false
+}
+
+---
+
+ok to jebać te koszty - co dalej? i jak coś na tym PR to niezbyt bo był merged before
+
+---
+
+o kurde czyli co -> odpalam backend + frontend i coś zobacze jak odpale tego curla?
+
+---
+
+to jaka komenda żeby real devin i bez mocków?
+
+---
+
+jest ok? zobacz ostatni langfuse czy serio poszło ackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$ MOCK=0 uv run uvicorn app.main:app --port 8000               1m14s 130 ↵
+INFO:     Started server process [1692]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50800 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50802 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50809 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50813 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50818 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50824 - "POST /heartbeat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50830 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50832 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50836 - "POST /ingest HTTP/1.1" 200 OK
+
+---
+
+make check na gh nie działa -> a lo0kalnie testy przechodzą cd backend && uv run pytest
+warning: `VIRTUAL_ENV=/home/runner/work/munich-hackathon-tum/munich-hackathon-tum/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+......................F.........                                         [100%]
+=================================== FAILURES ===================================
+_______________ test_only_the_oracle_names_the_held_out_fixtures _______________
+    def test_only_the_oracle_names_the_held_out_fixtures() -> None:
+        """The fixtures are the answer key. A filter author that can read them wins for free."""
+        for path in sorted(APP.glob("*.py")):
+            if path.name == "oracle.py":
+                continue
+            offenders = [s for s in _code_strings(path) if "fixture" in s.lower()]
+>           assert not offenders, f"{path.name} references the held-out fixtures: {offenders}"
+E           AssertionError: agent_devin.py references the held-out fixtures: ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+E           assert not ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+tests/test_layering.py:81: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_layering.py::test_only_the_oracle_names_the_held_out_fixtures - AssertionError: agent_devin.py references the held-out fixtures: ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+assert not ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+1 failed, 31 passed in 8.10s
+make: *** [Makefile:29: back-test] Error 1
+Error: Process completed with exit code 2. a local ─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$ make check                                
+cd backend && uv run ruff check . && uv run ruff format --check .
+All checks passed!
+21 files already formatted
+cd backend && uv run ty check app
+All checks passed!
+cd backend && uv run pytest
+.....................                                                 [100%]
+21 passed in 10.79s
+TPR=1.000 FPR=0.000 PASSED=10 TOTAL=10
+RESULT=PASS
+✅ oracle harness OK
+cd dashboard && npm run lint
+
+> dashboard@0.0.0 lint
+> oxlint
+
+Found 0 warnings and 0 errors.
+Finished in 31ms on 7 files with 116 rules using 15 threads.
+cd dashboard && npm run typecheck
+
+> dashboard@0.0.0 typecheck
+> tsc --noEmit
+
+cd dashboard && npm run test
+
+> dashboard@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 /Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/dashboard
+
+ ✓ src/reducer.test.ts (2 tests) 1ms
+   ✓ reducer (2)
+     ✓ folds the full loop into node state + counters 1ms
+     ✓ greys a node on NODE_DOWN and drops active count 0ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:37:39
+   Duration  73ms (transform 12ms, setup 0ms, import 16ms, tests 1ms, environment 0ms)
+
+
+✅ all checks passed
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$ git push                                                         12.23s 
+[entire] Pushing 1 checkpoint ref(s) to origin...... done
+Everything up-to-date
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$
+
+---
+
+ok -> no i co teraz
+
+---
+
+a zobacz PR https://github.com/KowaloskiX/munich-hackathon-tum/pull/4 od kogoś innego -> czy jest kompatybilny czy coś trzeba tu zmienić / dodać żeby było spójnie
+
+---
+
+no to dodaj do tego PRa (zpulluj na worktree jakimś) -> wytestuj, zpushuj tam poprawki, powiedz mi kiedy ready to merge -> i czego mogę tam oczekiwać i jak to testować
+
+---
+
+masz konflikty kurwa
+
+---
+
+kurwa no #4 ma być kompatybilny z devinem o tym gadaliśmy kurwa zjebie jebany
+
+---
+
+no czyli po merge -> osoba co ma płytke co ma zrobić żeby to co już jest e2e przetestować manualnie i czego oczekiwać
+
+---
+
+ok -> czyli teraz w sumie jeszcze bardzo się realnie nie łączą ten ESP co już teraz jest z tym ? jakie dalsze kroki z overall planu teraz widzisz? i co juz realnie jest? bo się pogubiłem
+
+---
+
+no ale to co przyszło #4 (jest już merged jak coś) -> to czy on(bo to ten ekran) coś tam się łączy z internetem / siecią poprawnie?
+
+---
+
+ok -> a co dalej z tym devinem ? bo teraz niezbyt widać efekt jakiś + niewiele robi jako agent z VM (równie dobrze mógłby być callem do llm api) -> powinien jakoś lepiej być w stanie nwm jakoś testować itp rzeczy z planu bardziej rozbudowane -> żeby był bardziej agent niż llm call -> no i to musi być jakoś informowane / wizualizowane 
+kurwa zjebie
+
+---
+
+kurwa wcześniej to robisz dokładny plan i research jak to zrobić i wytestować żeby było PR ready (oczywiście nowy bo wszystko do tej pory merged)
+
+---
+
+<task-notification>
+<task-id>boi7us5d2</task-id>
+<tool-use-id>toolu_01BQRChPEuk1fhzgnj3TuXXS</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/boi7us5d2.output</output-file>
+<status>completed</status>
+<summary>Background command "Real Devin run — verify in-VM compile/iterate + streaming" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+ok -> to co teraz mam zrobić żeby przetestować realny stan e2e ?
+
+---
+
+INFO:     127.0.0.1:56311 - "POST /ingest HTTP/1.1" 200 OK
+Task exception was never retrieved
+future: <Task finished name='Task-16' coro=<handle_anomaly() done, defined at /Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/orchestrator.py:34> exception=ConnectError('[Errno 8] nodename nor servname provided, or not known')>
+Traceback (most recent call last):
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+        pool_request.request
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+    raise exc
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+    stream = self._connect(request)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+    with map_exceptions(exc_map):
+         ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/orchestrator.py", line 79, in handle_anomaly
+    agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 111, in call
+    session = self.client.create_session(
+        prompt, structured_output_schema=STRUCTURED_OUTPUT_SCHEMA
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 98, in create_session
+    resp = self._client.post(self._sessions_base(), json=body)
+                             ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 82, in _sessions_base
+    return f"/organizations/{self.org_id}/sessions"
+                             ^^^^^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 76, in org_id
+    resp = self._client.get("/self")
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1053, in get
+    return self.request(
+           ~~~~~~~~~~~~^
+        "GET",
+        ^^^^^^
+    ...<7 lines>...
+        extensions=extensions,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+        request,
+    ...<2 lines>...
+        history=[],
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+        request,
+        follow_redirects=follow_redirects,
+        history=history,
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+---
+
+kurwa github mi działa
+
+---
+
+kurwa no długo i nic się nie dzieje w ogóle w tym UI -> odświeżyłem po jakimś czasie i nic nie robił
+
+---
+
+to ma na żywo chociaż działać i robić nwm
+
+---
+
+kurwa -> ta apka ma się wywalać jak devin się nie łączy albo dawać znać -> poza tym to teraz przeszło -> ale kurwa dalej długo czekałem nic nie wiedząc czy cokolwiek się dzieje => a potem reszta leciała -> nie ma jakiegokolwiek constant info z api devina co można by pod lepszy UX użyć?
+
+---
+
+a bo poszedł przed chwilą jakiś UI merge na main -> zaktualizuj nasz branch teraz i zobacz czy wszystko compatible
+
+---
+
+no dobra ale jak teraz dałem kilka ataków z curl na raz to nie wygląda to zbyt czytelnie overall -> w sensie no trzeba jakoś czytelniej to zaprojektować widok na to co się dzieje w agencie, timeline itp
+
+---
+
+kurwa czemu lecą na górę (jakby na odwrót) te eventy
+
+---
+
+czemu kurwa te eventy mają różny rozmiar w zależności od ilości? tak samo kurwa te eventy nie są pogrupowane albo co
+
+---
+
+ok -> a co to teraz realnie znaczą te deployed itp? co tam się realnie dzieje? i co zrobić żeby to było bardziej realne i serio coś robiło itp? tak samo jakiś raport mógłby generować z incydentu -> powiedz jaki plan i todo list co zrobić
+
+---
+
+to czekaj -> zapisz sobie memory czy coś bo teraz compact leci
+
+---
+
+no to teraz planuj implementację i testowanie tego wszystkiego Szczerze — co jest realne, a co teatr TERAZ:
+
+Event	Co realnie się dzieje
+Anomaly	POST /ingest z hex ramkami (teraz curl/mock — nie ma realnego sniffera)
+Analysis / Sandbox / Filter generated	REALNE — Devin w VM pisze filter.c, gcc, odpala harness, zwraca kod + self-test
+Oracle replay / Verification passed	REALNE — backend clang kompiluje filtr, replayuje held-out fixtures, prawdziwe 10/10 TPR/FPR
+OTA deploy / PROTECTED	TEATR — /firmware/{id} zwraca tylko string wersji; nic się nie flashuje ani nie ładuje; stan node'a leci na PROTECTED tylko w pamięci
+Frame blocked "200"	ZMYŚLONE — orchestrator emituje FRAME_BLOCKED z liczbą = count anomalii; żaden filtr realnie nie blokuje ramek
+
+Czyli realne: detekcja(dane) → Devin pisze+testuje kod w VM → niezależny oracle. Fałszywe: OTA, "protected", liczby zablokowanych.
+
+Co zrobić żeby serio coś robiło (plan)
+
+Klucz: node-agent (software) który NAPRAWDĘ uruchamia filtr Devina i realnie blokuje ramki. Bez hardware, ale realny wykon.
+
+TODO
+
+1. Node-agent (software enforcer) — największy skok realizmu
+
+GET /firmware/{node_id} serwuje REALNY filter.c (skompilowany) ostatnio wdrożonego filtra
+proces node_agent.py: heartbeat → poll /firmware → gdy nowy filtr: clang skompiluj + załaduj (ctypes/.so)
+agent puszcza strumień ramek (replay pcap/live) przez realnie załadowany filtr, liczy PRAWDZIWE blocked/passed
+raportuje realne blocked w heartbeat → FRAME_BLOCKED przestaje być zmyślone
+"PROTECTED" = node faktycznie odrzuca ramki tym filtrem
+
+2. Raport z incydentu
+
+GET /incidents/{id}/report → markdown/JSON: attack_class, KOD filtra, wynik oracle (TPR/FPR, held-out X/X), sandbox iters, timeline, Devin session URL, czasy
+przycisk "Download report" w wierszu Attack history
+(opcja) PDF przez istniejący skill
+
+3. Prawdziwe OTA artefakt (rozszerza 1)
+
+backend buduje i wersjonuje artefakt (.so / bin) per filtr; agent pobiera po wersji, hot-reload
+
+4. (stretch, hardware) realny ESP sniffer + OTA na płytkę
+
+promiscuous capture → POST /ingest z realnym hex
+OTA na ESP32
+Rekomendacja
+
+Zacznij od 1 (node-agent) — zamienia OTA+blocking z teatru w realny wykon: filtr Devina naprawdę działa i naprawdę blokuje, liczniki prawdziwe. Potem 2 (raport) — mocny artefakt na pitch. 3/4 to bonus.
+
+To jest plan. Który robię — 1, 2, czy oba? (1 ~45 min, 2 ~30 min)
+
+---
+
+<task-notification>
+<task-id>aa88e81aa340c7055</task-id>
+<tool-use-id>toolu_013q4rRffJJfbUdjQ1D3KYNH</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/aa88e81aa340c7055.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore backend firmware/deploy/frame-blocked" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I have everything needed. Here are the findings against the current real code.
+
+## 1. `backend/app/orchestrator.py` — `handle_anomaly`
+
+Full function is lines 35–139. Key mechanics:
+
+**Emit helper** (lines 55–56): every event is a `LiveEvent(type, node_id, ts, payload)` where `payload` is the kwargs dict.
+
+**Event emission sequence** (happy path, single node):
+- Line 68–69: auto-register unknown node -&gt; `NODE_UP`
+- Line 71–77: `set_node_state(node_id, ALERT)` then `ANOMALY_DETECTED` (payload: `frames`, `subtype`, `count`)
+- Loop `for attempt in range(max_retries + 1)` (line 83), `max_retries` default 2 so up to 3 attempts:
+  - Line 85: `AGENT_ANALYZING` (payload: `attempt`)
+  - Line 87: agent runs in `asyncio.to_thread`; on exception (line 88–91) emits `AGENT_STEP` text, resets node to `ALERT`, returns `False`
+  - Line 92–100: `FILTER_GENERATED` (payload: `attack_class`, `confidence`, `iterations`, `self_tpr`, `self_fpr`, `compiled`)
+  - Line 103: `VERIFYING` (payload: `attempt`)
+  - Line 104: oracle runs on `agent_out.filter_c_code`
+  - Line 111–113: if passed -&gt; `VERIFY_PASSED` (payload: `tpr`, `fpr`, `tests` `"passed/total"`, `attack_class`), `break`
+  - Line 114: else `VERIFY_FAILED` (same payload + `attempt`); line 116–121 feeds `prev_filter`/`failure_log` back into next `AgentIn`
+- Line 123–126: if never passed -&gt; `set_node_state(ALERT)`, return `False` (no deploy)
+
+**DEPLOYED + PROTECTED** (lines 128–135):
+```
+130  state.set_node_state(node_id, NodeState.UPDATING)
+131  emit(EventType.OTA_DEPLOYING, attack_class=agent_out.attack_class)
+133  await sleep(step_delay)
+134  state.set_node_state(node_id, NodeState.PROTECTED)
+135  emit(EventType.DEPLOYED, attack_class=agent_out.attack_class)
+```
+So `PROTECTED` is set on line 134 immediately before the `DEPLOYED` emit. `UPDATING` is set on line 130 before `OTA_DEPLOYING`.
+
+**FRAME_BLOCKED — synthetic count** (line 138):
+```
+138  emit(EventType.FRAME_BLOCKED, count=anomaly.anomaly_stats.count_in_window or 42)
+```
+Confirmed: the blocked count is synthetic — it is the anomaly's `count_in_window`, falling back to `42` if that is 0/falsy. Then returns `True` (line 139). This is the only place `FRAME_BLOCKED` is emitted in the orchestrator (mockgen may emit its own; not checked here).
+
+Note: `DEPLOYED`/`FRAME_BLOCKED` counter side-effects are applied centrally in `state.emit` (see §3), not here.
+
+## 2. `backend/app/main.py` — routes
+
+**`GET /firmware/{node_id}`** (lines 107–110):
+```
+108  async def get_firmware(node_id: str) -&gt; dict[str, str]:
+109      node = state.nodes.get(node_id)
+110      return {"node_id": node_id, "fw_version": node.fw_version if node else "v1"}
+```
+It is a stub — returns only the node's `fw_version` string (or `"v1"` if node unknown). No actual firmware/filter payload is served. This is the "OTA stub" referenced in the module docstring.
+
+**All routes:**
+| Path | Method | Returns |
+|---|---|---|
+| `/health` (70–72) | GET | `{"status": "ok"}` |
+| `/nodes` (75–77) | GET | `FleetSnapshot` = `state.snapshot()` |
+| `/v1/hmi/status` (80–83) | GET | `HmiStatus` = `hmi_stream.build(state)` (ESP32 display aggregate) |
+| `/heartbeat` (86–91) | POST | `{"status": "ok"}`; calls `state.apply_heartbeat`, emits `NODE_UP` if new |
+| `/ingest` (99–104) | POST | `{"status": "accepted"}`; fire-and-forget `asyncio.create_task(handle_anomaly(state, anomaly))` with error-logging done-callback |
+| `/firmware/{node_id}` (107–110) | GET | `{"node_id", "fw_version"}` (stub) |
+| `/live` (113–127) | WebSocket | sends `{"type":"SNAPSHOT","payload":&lt;snapshot&gt;}` then streams each `LiveEvent` as JSON from the broadcaster queue |
+
+Handlers requested:
+- `/ingest` (99–104): does NOT await; schedules `handle_anomaly` as a background task, returns `accepted` immediately.
+- `/heartbeat` (86–91): `is_new = state.apply_heartbeat(hb)`; if new emits `NODE_UP`.
+- `/nodes` (75–77): returns `state.snapshot()`.
+
+There is NO incident/report endpoint in main.py. The only "firmware"-related route is the `fw_version` stub.
+
+## 3. `backend/app/state.py` — AppState
+
+**`AppState.__init__`** (72–76):
+- `self.nodes: dict[str, Node]` — fleet
+- `self.events: deque[LiveEvent]` with `maxlen=200` (line 74) — bounded event log
+- `self.counters = Counters()`
+- `self.broadcaster = Broadcaster()`
+
+**Per-node blocked count:** `Node.blocked` (line 31, init 0). Set from heartbeat (`node.blocked = hb.stats.blocked`, line 85) and incremented on `FRAME_BLOCKED` events (line 121). Exposed via `NodeView.blocked`. There is NO per-node "passed" count and no per-node blocked/passed pair — just the single cumulative `blocked` integer.
+
+**Counter side-effects in `emit`** (111–123):
+- `ANOMALY_DETECTED` -&gt; `counters.threats_detected += 1` (114)
+- `DEPLOYED` -&gt; `counters.filters_deployed += 1` (116)
+- `FRAME_BLOCKED` -&gt; `n = int(payload.get("count",1))`; `counters.frames_blocked += n` and `nodes[node_id].blocked += n` (117–121)
+- then `events.append(event)` + `broadcaster.publish(event)`
+
+**Deployed filter storage / `filter_c_code`:** No. State stores NO `filter_c_code` anywhere — not the last deployed filter, not per-node, not per-incident. `filter_c_code` lives only transiently inside `handle_anomaly` (passed agent -&gt; oracle) and in the agent/oracle modules. There is no persistence of generated C filters. `Node` has no filter/attack_class field.
+
+## 4. `backend/app/models.py` — frozen contracts
+
+- **`NodeState`** (14–19): `NORMAL, ALERT, PROTECTED, UPDATING, OFFLINE`
+- **`EventType`** (22–34): `NODE_UP, NODE_DOWN, ANOMALY_DETECTED, AGENT_ANALYZING, AGENT_STEP, FILTER_GENERATED, VERIFYING, VERIFY_FAILED, VERIFY_PASSED, OTA_DEPLOYING, DEPLOYED, FRAME_BLOCKED`
+- **`AnomalyStats`** (38–42): `frame_type="mgmt"`, `subtype: int|None`, `count_in_window: int=0`, `window_ms: int=1000`
+- **`AnomalyIn`** (45–51): `node_id`, `timestamp: float`, `frame_hex: list[str]`, `rssi: int|None`, `anomaly_stats: AnomalyStats`, `guessed_type: str|None`
+- **`HeartbeatStats`** (55–58): `frames_seen=0`, `blocked=0`, `fw_version="v1"`
+- **`Heartbeat`** (61–65): `node_id`, `timestamp: float`, `state: NodeState=NORMAL`, `stats: HeartbeatStats`
+- **`AgentIn`** (69–73): `frame_hex`, `anomaly_stats`, `prev_filter: str|None`, `failure_log: str|None`
+- **`AgentOut`** (76–85): `attack_class`, `confidence: float`, `filter_c_code: str`, `explanation=""`, `iterations=0`, `compiled: bool|None`, `self_tpr: float|None`, `self_fpr: float|None`
+- **`OracleIn`** (89): `filter_c_code`; **`OracleOut`** (93–99): `passed, tpr, fpr, tests_total, tests_passed, log`
+- **`LiveEvent`** (103–107): `type, node_id: str|None, ts: float, payload: dict[str,Any]`
+- **`NodeView`** (111–117): `node_id, state, last_seen, fw_version, label, blocked=0`
+- **`Counters`** (120–124): `active_nodes, threats_detected, filters_deployed, frames_blocked`
+- **`FleetSnapshot`** (127–129): `nodes: list[NodeView]`, `counters`
+
+**Payload shapes:** There are NO typed models for `FILTER_GENERATED` / `DEPLOYED` / `FRAME_BLOCKED` payloads. All event payloads are untyped `dict[str,Any]` in `LiveEvent.payload`; the field set is defined only by the kwargs passed at the `emit()` call sites in orchestrator.py (see §1).
+
+**Incident / AttackRecord:** No `Incident` or `AttackRecord` in models.py. The only `Incident` model lives in `hmi.py` (see §5).
+
+## 5. Existing incident / report / firmware structures
+
+- **No `/incident`, `/report`, or per-incident endpoint exists.** No data structure is keyed by an incident id anywhere in persistent state.
+- The only `Incident` model is in **`backend/app/hmi.py:36-39`**: `Incident{id, node_id, attack_class}`. It is **derived on-the-fly, not stored**. `_latest_incident` (hmi.py:55–69) reconstructs it each request by scanning `state.events` in reverse for the most recent `FILTER_GENERATED`/`DEPLOYED`/`ANOMALY_DETECTED` event that has a `node_id`, but only while some node is in `ALERT`/`UPDATING` (line 57 gate). The id is synthetic: `f"{node_id}:{int(event.ts)}"` (line 64) or `f"{node_id}:0"` fallback (line 69). It carries no filter code, no frame data, no report body.
+- `Incident` is consumed only by `GET /v1/hmi/status` -&gt; `HmiStatus.incident` (hmi.py:52, 105) for the ESP32 display. It is ephemeral: once nodes leave ALERT/UPDATING, `_latest_incident` returns `None`.
+- "report" matches are unrelated (config USD reporting, prompt `iterations` reporting, oracle self-reporting comment).
+- "firmware" matches: the `GET /firmware/{node_id}` stub (main.py:107) and the `firmware/esp32-display` display client referenced in hmi.py docstrings.
+
+**Implications for your new feature:** there is currently no persistence of generated filters, no incident store keyed by id, and no report artifact. The `Incident` in hmi.py is the only incident concept and it is a transient, derived, ID-synthesized view with no durable backing — you would be building the storage/report layer from scratch. The `/firmware/{node_id}` route is a natural hook point for serving a real filter to a software node-agent, but currently returns only `fw_version` and state stores no `filter_c_code`.
+
+Relevant files: `backend/app/orchestrator.py`, `backend/app/main.py`, `backend/app/state.py`, `backend/app/models.py`, `backend/app/hmi.py`.</result>
+<usage><subagent_tokens>34144</subagent_tokens><tool_uses>6</tool_uses><duration_ms>70226</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a17e520eb29879e18</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/a17e520eb29879e18.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore oracle + dashboard incident view" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I have everything needed. Here is the complete exploration report.
+
+---
+
+# Part A — The Oracle
+
+## `run_oracle` signature &amp; return type
+`backend/app/oracle.py:34-38`
+
+```python
+def run_oracle(
+    filter_c_code: str,
+    attack: Path | None = None,
+    benign: Path | None = None,
+) -&gt; OracleOut:
+```
+
+Defaults (`oracle.py:44-45`): `attack` → `FIXTURES/attack.hex`, `benign` → `FIXTURES/benign.hex`. Paths are resolved from module constants at `oracle.py:17-19`:
+- `ORACLE_DIR = &lt;backend&gt;/oracle`
+- `HARNESS = ORACLE_DIR/harness.c`
+- `FIXTURES = ORACLE_DIR/fixtures`
+
+**`OracleOut` model** — `backend/app/models.py:93-99`:
+```python
+class OracleOut(BaseModel):
+    passed: bool
+    tpr: float
+    fpr: float
+    tests_total: int
+    tests_passed: int
+    log: str = ""
+```
+Failure helper `_fail` (`oracle.py:30-31`) returns `passed=False, tpr=0.0, fpr=1.0, tests_total=0, tests_passed=0, log=&lt;msg&gt;`.
+
+## How it invokes clang
+`backend/app/oracle.py:47-65`. It creates a `TemporaryDirectory(prefix="oracle-")`, writes the agent code to `filter.c`, and copies `harness.c` next to it. Exact compile command (`oracle.py:54-60`):
+
+```python
+["clang", "-Wall", "-std=c11", str(tmpdir / "harness.c"), "-o", str(binary)]
+```
+- cwd = tmpdir, `COMPILE_TIMEOUT_S = 20` (`oracle.py:21`).
+- Only `harness.c` is passed to clang; it `#include "filter.c"` itself (`harness.c:28`), so `filter.c` is pulled in as a textual include, not a separate compilation unit.
+- Compile timeout/`FileNotFoundError` → `_fail("compile error: ...")` (`oracle.py:61-62`); non-zero exit → `_fail("compile failed:\n&lt;stderr&gt;")` (`oracle.py:64-65`).
+
+## How fixtures are passed / how run happens
+`backend/app/oracle.py:67-76`. The binary is run as:
+```python
+[str(binary), str(attack), str(benign)]
+```
+cwd = tmpdir, `RUN_TIMEOUT_S = 10` (`oracle.py:22`). Timeout → `_fail("filter timed out during replay (possible infinite loop)")`.
+
+## How it parses TPR/FPR
+`oracle.py:24-27, 78-92`. Regex against stdout:
+```python
+r"TPR=(?P&lt;tpr&gt;[\d.]+)\s+FPR=(?P&lt;fpr&gt;[\d.]+)\s+PASSED=(?P&lt;passed&gt;\d+)\s+TOTAL=(?P&lt;total&gt;\d+)"
+```
+No match → `_fail("unparseable oracle output:...")`. On match, `passed` is set by the literal substring test `"RESULT=PASS" in stdout` (`oracle.py:86`) — not by the regex — and tpr/fpr/totals come from the named groups.
+
+## `harness.c` — the filter contract
+`backend/oracle/harness.c`. The contract the agent's `filter.c` MUST satisfy is documented at `harness.c:14-15` and used at `harness.c:72`:
+
+```c
+bool block_frame(const uint8_t *f, size_t n);   // return true =&gt; frame is blocked
+```
+Required include headers for that signature: `&lt;stdbool.h&gt;`, `&lt;stddef.h&gt;`, `&lt;stdint.h&gt;`.
+
+- **Include mechanism**: `harness.c:28` does `#include "filter.c"` — the filter is compiled inline, so it must be a complete translation unit with its own headers (the reference filter re-declares them, `deauth.c:14-16`).
+- **Frame reading**: `score_file` (`harness.c:61-78`) opens each capture with `fopen`, reads line-by-line via `fgets` (`MAX_LINE 8192`, `MAX_FRAME 4096` at `harness.c:30-31`), decodes each line with `parse_hex` (`harness.c:34-57`), then calls `block_frame(frame, len)` per frame (`harness.c:72`).
+- **`parse_hex`** (`harness.c:34-57`): strips `#` inline comments, whitespace, and separators `_ : -`; returns `-1` to skip blank/comment/junk lines.
+- **Scoring / reporting**: `main` (`harness.c:80-107`) scores attack file with `expect_block=true` and benign with `expect_block=false`. Computes `tp/tn/fn/fp`, then:
+  - `tpr = tp/attack_total`, `fpr = fp/benign_total` (`harness.c:95-96`)
+  - **PASS condition** (`harness.c:102`): `ok = (fn == 0) &amp;&amp; (fp == 0) &amp;&amp; (attack_total &gt; 0)` — must catch every attack AND block nothing benign.
+  - Prints two lines (`harness.c:104-105`):
+    ```
+    TPR=%.3f FPR=%.3f PASSED=%d TOTAL=%d
+    RESULT=PASS|FAIL
+    ```
+    where `PASSED = tp+tn`, `TOTAL = attack_total+benign_total`. Exit code `0` on pass, `1` on fail, `2` on usage/IO error.
+
+## `deauth.c` — reference filter
+`backend/oracle/filters/deauth.c:14-25` (full function):
+```c
+#include &lt;stdbool.h&gt;
+#include &lt;stddef.h&gt;
+#include &lt;stdint.h&gt;
+
+bool block_frame(const uint8_t *f, size_t n) {
+    if (n &lt; 1) return false;
+    uint8_t fc = f[0];
+    uint8_t type = (fc &gt;&gt; 2) &amp; 0x3;
+    uint8_t subtype = (fc &gt;&gt; 4) &amp; 0xF;
+    if (type != 0x0) return false;                 /* only management frames */
+    return subtype == 0xC || subtype == 0xA;       /* deauth or disassoc     */
+}
+```
+
+## Fixture format
+Both files are **7 lines total** (2 comment lines + 5 frame lines + trailing newline; so **5 real frames each**). One frame per line, hex bytes; `_` used as a readability separator; leading `#` lines are comments.
+
+`backend/oracle/fixtures/attack.hex` (lines 3-7 are the 5 frames):
+```
+# Attack capture: deauth / disassoc flood. Every frame SHOULD be blocked.
+# FC byte 0xC0 = deauthentication, 0xA0 = disassociation.
+c000_3a01_ffffffffffff_00112233_4455_00112233_4455_0070_0700
+c000_3a01_aabbccddeeff_00112233_4455_00112233_4455_0080_0700
+c000_0000_ffffffffffff_112233445566_112233445566_1010_0700
+a000_3a01_ffffffffffff_00112233_4455_00112233_4455_0090_0800
+a000_3a01_aabbccddeeff_00112233_4455_00112233_4455_00a0_0800
+```
+`backend/oracle/fixtures/benign.hex` (first byte selects type: `80`=beacon, `08`=data, `40`=probe req, `b4`=RTS, `50`=probe resp):
+```
+8000_0000_ffffffffffff_aabbccddeeff_aabbccddeeff_c000_6400
+0842_2c00_112233445566_aabbccddeeff_112233445566_0010_dead
+4000_0000_ffffffffffff_00112233_4455_ffffffffffff_0000_0700
+b400_3a01_aabbccddeeff_00112233_4455
+5000_3a01_112233445566_aabbccddeeff_aabbccddeeff_0020_6400
+```
+
+---
+
+# Part B — Dashboard incident/attack view
+
+## Attack history rendering &amp; the "Devin response thread"
+`dashboard/src/App.tsx:165-242` — the `AttackHistory` component.
+
+- Expansion state: single `expandedId` via `useState&lt;number | null&gt;(null)` (`App.tsx:166`). It renders up to 6 attacks (`selectAttackHistory(...).slice(0, 6)`, `App.tsx:167`).
+- Column header row: `App.tsx:179-186` — columns are Attack / Router / Packets / Status / Time / (empty last cell). **That trailing empty `&lt;span /&gt;` at `App.tsx:185` is the natural slot for a "Download report" column header.**
+- **Row rendering** (`App.tsx:195-235`): each attack is an `&lt;article className="attack-history-item"&gt;` keyed by `attack.id` (`App.tsx:199`). The clickable row is a `&lt;button className="attack-history-toggle"&gt;` (`App.tsx:200-216`) with `aria-expanded`, `aria-controls={panelId}` where `panelId = \`attack-${attack.id}-thread\`` (`App.tsx:197`). Toggle handler: `onClick={() =&gt; setExpandedId(expanded ? null : attack.id)}` (`App.tsx:205`). Inside the button: name + `attackId(attack)` (`App.tsx:207-210`), router (`attack.nodeId`), `attack.packetCount`, `attack.status`, timestamp, and a "View thread"/"Hide thread" label (`App.tsx:215`).
+- `attackId` helper (`App.tsx:161-163`): `` `ATK-${String(attack.id).padStart(4, "0")}` `` — this is the human-facing incident id used for display (and mirrors the `PKT-...` scheme in `selectAttackPackets`).
+- **Expanded thread** (`App.tsx:218-234`): rendered only when `expanded`. `&lt;div className="attack-thread" id={panelId}&gt;` with a heading "Devin response thread" showing `{attack.events.length} steps · {nodeId}` (`App.tsx:220-223`), then an `&lt;ol className="attack-thread-list"&gt;` mapping `attack.events` (`App.tsx:224-232`), each `&lt;li&gt;` keyed by `ev.id` with time, `EVENT_NAMES[ev.type]`, and text.
+
+**Where a "Download report" button goes**: two natural spots — (1) inside the toggle button's trailing cell area alongside `attack-toggle-label` (`App.tsx:215`), or (2) in the expanded thread heading `attack-thread-heading` (`App.tsx:220-223`), next to "Devin response thread". Note the row is a `&lt;button&gt;`; a nested `&lt;button&gt;` is invalid HTML, so a download control belongs either in the sibling empty column cell (needs restructuring the toggle so the last column is outside the `&lt;button&gt;`) or inside the expanded `attack-thread` panel. Header slot at `App.tsx:185` is reserved for its column label.
+
+## `AttackRecord` type
+`dashboard/src/dashboardView.ts:10-18`:
+```ts
+export interface AttackRecord {
+  id: number;
+  ts: number;
+  nodeId: string;
+  name: string;
+  packetCount: number;
+  status: AttackStatus;
+  events: TimelineLine[]; // this incident's own thread, oldest -&gt; newest
+}
+```
+- **Stable id?** `id` is a `number` set to `anomaly.id` (`dashboardView.ts:74`), where `anomaly.id` is the `TimelineLine.id` = the reducer's `seq` counter at the time the `ANOMALY_DETECTED` line was created (`reducer.ts:160`, `seq` incremented `reducer.ts:175`). So it is **stable for the lifetime of the client session** (monotonic per-message sequence), but it is **not a server-assigned/persistent id** — it resets on reload/reconnect and is not globally unique across sessions. For a downloadable report keyed to the backend you'd need a real incident id from the server (none exists in current contracts).
+- `AttackStatus` union: `dashboardView.ts:3-8` ("Devin processing" | "Devin fixing" | "Devin verifying" | "Devin deploying" | "Fix deployed").
+- `events` are `TimelineLine[]`, each with its own `id` (`types.ts:59-66`).
+
+## `selectAttackHistory` grouping logic
+`dashboard/src/dashboardView.ts:61-83`.
+
+- Finds all indexes of `ANOMALY_DETECTED` lines in the (newest-first) timeline: `anomalyIndexes` (`dashboardView.ts:62`).
+- For each anomaly, defines a **segment** from the previous anomaly (exclusive) up to and including this anomaly (`segmentStart` at `dashboardView.ts:65`), then filters that slice to lines with the **same `node_id`** as the anomaly (`dashboardView.ts:67-69`). So incidents are grouped by **anomaly boundaries + matching `node_id`**, not by any explicit incident id.
+- `status`: first mapped `STATUS_BY_EVENT[line.type]` found in the segment, else "Devin processing" (`dashboardView.ts:27-37, 70`).
+- `attackClass`: parsed from a `FILTER_GENERATED` line's text (`parseAttackClass`, `dashboardView.ts:50-53, 71`); for the first attack falls back to `activeAttack`.
+- Record id = `anomaly.id`; `events = related.slice().reverse()` (oldest→newest) (`dashboardView.ts:80`).
+- Related helper `selectAttackPackets` (`dashboardView.ts:85-95`) synthesizes packet rows from `packetCount` (not currently used in `App.tsx`).
+
+Caveat for the report feature: because grouping is derived live from the client timeline (capped at 60 lines, `reducer.ts:161`), an incident's `events` reflect only what is still in the client buffer — older steps may be evicted.
+
+## `DashState` shape
+`dashboard/src/types.ts:74-85`:
+```ts
+export interface DashState {
+  nodes: Record&lt;string, NodeView&gt;;
+  counters: Counters;
+  timeline: TimelineLine[];
+  stage: Stage;
+  activeNode: string | null;
+  activeAttack: string | null;
+  agent: AgentInfo;
+  agentStatus: string | null; // live heartbeat while the agent works
+  error: string | null;       // set when the agent is unreachable
+  seq: number;
+}
+```
+Initial value: `reducer.ts:6-17`. Notable for a **node-agent status panel**: 
+- Per-node data is `NodeView` (`types.ts:20-27`): `node_id, state, last_seen, fw_version, label, blocked`. `NodeState` union `types.ts:4` = `NORMAL | ALERT | PROTECTED | UPDATING | OFFLINE`.
+- `state.agent: AgentInfo` (`types.ts:68-72`): `{ iterations, self_tpr, self_fpr }` — self-reported filter metrics, populated on `FILTER_GENERATED` (`reducer.ts:123-130`).
+- `state.agentStatus: string | null` — live heartbeat text (the `⏳`-prefixed `AGENT_STEP` messages, `reducer.ts:113-121`); cleared on `DEPLOYED` (`reducer.ts:137`).
+- `state.error: string | null` — set when an `AGENT_STEP` text contains "unavailable" (`reducer.ts:118-120`).
+- `state.activeAttack` / `state.activeNode` — current incident context.
+
+These four (`agent`, `agentStatus`, `error`, `activeNode`) are the raw material for a node-agent status panel and are **currently not surfaced anywhere in `App.tsx`** (only `counters`, `nodes`, `timeline`, and `activeAttack` are read — `App.tsx:245-266`).
+
+## WS connection &amp; API base URL
+`dashboard/src/useLive.ts`. There is **no HTTP fetch/REST client** in the dashboard — it is WebSocket-only.
+- Base URL config: `useLive.ts:6`
+  ```ts
+  const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/live";
+  ```
+  So the endpoint is a Vite env var `VITE_WS_URL`, defaulting to `ws://localhost:8000/live`.
+- Connection logic (`useLive.ts:12-39`): opens `new WebSocket(WS_URL)`, sets `connected` on open, auto-reconnects after 1000ms on close (`useLive.ts:20-23`), parses each message as `WsMessage` and dispatches into the reducer (`useLive.ts:24-30`). Cleanup closes the socket (`useLive.ts:34-38`).
+- Server sends a `SNAPSHOT` bootstrap frame first, then `LiveEvent`s (`types.ts:41-54`; reducer handles SNAPSHOT at `reducer.ts:70-74`).
+
+**Implication for a "Download report" button**: there is currently **no REST/HTTP base URL** in the dashboard to hit for a server-generated report — you would either (a) generate the report client-side from `AttackRecord.events`, or (b) add a new HTTP base (e.g. derive `http://localhost:8000` from `VITE_WS_URL`, or a new `VITE_API_URL`) and a backend endpoint. The backend's authoritative per-incident data (oracle verdict `OracleOut`) lives server-side and is not currently pushed in full to the client — only summarized into timeline text via `reducer.ts:describe` (`reducer.ts:47-58`).</result>
+<usage><subagent_tokens>38903</subagent_tokens><tool_uses>13</tool_uses><duration_ms>97192</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>ab2eefdff791cc5f9</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/ab2eefdff791cc5f9.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore tests + config + Makefile guards" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>I have everything needed. Here is the complete map of the testing/CI conventions, with exact file:line references and the guardrails your two new features must satisfy.
+
+## 1. The `make check` gate
+
+`Makefile` (root — there is **no** `backend/Makefile`):
+
+- **`check`** (line 14): `check: back-lint back-types back-test oracle-build front-lint front-types front-test`. This is the single gate; CI runs exactly it.
+- **`back-lint`** (22-23): `cd backend &amp;&amp; uv run ruff check . &amp;&amp; uv run ruff format --check .`
+- **`back-types`** (25-26): `cd backend &amp;&amp; uv run ty check app` (note: types-checks `app` only, not `tests`)
+- **`back-test`** (28-29): `cd backend &amp;&amp; uv run pytest`
+- **`oracle-build`** (45-53): mktemp, copies `oracle/harness.c` + `oracle/filters/deauth.c` → `filter.c`, compiles with `clang -Wall -Werror -std=c11`, runs `test attack.hex benign.hex`, fails on nonzero rc.
+- **`front-lint`** (35-36): `cd dashboard &amp;&amp; npm run lint` → `oxlint` (package.json:9)
+- **`front-types`** (38-39): `npm run typecheck` → `tsc --noEmit` (package.json:10)
+- **`front-test`** (41-42): `npm run test` → `vitest run` (package.json:11)
+- **`back-fix`** (31-32) and **`fix`** (18-19) auto-fix; not part of the gate.
+
+CI (`.github/workflows/ci.yml`) runs `make check` and nothing else (line 51), after `uv sync --frozen` (46) and `npm ci` (48), and asserts `clang --version` (40-41). Ruff config in `backend/pyproject.toml:23-28` (line-length 100, py311, rules `E,F,I,UP,B,ASYNC,RUF`); pytest `testpaths=["tests"]` (30-32).
+
+## 2. Backend tests
+
+Test files in `backend/tests/`: `conftest.py`, `test_contract_sync.py`, `test_contracts.py`, `test_devin_agent.py`, `test_hmi.py`, `test_layering.py`, `test_mockgen.py`, `test_oracle.py`, `test_orchestrator.py`, `test_state.py`.
+
+### `test_layering.py` — the guards that directly constrain `node_agent.py`
+
+Two independent guards, both walk the AST of files in `backend/app/`:
+
+**(a) Forbidden-import guard** (`FORBIDDEN` dict, lines 19-32; test at 68-72). It maps a module to sibling `app.*` modules it must NOT import:
+- `agent_stub` → must not import `{oracle, orchestrator, state}` ("agent side must not reach the verifier or the live fleet state")
+- `oracle` → must not import `{agent_stub, orchestrator, state}`
+- `models` → must not import `{agent_stub, main, mockgen, oracle, orchestrator, state}` (leaf contract module)
+
+`_local_imports` (35-48) detects both relative (`from .oracle import ...`) and absolute (`from app.oracle import ...` / `import app.oracle`) forms.
+
+**Implication for your node-agent:** `backend/app/node_agent.py` is **not** currently in `FORBIDDEN`, so this guard won't fail on it by default — you may import `oracle`, `state`, etc. freely. BUT note the design intent: this file exists precisely to keep the "agent side" away from the verifier. Your node-agent "compiles + runs the deployed filter and reports real blocked counts" — that is a *verifier-adjacent* role, not an *attack-agent* role, so importing `oracle`/`state` is consistent with the architecture. Just be aware that if a reviewer adds your module to `FORBIDDEN` later, or if you name it in a way that trips guard (b), it breaks. If your node-agent is conceptually a peer of `agent_stub`/`agent_devin`, keep the naming distinct from those so nobody assumes the stub restrictions apply.
+
+**(b) Held-out fixtures guard** (`test_only_the_oracle_names_the_held_out_fixtures`, 75-81). For every `app/*.py` **except `oracle.py`**, it scans all non-docstring string literals (via `_code_strings`, 51-65) and asserts none contain the substring `"fixture"` (case-insensitive). 
+
+**Critical implications for both new files:**
+- `backend/app/node_agent.py` and any report module **must not contain any string literal (code, not docstring) with "fixture" in it** — no paths like `"oracle/fixtures/..."`, no log messages mentioning fixtures. Only `oracle.py` is allowed to name them. If your node-agent needs to run a filter, route it through `run_oracle()` in `oracle.py` (which owns `FIXTURES` at `oracle.py:19`) rather than referencing fixture paths yourself. Or, if the node-agent runs the *deployed* filter against *live/attack* captures (not held-out fixtures), avoid the word "fixture" entirely — use "capture"/"sample".
+- Docstrings are exempt (`_code_strings` excludes them, 54-58), so you can mention fixtures in a module docstring.
+
+### `test_contract_sync.py` — how EventType is mirrored (read in full)
+
+Parses the TS mirror with regex and compares to pydantic. Paths at lines 26-28 (`dashboard/src/types.ts`, `dashboard/src/reducer.ts`). Key checks:
+- `test_event_type_enum_is_mirrored` (67-68): `_ts_string_union("EventType")` (45-50, regex-extracts members of `export type EventType = "A" | "B";`) must equal `{m.value for m in EventType}`.
+- `test_node_state_enum_is_mirrored` (63-64): same for `NodeState`.
+- `test_model_fields_are_mirrored` (71-75): for each model in `MIRRORED` (32-37: `NodeView, Counters, FleetSnapshot, LiveEvent`), the pydantic `.model_fields` must equal the field names parsed from `export interface X { ... }` (`_ts_interface_fields`, 53-60).
+- `test_reducer_handles_every_event_type` (78-82): extracts `case "([A-Z_]+)":` from `reducer.ts` and asserts every `EventType.value` is handled.
+
+**Implications if either feature adds an EventType or a WS-crossing model:**
+1. Add the enum member in `backend/app/models.py` `EventType` (22-34) AND the string-union member in `dashboard/src/types.ts` `EventType` (6-18) — same change.
+2. Add a `case "NEW_EVENT":` in `reducer.ts` (the `describe()` switch at reducer.ts:32 and the reducer switch at :86 — see below).
+3. If you add a new dashboard-crossing pydantic model (e.g. an `IncidentReport`), add it to the `MIRRORED` dict (test_contract_sync.py:32-37) AND write its `export interface` in `types.ts`, with matching field names. AGENTS.md rule 4 (lines 54-56) and the `.claude/skills/change-contract` skill document the "five files" a contract change touches.
+
+### `test_orchestrator.py` structure (representative test)
+
+Constructs a fresh `AppState()` directly, builds an `AnomalyIn`, and runs the async loop synchronously via `asyncio.run(handle_anomaly(...))` with dependency-injected fakes: `agent_call=call_agent` (the stub), `step_delay=0.0`, and `sleep=_nosleep` (a no-op async, lines 13-14). Asserts on `state.events` (the emitted `LiveEvent` list) and `state.counters`. Representative — `test_loop_deploys_after_one_retry` (37-45):
+
+```python
+def test_loop_deploys_after_one_retry():
+    deployed, state = _run_loop()
+    assert deployed is True
+    types = [e.type for e in state.events]
+    assert EventType.VERIFY_FAILED in types
+    assert types.index(EventType.VERIFY_PASSED) &gt; types.index(EventType.VERIFY_FAILED)
+    assert types[-1] is EventType.FRAME_BLOCKED
+    assert EventType.DEPLOYED in types
+```
+
+Fakes are passed as callables: a "dead agent" is just a function that raises (`test_agent_failure_is_graceful`, 71-91: `def boom(...): raise ConnectionError(...)`). `test_default_agent_resolves_from_config` (104-114) relies on conftest forcing `settings.agent="stub"`.
+
+### `test_devin_agent.py` structure (representative test)
+
+Fakes the network with `httpx.MockTransport(handler)` injected into `DevinClient(api_key=..., org_id=..., transport=...)`, or uses `build_mock_client()`. The `handler` branches on `request.method` + `request.url.path` to return canned `httpx.Response` JSON. Representative — `test_retry_sends_followup_message_and_reuses_session` (64-91):
+
+```python
+def handler(request: httpx.Request) -&gt; httpx.Response:
+    path = request.url.path
+    calls.append(f"{request.method} {path}")
+    if request.method == "POST" and path.endswith("/messages"):
+        return httpx.Response(200, json={"ok": True})
+    if request.method == "POST" and path.endswith("/sessions"):
+        return httpx.Response(200, json={"session_id": "s1", "url": "u", "status": "new"})
+    return httpx.Response(200, json={"status": "running", "status_detail": "finished",
+                                     "structured_output": _good_output()})
+agent = DevinAgent(client=DevinClient(api_key="k", org_id="o",
+                                      transport=httpx.MockTransport(handler)))
+agent.call(_payload())
+agent.call(_payload(failure_log="...", prev_filter=DEAUTH))
+assert sum(1 for c in calls if c.endswith("/sessions")) == 1
+```
+
+`_good_output()` (24-31) returns the canned structured output; `_payload()` (16-21) builds an `AgentIn`. `test_missing_key_without_client_raises` (179-184) uses `monkeypatch.setattr(settings, "devin_api_key", "")`.
+
+**conftest.py** (`backend/tests/conftest.py`): one `autouse=True` fixture `_isolate_external` (10-21) that monkeypatches `settings.langfuse_public_key`/`secret_key` to `""`, forces `settings.agent="stub"`, and clears `agents.get_agent.cache_clear()` before and after each test. So every test runs with the stub agent and no external Langfuse/Devin. Your node-agent tests get this isolation for free.
+
+## 3. `backend/app/config.py` — the Settings model
+
+`Settings(BaseSettings)` (11-40), `SettingsConfigDict(env_file=".env", extra="ignore")` (12). Fields:
+- `agent: str = "stub"` (15) — `"stub" | "devin"`. This is the dispatch flag read by `agents.get_agent()` and `main.py:51`.
+- Devin block (19-28): `devin_api_key`, `devin_base_url`, `devin_org_id`, `devin_poll_interval_s`, `devin_timeout_s`, `devin_usd_per_acu`, `devin_max_acu_limit`, `devin_resumable`, `devin_terminate_on_done`.
+- Langfuse block (31-33): `langfuse_public_key`, `langfuse_secret_key`, `langfuse_host="http://localhost:3000"`; `langfuse_enabled` property (35-37).
+- **No host/port field** — uvicorn host/port are passed on the CLI (AGENTS.md:73). Module-level singleton `settings = Settings()` (40).
+
+**For a node-agent flag:** add e.g. `node_agent: bool = False` or `node_agent_enabled` here, and `.env.example` (backend/.env.example) should get a matching line. Because `extra="ignore"`, an unknown env var won't crash, but a *typed field* is the convention (AGENTS.md rule 7). Follow the existing `mock` pattern — note the mock flags are **not** in config.py; they're read from `os.environ` in `main.py` (see below).
+
+## 4. Background-loop startup — `backend/app/main.py`
+
+Mock loops are launched in the FastAPI **lifespan** async context manager (44-58):
+
+```python
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI) -&gt; AsyncIterator[None]:
+    tasks: list[asyncio.Task[None]] = [asyncio.create_task(_offline_sweeper())]
+    if _flag("MOCK_HEARTBEAT"):
+        tasks.append(asyncio.create_task(mockgen.heartbeat_loop(state)))
+    if _flag("MOCK_ANOMALY") and settings.agent != "devin":
+        tasks.append(asyncio.create_task(mockgen.anomaly_loop(state)))
+    try:
+        yield
+    finally:
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+```
+
+Wired via `app = FastAPI(..., lifespan=lifespan)` (61). Flags come from `_flag(name)` (32-34): master `MOCK` env plus per-source env, `os.environ.get(...) != "0"` — **these mock flags live in `os.environ`, not config.py**. `_offline_sweeper` (37-41) is an always-on `while True: ... await asyncio.sleep(2.0)` loop pattern — the template for your node-agent loop.
+
+**For a node-agent loop:** append `asyncio.create_task(node_agent.run_loop(state))` inside `lifespan`, gated on a flag (either a config setting or a `_flag("NODE_AGENT")`). Follow the `mockgen.heartbeat_loop(state)` signature: `async def heartbeat_loop(state: AppState, *, period=3.0) -&gt; None: while True: ... await asyncio.sleep(period)` (mockgen.py:27-46). Loops must be cancel-safe (they're `.cancel()`-ed in the `finally`).
+
+Module-level singletons at top: `state = AppState()` (28), `hmi_stream = HmiStream()` (29).
+
+**For an incident-report endpoint:** follow the existing route style, e.g. `get_nodes` (75-77) `@app.get("/nodes", response_model=FleetSnapshot)`, or `post_ingest` (99-104) which does fire-and-forget `asyncio.create_task(handle_anomaly(state, anomaly))` with a done-callback `_log_task_error` (94-96). Every response uses a pydantic `response_model` (AGENTS.md rule 7). An `IncidentReport` model would go in `models.py`; if it crosses to the dashboard it must be mirrored in `types.ts` + added to `MIRRORED` (see §2).
+
+## 5. Dashboard reducer/selector tests
+
+Both use vitest (`import { describe, expect, it } from "vitest"`).
+
+**`reducer.test.ts`** — imports `initialState, reduce` from `./reducer` (line 3). Helper `ev(type, node_id, payload)` builds a `LiveEvent` (6-8); a `snapshot: SnapshotMessage` constant (10-18). Tests fold events by threading state: `let s = reduce(initialState, snapshot); s = reduce(s, ev(...))` then assert on `s.nodes`, `s.counters`, `s.stage`, `s.timeline`, `s.agentStatus`, `s.error`, `s.agent`. Representative — the full-loop test (21-38):
+
+```ts
+it("folds the full loop into node state + counters", () =&gt; {
+  let s = reduce(initialState, snapshot);
+  s = reduce(s, ev("ANOMALY_DETECTED", "esp-01", { count: 200 }));
+  expect(s.nodes["esp-01"].state).toBe("ALERT");
+  expect(s.counters.threats_detected).toBe(1);
+  ...
+  s = reduce(s, ev("FRAME_BLOCKED", "esp-01", { count: 42 }));
+  expect(s.counters.frames_blocked).toBe(42);
+  expect(s.nodes["esp-01"].blocked).toBe(42);
+});
+```
+
+**`dashboardView.test.ts`** — pure selector tests. Imports `selectAttackHistory, selectAttackPackets, selectFrameFeed` from `./dashboardView` (3). Builds a `timeline: TimelineLine[]` fixture-array (6-32, newest-first), calls the selector, asserts with `.toEqual` / `.toMatchObject`, and verifies **no mutation of the source** (lines 38-40). Representative (35-40):
+
+```ts
+it("shows the most recent frames oldest-first without mutating the source", () =&gt; {
+  expect(selectFrameFeed(timeline, 2).map((line) =&gt; line.id)).toEqual([3, 4]);
+  expect(timeline).toHaveLength(4);
+  expect(timeline[0].id).toBe(4); // source order untouched
+});
+```
+
+Selectors live in `dashboardView.ts` (pure functions over `TimelineLine[]`); if your incident-report view needs a new selector, add it there with a matching test. Note `dashboardView.ts` currently has no dependency on new event types, but `STATUS_BY_EVENT` (dashboardView.ts:27-37) is a `Partial&lt;Record&lt;EventType, ...&gt;&gt;` — a new EventType is allowed there without breaking types (it's Partial).
+
+## Summary of what keeps `make check` green for your two features
+
+Node-agent (`backend/app/node_agent.py`):
+- Do **not** put the literal substring "fixture" in any non-docstring string (test_layering.py:75-81). Run the deployed filter via `oracle.run_oracle()` or against live captures, never by naming fixture paths.
+- Full type signatures + pydantic models for any I/O; `ty check app` must pass, no `# type: ignore` (AGENTS.md rule 7).
+- Ship a test in the same change (rule 2). Model it on `test_orchestrator.py`: fresh `AppState()`, inject fakes, `asyncio.run`, assert on `state.events`/`state.counters`. conftest auto-isolation applies.
+- If you add a loop, start it in `main.py` `lifespan` (44-58), cancel-safe, gated on a flag.
+
+Incident-report endpoint:
+- New route in `main.py` with a pydantic `response_model`.
+- If it emits a new `EventType` or a dashboard-crossing model: update `models.py` + `types.ts` (+ `MIRRORED` dict + `reducer.ts` `case`) in one change, or test_contract_sync.py goes red.
+- Add backend test + (if dashboard changes) vitest test.
+
+Note: I did not create the plan file at the path mentioned in the plan-mode reminder — as the file-search subagent I return findings here for the parent agent. All paths above are absolute and load-bearing snippets are quoted with line numbers.</result>
+<usage><subagent_tokens>61297</subagent_tokens><tool_uses>27</tool_uses><duration_ms>142192</duration_ms></usage>
+</task-notification>
