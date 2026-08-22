@@ -92,6 +92,20 @@ void BackendClient::startWebSocket() {
                 app_config::kBackendPort, websocketPath_.c_str());
 }
 
+void BackendClient::startMulticast() {
+  const IPAddress group(app_config::kMulticastAddress[0],
+                        app_config::kMulticastAddress[1],
+                        app_config::kMulticastAddress[2],
+                        app_config::kMulticastAddress[3]);
+  if (multicast_.beginMulticast(group, app_config::kMulticastPort) == 1) {
+    multicastStarted_ = true;
+    Serial.printf("[udp] listening on %s:%u\n", group.toString().c_str(),
+                  app_config::kMulticastPort);
+  } else {
+    lastError_ = "multicast join failed";
+  }
+}
+
 void BackendClient::loop(uint32_t nowMs) {
   if (!app_config::kHasLocalConfig) {
     return;
@@ -99,6 +113,10 @@ void BackendClient::loop(uint32_t nowMs) {
 
   if (!wifiConnected()) {
     wifiWasConnected_ = false;
+    if (multicastStarted_) {
+      multicast_.stop();
+      multicastStarted_ = false;
+    }
     if (websocketStarted_) {
       websocket_.disconnect();
       websocketStarted_ = false;
@@ -116,6 +134,9 @@ void BackendClient::loop(uint32_t nowMs) {
                   WiFi.localIP().toString().c_str(), WiFi.RSSI());
     // Force a snapshot immediately after every Wi-Fi reconnect.
     lastPollMs_ = nowMs - app_config::kStatusPollIntervalMs;
+    if (app_config::kMulticastEnabled) {
+      startMulticast();
+    }
   }
 
   if (app_config::kWebSocketEnabled && !websocketStarted_) {
@@ -126,9 +147,46 @@ void BackendClient::loop(uint32_t nowMs) {
     websocket_.loop();
   }
 
-  if (nowMs - lastPollMs_ >= app_config::kStatusPollIntervalMs) {
+  if (multicastStarted_) {
+    pollMulticast(nowMs);
+  }
+
+  if ((!multicastStarted_ || !state_.isFresh()) &&
+      nowMs - lastPollMs_ >= app_config::kStatusPollIntervalMs) {
     pollStatus(nowMs);
   }
+}
+
+void BackendClient::pollMulticast(uint32_t nowMs) {
+  const int packetSize = multicast_.parsePacket();
+  if (packetSize <= 0) {
+    return;
+  }
+  if (packetSize > static_cast<int>(app_config::kMaximumJsonBytes)) {
+    while (multicast_.available() > 0) {
+      multicast_.read();
+    }
+    lastError_ = "multicast JSON too large";
+    return;
+  }
+
+  static char payload[app_config::kMaximumJsonBytes + 1];
+  const int received = multicast_.read(
+      reinterpret_cast<uint8_t*>(payload), app_config::kMaximumJsonBytes);
+  if (received <= 0) {
+    return;
+  }
+  payload[received] = '\0';
+
+  JsonDocument document;
+  const DeserializationError error = deserializeJson(
+      document, payload, static_cast<size_t>(received),
+      DeserializationOption::NestingLimit(8));
+  if (error) {
+    lastError_ = "invalid multicast JSON";
+    return;
+  }
+  applyEventJson(document.as<JsonVariantConst>(), nowMs, true);
 }
 
 void BackendClient::pollStatus(uint32_t nowMs) {
@@ -243,7 +301,8 @@ bool BackendClient::applyStatusJson(const JsonVariantConst& root,
 }
 
 void BackendClient::applyEventJson(const JsonVariantConst& root,
-                                   uint32_t nowMs) {
+                                   uint32_t nowMs,
+                                   bool allowEqualSequence) {
   if (!root.is<JsonObjectConst>() || (root["schema_version"] | 0) != 1) {
     return;
   }
@@ -264,7 +323,12 @@ void BackendClient::applyEventJson(const JsonVariantConst& root,
       lastError_ = "inconsistent SYSTEM_STATUS envelope";
       return;
     }
-    applyStatusJson(payload, nowMs, false);
+    if (applyStatusJson(payload, nowMs, allowEqualSequence) &&
+        allowEqualSequence) {
+      Serial.printf("[udp] SYSTEM_STATUS seq=%llu status=%s\n",
+                    static_cast<unsigned long long>(root["seq"] | 0ULL),
+                    payload["status"] | "UNKNOWN");
+    }
     return;
   }
 
@@ -295,7 +359,7 @@ void BackendClient::handleWebSocketEvent(WStype_t type, uint8_t* payload,
         lastError_ = "invalid WebSocket JSON";
         return;
       }
-      applyEventJson(document.as<JsonVariantConst>(), millis());
+      applyEventJson(document.as<JsonVariantConst>(), millis(), false);
       break;
     }
     default:

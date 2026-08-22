@@ -22,6 +22,7 @@ Contract (schema_version 1), matching firmware/esp32-display expectations:
 from __future__ import annotations
 
 import time
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -50,6 +51,18 @@ class HmiStatus(BaseModel):
     sensors: dict[str, int]
     metrics: dict[str, int]
     incident: Incident | None = None
+
+
+class HmiEvent(BaseModel):
+    schema_version: int = 1
+    event_id: str
+    stream_id: str
+    stream_generation: int
+    seq: int
+    type: Literal["SYSTEM_STATUS"] = "SYSTEM_STATUS"
+    node_id: str
+    ts: float
+    payload: HmiStatus
 
 
 def _latest_incident(state: AppState) -> Incident | None:
@@ -82,18 +95,27 @@ class HmiStream:
         self.stream_id = f"backend-{int(time.time())}"
         self.stream_generation = int(time.time() * 1000)
         self.seq = 1
-        self._signature: tuple[str, str] | None = None
+        self._signature: tuple[object, ...] | None = None
 
     def build(self, state: AppState) -> HmiStatus:
         incident = _latest_incident(state)
         level = _level(incident)
-        signature = (level, incident.id if incident else "")
+        online = sum(1 for n in state.nodes.values() if n.state is not NodeState.OFFLINE)
+        active_alerts = sum(1 for n in state.nodes.values() if n.state in _ALERT_STATES)
+        signature = (
+            level,
+            incident.id if incident else "",
+            incident.node_id if incident else "",
+            incident.attack_class if incident else "",
+            active_alerts,
+            online,
+            len(state.nodes),
+            state.counters.frames_blocked,
+        )
         if signature != self._signature:
             self._signature = signature
             self.seq += 1
 
-        online = sum(1 for n in state.nodes.values() if n.state is not NodeState.OFFLINE)
-        active_alerts = sum(1 for n in state.nodes.values() if n.state in _ALERT_STATES)
         return HmiStatus(
             stream_id=self.stream_id,
             stream_generation=self.stream_generation,
@@ -103,4 +125,17 @@ class HmiStream:
             sensors={"online": online, "expected": len(state.nodes)},
             metrics={"attack_frames_detected": state.counters.frames_blocked},
             incident=incident,
+        )
+
+    def event(self, state: AppState, node_id: str) -> HmiEvent:
+        """Wrap the current aggregate in the ordered event consumed by the HMI."""
+        status = self.build(state)
+        return HmiEvent(
+            event_id=f"hmi-{status.stream_generation}-{status.seq}",
+            stream_id=status.stream_id,
+            stream_generation=status.stream_generation,
+            seq=status.seq,
+            node_id=node_id,
+            ts=time.time(),
+            payload=status,
         )

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
+#include <WiFiUdp.h>
 
 #include "security_state.h"
 #include "status_ordering.h"
@@ -22,18 +23,23 @@ class BackendClient {
  private:
   void connectWifi(uint32_t nowMs);
   void startWebSocket();
+  void startMulticast();
+  void pollMulticast(uint32_t nowMs);
   void pollStatus(uint32_t nowMs);
   void handleWebSocketEvent(WStype_t type, uint8_t* payload, size_t length);
   bool applyStatusJson(const JsonVariantConst& root, uint32_t nowMs,
                        bool allowEqualSequence);
-  void applyEventJson(const JsonVariantConst& root, uint32_t nowMs);
+  void applyEventJson(const JsonVariantConst& root, uint32_t nowMs,
+                      bool allowEqualSequence = false);
 
   SecurityState& state_;
   StatusOrdering ordering_;
   WebSocketsClient websocket_;
+  WiFiUDP multicast_;
   bool wifiWasConnected_{false};
   bool websocketStarted_{false};
   bool websocketConnected_{false};
+  bool multicastStarted_{false};
   uint32_t lastWifiAttemptMs_{0};
   uint32_t lastPollMs_{0};
   String websocketPath_;
