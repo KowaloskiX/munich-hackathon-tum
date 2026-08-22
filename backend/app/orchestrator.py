@@ -11,7 +11,7 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 
-from .agent_stub import call_agent
+from .agents import get_agent
 from .models import (
     AgentIn,
     AgentOut,
@@ -34,7 +34,7 @@ async def handle_anomaly(
     state: AppState,
     anomaly: AnomalyIn,
     *,
-    agent_call: AgentFn = call_agent,
+    agent_call: AgentFn | None = None,
     oracle_call: OracleFn = run_oracle,
     step_delay: float = 0.6,
     max_retries: int = MAX_RETRIES,
@@ -43,8 +43,11 @@ async def handle_anomaly(
     """Run one full autonomous loop for an anomaly. Returns True if deployed.
 
     `agent_call` and `oracle_call` are injected so tests can run them
-    synchronously and integration can swap in the real Devin call.
+    synchronously; when `agent_call` is None the configured agent (stub or
+    devin, per settings.agent) is resolved via `get_agent()`.
     """
+    if agent_call is None:
+        agent_call = get_agent()
     node_id = anomaly.node_id
 
     def emit(etype: EventType, **payload: object) -> None:
