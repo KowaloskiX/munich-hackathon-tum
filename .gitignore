@@ -22,3 +22,6 @@ a.out
 
 # Editor / OS
 .DS_Store
+
+# Secrets
+.env
