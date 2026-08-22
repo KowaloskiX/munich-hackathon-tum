@@ -63,6 +63,7 @@ export interface TimelineLine {
   type: EventType;
   text: string;
   tone: "info" | "warn" | "ok" | "bad";
+  incidentId: string | null; // server incident id, for the report download
 }
 
 export interface AgentInfo {

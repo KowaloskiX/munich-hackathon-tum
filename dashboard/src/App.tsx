@@ -2,6 +2,7 @@ import "./App.css";
 
 import { useState } from "react";
 
+import { incidentReportUrl } from "./api";
 import { selectAttackHistory, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
 import type { NodeView, TimelineLine } from "./types";
@@ -162,6 +163,18 @@ function attackId(attack: AttackRecord): string {
   return `ATK-${String(attack.id).padStart(4, "0")}`;
 }
 
+async function downloadReport(incidentId: string, label: string): Promise<void> {
+  const res = await fetch(incidentReportUrl(incidentId));
+  if (!res.ok) return;
+  const blob = new Blob([await res.text()], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${label}.md`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; activeAttack: string | null }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const attacks = selectAttackHistory(timeline, activeAttack).slice(0, 6);
@@ -220,6 +233,15 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
                     <div className="attack-thread-heading">
                       <strong>Devin response thread</strong>
                       <span>{attack.events.length} steps · {displayRouterName(attack.nodeId)}</span>
+                      {attack.incidentId && (
+                        <button
+                          className="attack-report-download"
+                          type="button"
+                          onClick={() => void downloadReport(attack.incidentId!, attackId(attack))}
+                        >
+                          Download report
+                        </button>
+                      )}
                     </div>
                     <ol className="attack-thread-list">
                       {attack.events.map((ev) => (

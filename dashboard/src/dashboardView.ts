@@ -9,6 +9,7 @@ export type AttackStatus =
 
 export interface AttackRecord {
   id: number;
+  incidentId: string | null; // server incident id, for the report download
   ts: number;
   nodeId: string;
   name: string;
@@ -72,6 +73,7 @@ export function selectAttackHistory(timeline: TimelineLine[], activeAttack: stri
 
     return {
       id: anomaly.id,
+      incidentId: anomaly.incidentId ?? null,
       ts: anomaly.ts,
       nodeId: anomaly.node_id ?? "system",
       name: formatAttackName(attackClass),

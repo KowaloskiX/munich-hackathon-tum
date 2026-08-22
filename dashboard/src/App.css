@@ -786,6 +786,22 @@ button {
   font-size: 10px;
 }
 
+.attack-report-download {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attack-report-download:hover {
+  background: color-mix(in srgb, var(--accent) 16%, white);
+}
+
 .attack-thread-list {
   margin: 0;
   padding: 0;

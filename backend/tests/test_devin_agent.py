@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.agent_devin import DevinAgent, DevinAgentError, build_mock_client
+from app.agent_devin import DevinAgent, DevinAgentError, _clean_c, build_mock_client
 from app.devin_client import DevinClient
 from app.models import AgentIn, AnomalyStats
 from app.prompts import build_devin_prompt
@@ -28,6 +28,13 @@ def _good_output() -> dict:
         "filter_c_code": DEAUTH,
         "explanation": "x",
     }
+
+
+def test_clean_c_strips_markdown_fences():
+    body = "bool block_frame(const uint8_t *f, size_t n){return false;}"
+    assert _clean_c(f"Here you go:\n```c\n{body}\n```\n") == body
+    plain = "bool block_frame(const uint8_t *f, size_t n){return true;}"
+    assert _clean_c(plain) == plain
 
 
 def test_call_returns_filter_that_passes_oracle():

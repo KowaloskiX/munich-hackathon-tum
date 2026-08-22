@@ -15,15 +15,27 @@ import os
 import time
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 from . import mockgen
 from .config import settings
 from .hardware_multicast import listen_for_markers, publish_hmi_status
 from .hmi import HmiStatus, HmiStream
-from .models import AnomalyIn, EventType, FleetSnapshot, Heartbeat, LiveEvent
+from .models import (
+    AnomalyIn,
+    EnforcementReport,
+    EnforcementResult,
+    EventType,
+    FirmwarePayload,
+    FleetSnapshot,
+    Heartbeat,
+    IncidentSummary,
+    LiveEvent,
+)
 from .orchestrator import handle_anomaly
+from .report import render_markdown
 from .state import AppState
 
 state = AppState()
@@ -113,10 +125,63 @@ async def post_ingest(anomaly: AnomalyIn) -> dict[str, str]:
     return {"status": "accepted"}
 
 
-@app.get("/firmware/{node_id}")
-async def get_firmware(node_id: str) -> dict[str, str]:
-    node = state.nodes.get(node_id)
-    return {"node_id": node_id, "fw_version": node.fw_version if node else "v1"}
+@app.get("/firmware/{node_id}", response_model=FirmwarePayload)
+async def get_firmware(node_id: str) -> FirmwarePayload:
+    """Serve the real deployed filter for a node to pull, compile, and load."""
+    deployed = state.deployed.get(node_id)
+    if deployed is None:
+        node = state.nodes.get(node_id)
+        return FirmwarePayload(node_id=node_id, fw_version=node.fw_version if node else "v1")
+    return FirmwarePayload(
+        node_id=node_id,
+        fw_version=deployed.fw_version,
+        filter_c_code=deployed.filter_c_code,
+        attack_class=deployed.attack_class,
+        sample_frames=list(deployed.sample_frames),
+    )
+
+
+@app.post("/enforcement")
+async def post_enforcement(rep: EnforcementReport) -> dict[str, str]:
+    """The edge gateway reports what its loaded filter actually dropped.
+
+    Enforcement is the edge's job (the backend only detects + publishes), so
+    this is the single source of the real FRAME_BLOCKED counts. We attach the
+    counts to the node's deployed incident so the report + thread show them.
+    """
+    incident = state.latest_deployed_incident(rep.node_id)
+    incident_id = incident.id if incident else None
+    if incident is not None:
+        incident.enforcement = EnforcementResult(blocked=rep.blocked, passed=rep.passed)
+    state.emit(
+        LiveEvent(
+            type=EventType.FRAME_BLOCKED,
+            node_id=rep.node_id,
+            ts=time.time(),
+            payload={
+                "count": rep.blocked,
+                "passed": rep.passed,
+                "fw_version": rep.fw_version,
+                "source": "edge",
+                "incident_id": incident_id,
+                "real": True,
+            },
+        )
+    )
+    return {"status": "ok"}
+
+
+@app.get("/incidents", response_model=list[IncidentSummary])
+async def get_incidents() -> list[IncidentSummary]:
+    return state.list_incidents()
+
+
+@app.get("/incidents/{incident_id}/report.md")
+async def get_incident_report(incident_id: str) -> PlainTextResponse:
+    incident = state.incidents.get(incident_id)
+    if incident is None:
+        raise HTTPException(status_code=404, detail="unknown incident")
+    return PlainTextResponse(render_markdown(incident), media_type="text/markdown")
 
 
 @app.websocket("/live")

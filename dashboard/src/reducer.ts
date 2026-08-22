@@ -46,16 +46,23 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
     }
     case "VERIFYING":
       return { text: `${node} verifying filter (replay test)`, tone: "info" };
-    case "VERIFY_FAILED":
-      return { text: `${node} verify FAILED ${p.tests ?? ""} (fpr=${p.fpr ?? "?"})`, tone: "bad" };
+    case "VERIFY_FAILED": {
+      const why = p.reason ? ` — ${p.reason}` : ` (fpr=${p.fpr ?? "?"})`;
+      return { text: `${node} verify FAILED ${p.tests ?? ""}${why}`, tone: "bad" };
+    }
     case "VERIFY_PASSED":
       return { text: `${node} verify PASSED ${p.tests ?? ""}`, tone: "ok" };
     case "OTA_DEPLOYING":
       return { text: `${node} deploying filter OTA`, tone: "info" };
     case "DEPLOYED":
       return { text: `${node} PROTECTED: ${p.attack_class ?? "filter"} deployed`, tone: "ok" };
-    case "FRAME_BLOCKED":
+    case "FRAME_BLOCKED": {
+      if (p.source === "edge") {
+        const v = p.fw_version ? ` (filter ${p.fw_version})` : "";
+        return { text: `${node} blocked ${p.count ?? 0} frames at edge${v}`, tone: "ok" };
+      }
       return { text: `${node} blocked ${p.count ?? 1} attack frames`, tone: "ok" };
+    }
     default:
       return { text: e.type, tone: "info" };
   }
@@ -157,7 +164,16 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   let timeline = state.timeline;
   if (appendLine) {
     const { text, tone } = describe(e);
-    const line: TimelineLine = { id: state.seq, ts: e.ts, node_id: e.node_id, type: e.type, text, tone };
+    const incidentId = (e.payload.incident_id as string | undefined) ?? null;
+    const line: TimelineLine = {
+      id: state.seq,
+      ts: e.ts,
+      node_id: e.node_id,
+      type: e.type,
+      text,
+      tone,
+      incidentId,
+    };
     timeline = [line, ...state.timeline].slice(0, 60);
   }
 
