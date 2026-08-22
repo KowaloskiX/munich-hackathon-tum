@@ -124,10 +124,9 @@ class DevinAgent:
             "cost_final": cost_final,
         }
 
-        # Record the Devin session as a generation: prompt in, filter out, ACU cost.
-        usage: dict[str, Any] = {"unit": "ACU", "total": self.last_acus or 0}
-        if self.last_usd is not None:
-            usage["totalCost"] = self.last_usd
+        # Record the Devin session as a generation: prompt in, filter out.
+        # Devin bills in ACUs, not tokens, so cost lives in metadata + a score
+        # (Langfuse's token-based usage/cost column does not model ACUs).
         with tracing.generation(
             trace,
             "devin.session",
@@ -135,7 +134,6 @@ class DevinAgent:
             input=model_input,
             output=session.structured_output,
             metadata=meta,
-            usage=usage,
         ):
             pass
 
@@ -150,7 +148,10 @@ class DevinAgent:
             metadata=meta,
         )
         if self.last_acus is not None:
-            tracing.score(trace, "acus_consumed", self.last_acus)
+            comment = "final" if cost_final else "provisional"
+            tracing.score(trace, "acus_consumed", self.last_acus, comment=comment)
+        if self.last_usd is not None:
+            tracing.score(trace, "cost_usd", self.last_usd)
         return out
 
     def terminate(self) -> None:
