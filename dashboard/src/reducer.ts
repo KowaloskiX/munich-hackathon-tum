@@ -1,4 +1,4 @@
-// Pure reducer: folds WS messages into dashboard state. No React, no I/O —
+// Pure reducer: folds WS messages into dashboard state. No React, no I/O -
 // so it is unit-testable in isolation (see reducer.test.ts).
 
 import type { DashState, LiveEvent, NodeState, TimelineLine, WsMessage } from "./types";
@@ -23,18 +23,18 @@ const STAGE_BY_TYPE: Partial<Record<LiveEvent["type"], DashState["stage"]>> = {
 
 function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
   const p = e.payload;
-  const node = e.node_id ?? "—";
+  const node = e.node_id ?? "system";
   switch (e.type) {
     case "NODE_UP":
       return { text: `${node} online`, tone: "info" };
     case "NODE_DOWN":
       return { text: `${node} went offline`, tone: "bad" };
     case "ANOMALY_DETECTED":
-      return { text: `${node} anomaly — ${p.count ?? "?"} frames in window`, tone: "warn" };
+      return { text: `${node} anomaly: ${p.count ?? "?"} frames in window`, tone: "warn" };
     case "AGENT_ANALYZING":
       return { text: `${node} agent analyzing (attempt ${p.attempt ?? 1})`, tone: "info" };
     case "FILTER_GENERATED":
-      return { text: `${node} filter generated — ${p.attack_class ?? "?"}`, tone: "info" };
+      return { text: `${node} filter generated: ${p.attack_class ?? "?"}`, tone: "info" };
     case "VERIFYING":
       return { text: `${node} verifying filter (replay test)`, tone: "info" };
     case "VERIFY_FAILED":
@@ -44,7 +44,7 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
     case "OTA_DEPLOYING":
       return { text: `${node} deploying filter OTA`, tone: "info" };
     case "DEPLOYED":
-      return { text: `${node} PROTECTED — ${p.attack_class ?? "filter"} deployed`, tone: "ok" };
+      return { text: `${node} PROTECTED: ${p.attack_class ?? "filter"} deployed`, tone: "ok" };
     case "FRAME_BLOCKED":
       return { text: `${node} blocked ${p.count ?? 1} attack frames`, tone: "ok" };
     default:

@@ -1,5 +1,5 @@
 // Mirror of backend contracts (ARCHITECTURE.md §4). Keep in sync with
-// backend/app/models.py — do not diverge without updating both sides.
+// backend/app/models.py - do not diverge without updating both sides.
 
 export type NodeState = "NORMAL" | "ALERT" | "PROTECTED" | "UPDATING" | "OFFLINE";
 

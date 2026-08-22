@@ -1,34 +1,11 @@
 import "./App.css";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { useState } from "react";
 
-import { getWorkflowView, selectFrameFeed, selectLatestAnomaly } from "./dashboardView";
-import type { NodeView, Stage, TimelineLine } from "./types";
+import { selectAttackHistory, selectAttackPackets, selectFrameFeed } from "./dashboardView";
+import type { AttackRecord } from "./dashboardView";
+import type { NodeView, TimelineLine } from "./types";
 import { useLive } from "./useLive";
-
-gsap.registerPlugin(useGSAP, ScrollTrigger);
-
-const STAGE_ORDER: Stage[] = ["idle", "trigger", "agent", "verify", "ota", "done"];
-
-const FILTER_STAGES: { key: Stage; label: string; owner: string }[] = [
-  { key: "trigger", label: "Detect", owner: "Detector" },
-  { key: "agent", label: "Generate", owner: "Devin" },
-  { key: "verify", label: "Verify", owner: "Devin" },
-  { key: "ota", label: "Deploy", owner: "Devin" },
-  { key: "done", label: "Protect", owner: "Router" },
-];
-
-const RESPONSE_STATUS: Record<Stage, string> = {
-  idle: "Monitoring airspace",
-  trigger: "Anomaly isolated",
-  agent: "Devin generating filter",
-  verify: "Oracle replay running",
-  ota: "Deploying to router",
-  done: "Threat contained",
-};
 
 const EVENT_NAMES: Record<TimelineLine["type"], string> = {
   NODE_UP: "Node online",
@@ -84,20 +61,12 @@ function SignalIcon() {
 
 function RouterBoard({ state }: { state: NodeView["state"] }) {
   return (
-    <svg className="router-board" viewBox="0 0 140 74" role="img" aria-label={`Router ${state.toLowerCase()}`}>
-      <g className="board-pins">
-        {Array.from({ length: 8 }, (_, index) => (
-          <circle key={`top-${index}`} cx={18 + index * 15} cy="7" r="2.4" />
-        ))}
-        {Array.from({ length: 8 }, (_, index) => (
-          <circle key={`bottom-${index}`} cx={18 + index * 15} cy="67" r="2.4" />
-        ))}
-      </g>
-      <rect className="board-base" x="8" y="12" width="124" height="50" rx="7" />
-      <path className="board-antenna" d="M20 42h8V30h8v12h8V30h8v12h8" />
-      <rect className="board-chip" x="70" y="25" width="29" height="24" rx="3" />
-      <path className="board-trace" d="M60 37h10m29 0h18M84 25V17m0 32v7" />
-      <circle className="board-led" cx="117" cy="22" r="3" />
+    <svg className="router-board" viewBox="0 0 120 56" role="img" aria-label={`Router ${state.toLowerCase()}`}>
+      <rect className="board-base" x="8" y="15" width="104" height="32" rx="5" />
+      <path className="board-antenna" d="M19 34h8V25h8v9h8V25h8v9h8" />
+      <rect className="board-chip" x="67" y="23" width="24" height="18" rx="3" />
+      <path className="board-trace" d="M59 32h8m24 0h11M79 23v-7" />
+      <circle className="board-led" cx="101" cy="23" r="2.5" />
     </svg>
   );
 }
@@ -190,183 +159,103 @@ function FrameFeed({ timeline }: { timeline: TimelineLine[] }) {
   );
 }
 
-function FilterEngine({ stage, attack }: { stage: Stage; attack: string | null }) {
-  const activeIndex = STAGE_ORDER.indexOf(stage);
-  const { detectorActive, devinActive, retryActive, devinStatus } = getWorkflowView(stage, attack);
-
-  return (
-    <div className="filter-engine">
-      <div className="panel-heading filter-heading">
-        <h2>Adaptive filter</h2>
-        <div className="filter-glyph" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-
-      <div className="filter-body">
-        <div className="agent-activity" aria-label="Detection and generation activity">
-          <div className="activity-card detector-activity" data-active={detectorActive || undefined}>
-            <span className="detector-radar" aria-hidden="true"><i /></span>
-            <span className="activity-copy">
-              <span>Detection</span>
-              <strong>Signal detector</strong>
-              <small>{detectorActive ? "Anomaly signature found" : "Scanning packet windows"}</small>
-            </span>
-            <span className="activity-signal" aria-hidden="true"><i /><i /><i /></span>
-          </div>
-
-          <div className="activity-card devin-activity" data-active={devinActive || undefined}>
-            <span className="devin-mark" aria-hidden="true">D</span>
-            <span className="activity-copy">
-              <span>Generation agent</span>
-              <strong>Devin</strong>
-              <small>{devinStatus}</small>
-            </span>
-            <span className="activity-signal" aria-hidden="true"><i /><i /><i /></span>
-          </div>
-        </div>
-
-        <div className="workflow-map">
-          <div className="stage-rail" role="list" aria-label={`Defense loop ${stage}`}>
-            {FILTER_STAGES.map((item) => {
-              const index = STAGE_ORDER.indexOf(item.key);
-              const phase = index < activeIndex ? "past" : index === activeIndex ? "active" : "future";
-              return (
-                <div className="stage-step" data-phase={phase} key={item.key} role="listitem">
-                  <span className="stage-node" />
-                  <span className="stage-label">{item.label}</span>
-                  <span className="stage-owner">{item.owner}</span>
-                </div>
-              );
-            })}
-          </div>
-          <svg
-            className="retry-loop"
-            data-active={retryActive || undefined}
-            viewBox="0 0 44 100"
-            preserveAspectRatio="none"
-            role="img"
-            aria-label="Failed verification returns to Devin generation"
-          >
-            <path className="retry-path" d="M22 50 C2 50 2 30 22 30" pathLength="1" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
+function attackId(attack: AttackRecord): string {
+  return `ATK-${String(attack.id).padStart(4, "0")}`;
 }
 
-function AnomalyFocus({
-  attack,
-  node,
-  stage,
-  timeline,
-}: {
-  attack: string | null;
-  node: string | null;
-  stage: Stage;
-  timeline: TimelineLine[];
-}) {
-  const latestAnomaly = selectLatestAnomaly(timeline);
-  const anomalyNode = node ?? latestAnomaly?.node_id;
-  const hasAnomaly = Boolean(attack || latestAnomaly);
-  const attackName = attack?.replaceAll("_", " ") ?? "Unclassified signal anomaly";
+function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; activeAttack: string | null }) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const attacks = selectAttackHistory(timeline, activeAttack).slice(0, 6);
 
   return (
-    <div className="anomaly-focus">
-      <div className="panel-heading anomaly-heading">
-        <h2>Active anomaly</h2>
-        <span className="anomaly-severity" data-active={hasAnomaly || undefined}>
-          {hasAnomaly ? "High priority" : "Monitoring"}
-        </span>
+    <section className="attack-history" aria-labelledby="attack-history-heading">
+      <div className="attack-history-heading">
+        <div>
+          <h2 id="attack-history-heading">Attack history</h2>
+          <p>Detected incidents and Devin response state</p>
+        </div>
+        <span>{attacks.length} attacks</span>
       </div>
 
-      <div className="anomaly-card" data-active={hasAnomaly || undefined}>
-        <div className="anomaly-wave" aria-hidden="true">
-          {Array.from({ length: 11 }, (_, index) => <i key={index} />)}
-        </div>
-        <div className="anomaly-copy">
-          <span>{hasAnomaly ? "Signal anomaly detected" : "No anomaly in current window"}</span>
-          <h3>{hasAnomaly ? attackName : "Airspace clear"}</h3>
-          <p>{anomalyNode ? displayRouterName(anomalyNode) : "Waiting for detector"}</p>
-        </div>
-        <div className="anomaly-response">
-          <span>Response</span>
-          <strong>{RESPONSE_STATUS[stage]}</strong>
-          {latestAnomaly && (
-            <time dateTime={new Date(latestAnomaly.ts * 1000).toISOString()}>{formatClock(latestAnomaly.ts)}</time>
-          )}
-        </div>
-        {hasAnomaly && (
-          <div className="anomaly-orbit" aria-hidden="true"><span /></div>
+      <div className="attack-history-columns" aria-hidden="true">
+        <span>Attack</span>
+        <span>Router</span>
+        <span>Packets</span>
+        <span>Status</span>
+        <span>Time</span>
+        <span />
+      </div>
+
+      <div className="attack-history-list">
+        {attacks.length === 0 ? (
+          <div className="attack-history-empty">
+            <strong>No attacks recorded</strong>
+            <span>Waiting for an anomaly detection event.</span>
+          </div>
+        ) : (
+          attacks.map((attack) => {
+            const expanded = expandedId === attack.id;
+            const packets = expanded ? selectAttackPackets(attack) : [];
+            const packetPanelId = `attack-${attack.id}-packets`;
+            return (
+              <article className="attack-history-item" data-expanded={expanded || undefined} key={attack.id}>
+                <button
+                  className="attack-history-toggle"
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-controls={packetPanelId}
+                  onClick={() => setExpandedId(expanded ? null : attack.id)}
+                >
+                  <span className="attack-identity">
+                    <strong>{attack.name}</strong>
+                    <small>{attackId(attack)}</small>
+                  </span>
+                  <span>{displayRouterName(attack.nodeId)}</span>
+                  <strong className="attack-packet-count">{attack.packetCount}</strong>
+                  <span className="attack-status">{attack.status}</span>
+                  <time>{formatClock(attack.ts)}</time>
+                  <span className="attack-toggle-label">{expanded ? "Hide packets" : "View packets"}</span>
+                </button>
+
+                {expanded && (
+                  <div className="attack-packet-window" id={packetPanelId}>
+                    <div className="attack-packet-heading">
+                      <strong>Connected packet sample</strong>
+                      <span>{packets.length} of {attack.packetCount} packets</span>
+                    </div>
+                    <div className="attack-packet-columns" aria-hidden="true">
+                      <span>Packet ID</span>
+                      <span>Router</span>
+                      <span>Frame</span>
+                      <span>Match</span>
+                    </div>
+                    <div className="attack-packet-list">
+                      {packets.map((packet) => (
+                        <div className="attack-packet-row" key={packet.id}>
+                          <code>{packet.id}</code>
+                          <span>{displayRouterName(packet.nodeId)}</span>
+                          <span>{packet.frameType}</span>
+                          <span>{packet.match}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
 export default function App() {
   const { state } = useLive();
-  const shellRef = useRef<HTMLDivElement>(null);
   const nodes = Object.values(state.nodes).sort((a, b) => a.node_id.localeCompare(b.node_id));
 
-  useGSAP(
-    () => {
-      if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const flowCards = gsap.utils.toArray<HTMLElement>(".flow-card");
-      const boards = gsap.utils.toArray<SVGElement>(".router-board");
-      if (flowCards.length > 0) {
-        gsap.fromTo(
-          flowCards,
-          { y: 28, scale: 0.97, opacity: 0 },
-          { y: 0, scale: 1, opacity: 1, duration: 0.85, stagger: 0.08, ease: "power3.out" },
-        );
-      }
-      if (boards.length > 0) {
-        gsap.fromTo(
-          boards,
-          { scale: 0.8, opacity: 0.2 },
-          { scale: 1, opacity: 1, duration: 1, stagger: 0.09, ease: "back.out(1.4)" },
-        );
-      }
-    },
-    { scope: shellRef, dependencies: [nodes.length], revertOnUpdate: true },
-  );
-
-  useGSAP(
-    () => {
-      if (state.seq === 0 || globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const latestFrame = gsap.utils.toArray<HTMLElement>(".frame-row:first-child");
-      if (latestFrame.length > 0) {
-        gsap.fromTo(
-          latestFrame,
-          { x: 18, opacity: 0, backgroundColor: "rgba(180, 255, 52, 0.12)" },
-          { x: 0, opacity: 1, backgroundColor: "rgba(180, 255, 52, 0)", duration: 0.7, ease: "power2.out" },
-        );
-      }
-    },
-    { scope: shellRef, dependencies: [state.seq], revertOnUpdate: true },
-  );
-
-  useGSAP(
-    () => {
-      if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const activeCards = gsap.utils.toArray<HTMLElement>(".activity-card[data-active='true']");
-      if (activeCards.length > 0) {
-        gsap.fromTo(
-          activeCards,
-          { y: 7, scale: 0.97, opacity: 0.55 },
-          { y: 0, scale: 1, opacity: 1, duration: 0.55, ease: "power2.out" },
-        );
-      }
-    },
-    { scope: shellRef, dependencies: [state.stage], revertOnUpdate: true },
-  );
-
   return (
-    <div className="dashboard-shell" ref={shellRef}>
+    <div className="dashboard-shell">
       <header className="topbar">
         <Wordmark />
         <div className="topbar-metrics" role="group" aria-label="Fleet totals">
@@ -380,14 +269,8 @@ export default function App() {
       <main className="workspace">
         <SensorRail nodes={nodes} activeNode={state.activeNode} />
         <FrameFeed timeline={state.timeline} />
-        <section className="defense-workspace flow-card" aria-label="Adaptive response workflow and active anomaly">
-          <FilterEngine stage={state.stage} attack={state.activeAttack} />
-          <AnomalyFocus
-            attack={state.activeAttack}
-            node={state.activeNode}
-            stage={state.stage}
-            timeline={state.timeline}
-          />
+        <section className="defense-workspace flow-card" aria-label="Attack history">
+          <AttackHistory timeline={state.timeline} activeAttack={state.activeAttack} />
         </section>
       </main>
     </div>
