@@ -28,6 +28,7 @@ from .prompts import SAMPLE_BENIGN
 from .state import AppState
 
 MAX_RETRIES = 2
+AGENT_CONN_RETRIES = 2  # extra tries on a transient network error (e.g. DNS blip)
 
 AgentFn = Callable[..., AgentOut]  # (AgentIn, on_step=None) -> AgentOut
 OracleFn = Callable[[str], OracleOut]
@@ -41,6 +42,8 @@ async def handle_anomaly(
     oracle_call: OracleFn = run_oracle,
     step_delay: float = 0.6,
     max_retries: int = MAX_RETRIES,
+    agent_conn_retries: int = AGENT_CONN_RETRIES,
+    conn_backoff: float = 1.0,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> bool:
     """Run one full autonomous loop for an anomaly. Returns True if deployed.
@@ -93,12 +96,31 @@ async def handle_anomaly(
     for attempt in range(max_retries + 1):
         await sleep(step_delay)
         emit(EventType.AGENT_ANALYZING, attempt=attempt + 1)
-        try:
-            agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
-        except Exception as exc:
-            emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
-            state.set_node_state(node_id, NodeState.ALERT)
-            return False
+        # Retry transient network errors (DNS blip, dropped connection) before
+        # giving up — a single hiccup reaching Devin must not kill the incident.
+        agent_out = None
+        for conn_try in range(agent_conn_retries + 1):
+            try:
+                agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+                break
+            except OSError as exc:
+                if conn_try < agent_conn_retries:
+                    # ⏳-prefixed: shows as live status, not a loud error yet.
+                    emit(
+                        EventType.AGENT_STEP,
+                        text=f"⏳ agent connection failed ({exc}); "
+                        f"retry {conn_try + 1}/{agent_conn_retries}",
+                    )
+                    await sleep(conn_backoff)
+                    continue
+                emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
+                state.set_node_state(node_id, NodeState.ALERT)
+                return False
+            except Exception as exc:
+                emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
+                state.set_node_state(node_id, NodeState.ALERT)
+                return False
+        assert agent_out is not None
         emit(
             EventType.FILTER_GENERATED,
             attack_class=agent_out.attack_class,

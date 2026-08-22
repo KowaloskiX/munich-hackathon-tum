@@ -119,6 +119,35 @@ def test_agent_failure_is_graceful():
     assert state.counters.filters_deployed == 0
 
 
+def test_transient_connection_error_is_retried_then_succeeds():
+    """A DNS/connection blip must not kill the incident — it is retried."""
+    fails = {"left": 2}
+
+    def flaky(payload, on_step=None):
+        if fails["left"] > 0:
+            fails["left"] -= 1
+            raise OSError(8, "nodename nor servname provided")
+        return call_agent(payload, on_step=on_step)
+
+    state = AppState()
+    anomaly = AnomalyIn(
+        node_id="esp-01",
+        timestamp=1.0,
+        frame_hex=DEAUTH,
+        anomaly_stats=AnomalyStats(subtype=12, count_in_window=200),
+    )
+    deployed = asyncio.run(
+        handle_anomaly(
+            state, anomaly, agent_call=flaky, step_delay=0.0, conn_backoff=0.0, sleep=_nosleep
+        )
+    )
+    assert deployed is True  # recovered after the transient failures
+    assert fails["left"] == 0  # both blips were hit and retried past
+    assert EventType.DEPLOYED in [e.type for e in state.events]
+    steps = [e for e in state.events if e.type is EventType.AGENT_STEP]
+    assert any("retry" in str(e.payload.get("text", "")) for e in steps)
+
+
 def test_agent_steps_and_iterations_surface():
     _, state = _run_loop()
     types = [e.type for e in state.events]
