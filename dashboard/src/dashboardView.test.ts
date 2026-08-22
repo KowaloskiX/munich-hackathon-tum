@@ -32,9 +32,11 @@ const timeline: TimelineLine[] = [
 ];
 
 describe("dashboard attack views", () => {
-  it("caps the live feed without mutating its order", () => {
-    expect(selectFrameFeed(timeline, 2).map((line) => line.id)).toEqual([4, 3]);
+  it("shows the most recent frames oldest-first without mutating the source", () => {
+    // newest two are ids 4,3 (timeline is newest-first) -> displayed 3 then 4
+    expect(selectFrameFeed(timeline, 2).map((line) => line.id)).toEqual([3, 4]);
     expect(timeline).toHaveLength(4);
+    expect(timeline[0].id).toBe(4); // source order untouched
   });
 
   it("groups an anomaly with its packet count, identity, and latest Devin status", () => {
