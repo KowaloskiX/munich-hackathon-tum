@@ -1,0 +1,549 @@
+ok -> no i co teraz? zakładając że jeszcze nie mamy nic -> od czego zacząć?
+
+---
+
+kurwa pytam po polsku zjebie
+
+---
+
+kurde -> ale w ogóle czy ten pomysł ma sens? czy może coś podobnego? bo możliwe że są już obecnie rzeczy robiące takie rzeczy i niekoniecznie jako ai agent loop itp?
+
+---
+
+zderz z alternatywami, inna domena
+
+---
+
+a czy ten zjeb devin będzie mógł jakoś na tym VM swoim itp zasymulować i serio zweryfikować czy poprawka/patch serio działa? itp ? czy jest to techincznie możliwe i jak
+
+---
+
+no to brzmi lepiej, Twój backend odpala oracle niezależnie => wracając do planu -> co teraz w sumie? od czego zacząć pierwsze stepy (zakładając że nikt jeszcze nie zaczął)
+
+---
+
+ok > to planuj w sumie od razu 1-5 dokładnie
+
+---
+
+dodaj do setpu lokalne rzeczy CI typu lint, type checking, unit testy itp -> i wymuś w agents.md / claude.md w tym repo to źeby agentci to opdalali
+
+---
+
+continue
+
+---
+
+już nic nie ma na portach -> teraz daj mi PR z tym wszystkim
+
+---
+
+a i jeszcze dodaj pydantic (też do .md dla agentów) żeby lepiej ten typing działał
+
+---
+
+a jest pre commit?
+
+---
+
+dobra nieważne -> co dalej ogólnie
+
+---
+
+no dobra to teraz możemy zająć się tym devinem -> jak to w ogóle kontrolować odpalać itp? robimy wcześniej czy co? da się to jakoś żeby lepiej kontrolować spiąć z rzeczami typu langgraph, langfuse itp? zrob research jeśli trzeba
+
+---
+
+ja muszę wymóg jest korzystać z tego devin na hackatonie -> wiec claude odpada -> ale rozumiem że jego mogę trackować na langfuse (mam jak coś running langfuse local)
+
+---
+
+kurde to będzie pitch 5 min na początku -> więc nie musi być full live demo na scenie
+
+---
+
+zaplanuj to dobrze przed implementacją -> żebym miał już initial werjsę jakąś standalone tego AI module z devin
+
+---
+
+on-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1●› 
+╰─$ uv run python -m app.agent_devin --fixtures  
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 222, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 193, in main
+    out = agent.call(payload)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 89, in call
+    session = self.client.create_session(
+        prompt, structured_output=STRUCTURED_OUTPUT_SPEC
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 60, in create_session
+    resp.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '403 Forbidden' for url 'https://api.devin.ai/v1/sessions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1●› 
+╰─$
+
+---
+
+no sprawdź bo coś nie działa
+
+---
+
+https://docs.devin.ai/api-reference/overview to moje jak coś to jest PAT
+
+---
+
+<task-notification>
+<task-id>bxyl94d5k</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/bxyl94d5k.output</output-file>
+<status>completed</status>
+<summary>Background command "Run standalone agent vs real Devin v3" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+sprawdź przez mcp ale w tym langfuse są jakieś trace ale hujowe
+
+---
+
+kurwa to jest mój lokalny langfuse więc masz do niego mcp langfuse local
+
+---
+
+a tracking kosztów będzie?
+
+---
+
+Try again
+
+---
+
+<task-notification>
+<task-id>bef01whz8</task-id>
+<tool-use-id>toolu_01TXXCkZSuLQe8hEtXLt9Sgt</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/bef01whz8.output</output-file>
+<status>completed</status>
+<summary>Background command "Real Devin full loop with retries" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+to się upewnij że zgodnie z tymi docsamin tracking kosztów jest robione, tak samo sprawdź czy np te sesje (te VMki co się runnują nie mają jakiegoś nwm dalej leżenia active które by koszty jadło) -> no i wszystkie koszty mają być reliable w langfuse
+
+---
+
+<task-notification>
+<task-id>b1qkcu35g</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/b1qkcu35g.output</output-file>
+<status>completed</status>
+<summary>Background command "Real run to prove terminate + cost" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+kurde no to niby przeszło: ╰─$ uv run python -m app.agent_devin --fixtures --retries 2              1.82s 
+
+=== attempt 1 ===
+attack_class : deauth_disassoc_flood
+confidence   : 0.93
+explanation  : The capture is a Wi-Fi management-frame flood: 5 frames in a 1 s window that are all type=management with subtype 12 (deauthentication) plus subtype 10 (disassociation), sent both to the broadcast address ff:ff:ff:ff:ff:ff and to a specific station, with a spoofed AP as source. This is a classic deauth/disassoc flood used to knock OT/ICS stations off their AP (denial of service, or to force reassociation for handshake capture). The filter decodes only the Frame Control field structurally: protocol version must be 0, type bits [3:2] must be management, and subtype bits [7:4] must be 12 or 10; everything else (beacons, probe/assoc, control, and data frames) passes. It is byte-pattern independent, has no dependence on addresses or lengths, and compiles clean with clang -Wall -std=c11.
+session      : https://app.devin.ai/sessions/1d7cc95a2d624f929ce4ea0ff5ea7050
+cost         : 0.0 ACU (provisional)
+---- filter.c ----
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define FC_TYPE_MGMT 0x0u
+
+#define SUBTYPE_DISASSOC 10u
+#define SUBTYPE_DEAUTH   12u
+
+bool block_frame(const uint8_t *f, size_t n)
+{
+    if (f == NULL || n < 2u) {
+        return false;
+    }
+
+    uint8_t fc = f[0];
+    uint8_t version = (uint8_t)(fc & 0x03u);
+    uint8_t type = (uint8_t)((fc >> 2) & 0x03u);
+    uint8_t subtype = (uint8_t)((fc >> 4) & 0x0fu);
+
+    if (version != 0u) {
+        return false;
+    }
+
+    if (type != FC_TYPE_MGMT) {
+        return false;
+    }
+
+    return subtype == SUBTYPE_DEAUTH || subtype == SUBTYPE_DISASSOC;
+}
+
+------------------
+✅ oracle: passed=True tpr=1.0 fpr=0.0 (10/10)
+session      : terminated (VM torn down, no idle cost)
+langfuse: trace(s) sent to http://localhost:3001
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$    ale koszty mi wzrosły a langfuse pokazuje 0 usd i running Input
+
+
+{2 Items
+frame_hex: [5 Items
+0: "c000_3a01_ffffffffffff_00112233_4455_00112233_4455_0070_0700"
+1: "c000_3a01_aabbccddeeff_00112233_4455_00112233_4455_0080_0700"
+2: "c000_0000_ffffffffffff_112233445566_112233445566_1010_0700"
+3: "a000_3a01_ffffffffffff_00112233_4455_00112233_4455_0090_0800"
+4: "a000_3a01_aabbccddeeff_00112233_4455_00112233_4455_00a0_0800"
+]
+stats: {4 Items
+frame_type: "mgmt"
+subtype: 12
+count_in_window: 5
+window_ms: 1000
+}
+}
+Output
+
+
+{4 Items
+attack_class: "deauth_disassoc_flood"
+confidence: 0.93
+explanation: "The capture is a Wi-Fi management-frame flood: 5 frames in a 1 s window that are all type=management with subtype 12 (deauthentication) plus subtype 10 (disassociation), sent both to the broadcast address ff:ff:ff:ff:ff:ff and to a specific station, with a spoofed AP as source. This is a classic deauth/disassoc flood used to knock OT/ICS stations off their AP (denial of service, or to force reassociation for handshake capture). The filter decodes only the Frame Control field structurally: protocol
+
+...expand (292 more characters)
+"
+filter_c_code: "#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define FC_TYPE_MGMT 0x0u
+
+#define SUBTYPE_DISASSOC 10u
+#define SUBTYPE_DEAUTH   12u
+
+bool block_frame(const uint8_t *f, size_t n)
+{
+    if (f == NULL || n < 2u) {
+        return false;
+    }
+
+    uint8_t fc = f[0];
+    uint8_t version = (uint8_t)(fc & 0x03u);
+    uint8_t type = (uint8_t)((fc >> 2) & 0x03u);
+    uint8_t subtype = (uint8_t)((fc >> 4) & 0x0fu);
+
+    if (version != 0u) {
+        return false;
+    }
+
+    if (type != FC_TYPE_MGMT) {
+        return false;
+    }
+
+    return subtype == SUBTYPE_DEAUTH || subtype == SUBTYPE_DISASSOC;
+}
+"
+}
+Corrected Output
+
+
+JSON
+Click to add corrected output
+Metadata
+
+
+{6 Items
+session_url: "https://app.devin.ai/sessions/1d7cc95a2d624f929ce4ea0ff5ea7050"
+status: "running"
+status_detail: "working"
+acus_consumed: 0
+usd: null
+cost_final: false
+}
+
+---
+
+ok to jebać te koszty - co dalej? i jak coś na tym PR to niezbyt bo był merged before
+
+---
+
+o kurde czyli co -> odpalam backend + frontend i coś zobacze jak odpale tego curla?
+
+---
+
+to jaka komenda żeby real devin i bez mocków?
+
+---
+
+jest ok? zobacz ostatni langfuse czy serio poszło ackathon-predictive-qa-a400e1/backend ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$ MOCK=0 uv run uvicorn app.main:app --port 8000               1m14s 130 ↵
+INFO:     Started server process [1692]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50800 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50802 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50809 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50813 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50818 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50824 - "POST /heartbeat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50830 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50832 - "WebSocket /live" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:50836 - "POST /ingest HTTP/1.1" 200 OK
+
+---
+
+make check na gh nie działa -> a lo0kalnie testy przechodzą cd backend && uv run pytest
+warning: `VIRTUAL_ENV=/home/runner/work/munich-hackathon-tum/munich-hackathon-tum/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+......................F.........                                         [100%]
+=================================== FAILURES ===================================
+_______________ test_only_the_oracle_names_the_held_out_fixtures _______________
+    def test_only_the_oracle_names_the_held_out_fixtures() -> None:
+        """The fixtures are the answer key. A filter author that can read them wins for free."""
+        for path in sorted(APP.glob("*.py")):
+            if path.name == "oracle.py":
+                continue
+            offenders = [s for s in _code_strings(path) if "fixture" in s.lower()]
+>           assert not offenders, f"{path.name} references the held-out fixtures: {offenders}"
+E           AssertionError: agent_devin.py references the held-out fixtures: ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+E           assert not ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+tests/test_layering.py:81: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_layering.py::test_only_the_oracle_names_the_held_out_fixtures - AssertionError: agent_devin.py references the held-out fixtures: ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+assert not ['oracle/fixtures', '--fixtures', 'hex frames, one per line (default: sample fixtures)']
+1 failed, 31 passed in 8.10s
+make: *** [Makefile:29: back-test] Error 1
+Error: Process completed with exit code 2. a local ─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$ make check                                
+cd backend && uv run ruff check . && uv run ruff format --check .
+All checks passed!
+21 files already formatted
+cd backend && uv run ty check app
+All checks passed!
+cd backend && uv run pytest
+.....................                                                 [100%]
+21 passed in 10.79s
+TPR=1.000 FPR=0.000 PASSED=10 TOTAL=10
+RESULT=PASS
+✅ oracle harness OK
+cd dashboard && npm run lint
+
+> dashboard@0.0.0 lint
+> oxlint
+
+Found 0 warnings and 0 errors.
+Finished in 31ms on 7 files with 116 rules using 15 threads.
+cd dashboard && npm run typecheck
+
+> dashboard@0.0.0 typecheck
+> tsc --noEmit
+
+cd dashboard && npm run test
+
+> dashboard@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 /Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/dashboard
+
+ ✓ src/reducer.test.ts (2 tests) 1ms
+   ✓ reducer (2)
+     ✓ folds the full loop into node state + counters 1ms
+     ✓ greys a node on NODE_DOWN and drops active count 0ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:37:39
+   Duration  73ms (transform 12ms, setup 0ms, import 16ms, tests 1ms, environment 0ms)
+
+
+✅ all checks passed
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$ git push                                                         12.23s 
+[entire] Pushing 1 checkpoint ref(s) to origin...... done
+Everything up-to-date
+╭─ptq-22@Piotrs-MacBook-Pro-2 ~/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1 ‹claude/hackathon-predictive-qa-a400e1› 
+╰─$
+
+---
+
+ok -> no i co teraz
+
+---
+
+a zobacz PR https://github.com/KowaloskiX/munich-hackathon-tum/pull/4 od kogoś innego -> czy jest kompatybilny czy coś trzeba tu zmienić / dodać żeby było spójnie
+
+---
+
+no to dodaj do tego PRa (zpulluj na worktree jakimś) -> wytestuj, zpushuj tam poprawki, powiedz mi kiedy ready to merge -> i czego mogę tam oczekiwać i jak to testować
+
+---
+
+masz konflikty kurwa
+
+---
+
+kurwa no #4 ma być kompatybilny z devinem o tym gadaliśmy kurwa zjebie jebany
+
+---
+
+no czyli po merge -> osoba co ma płytke co ma zrobić żeby to co już jest e2e przetestować manualnie i czego oczekiwać
+
+---
+
+ok -> czyli teraz w sumie jeszcze bardzo się realnie nie łączą ten ESP co już teraz jest z tym ? jakie dalsze kroki z overall planu teraz widzisz? i co juz realnie jest? bo się pogubiłem
+
+---
+
+no ale to co przyszło #4 (jest już merged jak coś) -> to czy on(bo to ten ekran) coś tam się łączy z internetem / siecią poprawnie?
+
+---
+
+ok -> a co dalej z tym devinem ? bo teraz niezbyt widać efekt jakiś + niewiele robi jako agent z VM (równie dobrze mógłby być callem do llm api) -> powinien jakoś lepiej być w stanie nwm jakoś testować itp rzeczy z planu bardziej rozbudowane -> żeby był bardziej agent niż llm call -> no i to musi być jakoś informowane / wizualizowane 
+kurwa zjebie
+
+---
+
+kurwa wcześniej to robisz dokładny plan i research jak to zrobić i wytestować żeby było PR ready (oczywiście nowy bo wszystko do tej pory merged)
+
+---
+
+<task-notification>
+<task-id>boi7us5d2</task-id>
+<tool-use-id>toolu_01BQRChPEuk1fhzgnj3TuXXS</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-ptq-22-code-munich-hackathon-tum--claude-worktrees-hackathon-predictive-qa-a400e1/6b5899a1-5f05-4006-affb-49bb977848b6/tasks/boi7us5d2.output</output-file>
+<status>completed</status>
+<summary>Background command "Real Devin run — verify in-VM compile/iterate + streaming" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+ok -> to co teraz mam zrobić żeby przetestować realny stan e2e ?
+
+---
+
+INFO:     127.0.0.1:56311 - "POST /ingest HTTP/1.1" 200 OK
+Task exception was never retrieved
+future: <Task finished name='Task-16' coro=<handle_anomaly() done, defined at /Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/orchestrator.py:34> exception=ConnectError('[Errno 8] nodename nor servname provided, or not known')>
+Traceback (most recent call last):
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+        pool_request.request
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+    raise exc
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+    stream = self._connect(request)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+    with map_exceptions(exc_map):
+         ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/orchestrator.py", line 79, in handle_anomaly
+    agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/agent_devin.py", line 111, in call
+    session = self.client.create_session(
+        prompt, structured_output_schema=STRUCTURED_OUTPUT_SCHEMA
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 98, in create_session
+    resp = self._client.post(self._sessions_base(), json=body)
+                             ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 82, in _sessions_base
+    return f"/organizations/{self.org_id}/sessions"
+                             ^^^^^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/app/devin_client.py", line 76, in org_id
+    resp = self._client.get("/self")
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1053, in get
+    return self.request(
+           ~~~~~~~~~~~~^
+        "GET",
+        ^^^^^^
+    ...<7 lines>...
+        extensions=extensions,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+        request,
+    ...<2 lines>...
+        history=[],
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+        request,
+        follow_redirects=follow_redirects,
+        history=history,
+    )
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ptq-22/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/ptq-22/code/munich-hackathon-tum/.claude/worktrees/hackathon-predictive-qa-a400e1/backend/.venv/lib/python3.13/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [Errno 8] nodename nor servname provided, or not known
+
+---
+
+kurwa github mi działa
+
+---
+
+kurwa no długo i nic się nie dzieje w ogóle w tym UI -> odświeżyłem po jakimś czasie i nic nie robił
+
+---
+
+to ma na żywo chociaż działać i robić nwm
+
+---
+
+kurwa -> ta apka ma się wywalać jak devin się nie łączy albo dawać znać -> poza tym to teraz przeszło -> ale kurwa dalej długo czekałem nic nie wiedząc czy cokolwiek się dzieje => a potem reszta leciała -> nie ma jakiegokolwiek constant info z api devina co można by pod lepszy UX użyć?
