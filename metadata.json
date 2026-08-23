@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0P35PBHTCJZT0JHBF2T9F2M",
+  "strategy": "manual-commit",
+  "branch": "main-integrated",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/email_service.py",
+    "backend/app/main.py",
+    "backend/app/models.py",
+    "backend/app/orchestrator.py",
+    "backend/app/state.py",
+    "backend/tests/test_contract_sync.py",
+    "backend/tests/test_incidents.py",
+    "dashboard/src/App.tsx",
+    "dashboard/src/reducer.ts",
+    "dashboard/src/types.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 108,
+    "cache_creation_tokens": 54739,
+    "cache_read_tokens": 34623801,
+    "output_tokens": 36335,
+    "api_call_count": 54
+  }
+}
