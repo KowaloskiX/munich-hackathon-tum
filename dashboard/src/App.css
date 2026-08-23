@@ -1774,7 +1774,7 @@ button {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 880px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 0;
   overflow: hidden;
@@ -1818,12 +1818,12 @@ button {
 
 .command-lead-body {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
 }
 
 .command-lead-art {
   position: relative;
-  height: 300px;
+  height: 400px;
   overflow: hidden;
   border-right: var(--landing-border);
   background: #fff;
@@ -1848,9 +1848,9 @@ button {
 }
 
 .command-lead-copy strong {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-  font-size: clamp(46px, 5vw, 72px);
+  font-size: clamp(52px, 6vw, 86px);
   font-weight: 900;
   line-height: 0.84;
   letter-spacing: -0.03em;
