@@ -113,8 +113,8 @@ export function CommandCenter() {
     <main className="command-workspace">
       <section className="command-hero">
         <div>
-          <span className="command-kicker">04 / Autonomous security command</span>
-          <h1>THE CREW SEES.<br /><em>COMMAND UNDERSTANDS.</em></h1>
+          <span className="command-kicker">Autonomous security command</span>
+          <h1>THE CREW SEES.<br /><em>THE COMMANDER UNDERSTANDS.</em></h1>
         </div>
         <div className="command-posture" data-alert={metrics.phishing_spike || undefined}>
           <span>{overview.assessing ? "ASSESSING NOW" : metrics.phishing_spike ? "ELEVATED ACTIVITY" : "CONTINUOUS WATCH"}</span>

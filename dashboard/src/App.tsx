@@ -52,7 +52,7 @@ function displayRouterName(value: string): string {
   return value.replace(/\besp(?=-|\b)/gi, "router");
 }
 
-const AGENTS: Array<{
+type Agent = {
   route: Exclude<AppRoute, "home">;
   eyebrow: string;
   name: string;
@@ -62,7 +62,10 @@ const AGENTS: Array<{
   imageAlt: string;
   tone: string;
   status: string;
-}> = [
+};
+
+// The operational crew: three specialists, each closing its own loop.
+const CREW: Agent[] = [
   {
     route: "network",
     eyebrow: "01 / LIVE DEFENSE",
@@ -96,18 +99,22 @@ const AGENTS: Array<{
     tone: "blue",
     status: "Live now",
   },
-  {
-    route: "command",
-    eyebrow: "04 / SECURITY COMMAND",
-    name: "COMMAND",
-    title: "Turns every signal into company intelligence.",
-    description: "Correlates the crew's evidence, researches campaigns and autonomously creates verified reports.",
-    image: "/logo.jpg",
-    imageAlt: "Beaver security lead coordinating the autonomous crew",
-    tone: "command",
-    status: "Autonomous",
-  },
 ];
+
+// COMMAND is not a fourth peer — it sits above the crew and coordinates it.
+const COMMAND: Agent = {
+  route: "command",
+  eyebrow: "SECURITY COMMAND",
+  name: "COMMANDER",
+  title: "Turns every signal into company intelligence.",
+  description: "Correlates the crew's evidence, researches campaigns and autonomously creates verified reports.",
+  image: "/beaver-command.jpeg",
+  imageAlt: "Beaver security lead coordinating the autonomous crew",
+  tone: "command",
+  status: "Autonomous",
+};
+
+const AGENTS: Agent[] = [...CREW, COMMAND];
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
@@ -150,11 +157,35 @@ function LandingPage() {
 
         <section className="agents-section" id="agents" aria-labelledby="agents-title">
           <div className="section-intro">
-            <span>Choose your agent</span>
-            <h2 id="agents-title">Security that actually does the work.</h2>
+            <span>The autonomous crew</span>
+            <h2 id="agents-title">One coordinator. Three specialists.</h2>
           </div>
-          <div className="agent-grid">
-            {AGENTS.map((agent) => (
+
+          <button
+            className="command-lead"
+            data-tone={COMMAND.tone}
+            type="button"
+            onClick={() => navigate(COMMAND.route)}
+            aria-label={`Open ${COMMAND.name}: ${COMMAND.title}`}
+          >
+            <span className="command-lead-top"><span>{COMMAND.eyebrow}</span><b>{COMMAND.status} · Coordinator</b></span>
+            <span className="command-lead-body">
+              <span className="command-lead-art"><img src={COMMAND.image} alt={COMMAND.imageAlt} /></span>
+              <span className="command-lead-copy">
+                <strong>{COMMAND.name}</strong>
+                <span>{COMMAND.title}</span>
+                <small>{COMMAND.description}</small>
+                <span className="agent-open command-lead-open">Open coordinator <ArrowIcon /></span>
+              </span>
+            </span>
+          </button>
+
+          <div className="crew-connector" aria-hidden="true">
+            <span>Coordinates the crew</span>
+          </div>
+
+          <div className="agent-grid crew-grid">
+            {CREW.map((agent) => (
               <button
                 className="agent-card"
                 data-tone={agent.tone}
@@ -495,7 +526,7 @@ function AgentWorkspace({ route, children }: { route: Exclude<AppRoute, "home">;
   return (
     <div className="agent-product-shell" data-tone={agent.tone}>
       <header className="agent-product-nav">
-        <div className="agent-product-brand"><Brand compact /><span><i>{agent.eyebrow.split(" / ")[0]}</i><strong>{agent.name}</strong></span></div>
+        <div className="agent-product-brand"><Brand compact /><span><i>{agent.eyebrow.includes(" / ") ? agent.eyebrow.split(" / ")[0] : "HQ"}</i><strong>{agent.name}</strong></span></div>
         <nav aria-label="Switch security agent">
           {AGENTS.map((item) => <button key={item.route} type="button" data-active={item.route === route || undefined} onClick={() => navigate(item.route)}>{item.name}</button>)}
         </nav>
