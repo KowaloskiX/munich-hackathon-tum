@@ -108,7 +108,7 @@ const COMMAND: Agent = {
   name: "COMMANDER",
   title: "Turns every signal into company intelligence.",
   description: "Correlates the crew's evidence, researches campaigns and autonomously creates verified reports.",
-  image: "/logo.jpg",
+  image: "/beaver-command.jpeg",
   imageAlt: "Beaver security lead coordinating the autonomous crew",
   tone: "command",
   status: "Autonomous",
