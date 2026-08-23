@@ -1,0 +1,20 @@
+munich-hackathon-tum git:integration  
+❯ git merge main
+Auto-merging .gitignore
+Auto-merging backend/app/main.py
+CONFLICT (content): Merge conflict in backend/app/main.py
+Auto-merging backend/app/mockgen.py
+Auto-merging backend/app/models.py
+CONFLICT (content): Merge conflict in backend/app/models.py
+Auto-merging backend/app/orchestrator.py
+Auto-merging backend/app/state.py
+CONFLICT (content): Merge conflict in backend/app/state.py
+Auto-merging dashboard/src/App.css
+Auto-merging dashboard/src/App.tsx
+CONFLICT (content): Merge conflict in dashboard/src/App.tsx
+Auto-merging dashboard/src/reducer.test.ts
+CONFLICT (content): Merge conflict in dashboard/src/reducer.test.ts
+Auto-merging dashboard/src/reducer.ts
+CONFLICT (content): Merge conflict in dashboard/src/reducer.ts
+Auto-merging dashboard/src/types.ts
+Automatic merge failed; fix conflicts and then commit the result.

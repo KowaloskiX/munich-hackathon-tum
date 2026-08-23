@@ -1,0 +1,168 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0P1PXARG74AAHBWC7K63VPS",
+  "session_id": "995aa2c7-9501-4fca-a713-3a423c7ac70b",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T00:53:14.834738Z",
+  "branch": "integration",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/app/email_service.py",
+    "backend/app/main.py",
+    "backend/app/models.py",
+    "backend/app/orchestrator.py",
+    "backend/app/state.py",
+    "backend/tests/test_incidents.py",
+    "dashboard/src/App.tsx",
+    "dashboard/src/reducer.test.ts",
+    "dashboard/src/reducer.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-8",
+  "turn_id": "9980b0a3fffe",
+  "checkpoint_transcript_start": 1066,
+  "transcript_lines_at_start": 1066,
+  "compact_transcript_start": 267,
+  "token_usage": {
+    "input_tokens": 86,
+    "cache_creation_tokens": 76349,
+    "cache_read_tokens": 22181574,
+    "output_tokens": 52202,
+    "api_call_count": 43
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_018UVFYwiXmMgn1w6utJQf5W",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "change-contract"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "9980b0a3fffe",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 465,
+        "end": 466,
+        "entry_ids": [
+          "c182fc0b-0c71-4876-af41-2c5b116454c3"
+        ],
+        "tool_use_id": "toolu_018UVFYwiXmMgn1w6utJQf5W"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_018UVFYwiXmMgn1w6utJQf5W"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: change-contract",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 19
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T00:53:14.694079Z",
+    "agent_lines": 0,
+    "agent_removed": 30,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 41,
+    "total_committed": 11,
+    "total_lines_changed": 91,
+    "agent_percentage": 32.967032967032964,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 4828,
+      "user_lines_removed": 41,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".github/workflows/esp32-sniffer.yml": 29,
+        ".gitignore": 5,
+        "EDGE_DEMO.md": 118,
+        "backend/app/agent_devin.py": 17,
+        "backend/app/edge/__init__.py": 7,
+        "backend/app/edge/artifacts.py": 50,
+        "backend/app/edge/config.py": 23,
+        "backend/app/edge/filter_runtime.py": 139,
+        "backend/app/edge/filter_store.py": 34,
+        "backend/app/edge/gateway.py": 224,
+        "backend/app/hardware_multicast.py": 197,
+        "backend/app/hmi.py": 39,
+        "backend/app/main.py": 109,
+        "backend/app/mockgen.py": 1,
+        "backend/app/models.py": 77,
+        "backend/app/node_agent.py": 209,
+        "backend/app/orchestrator.py": 68,
+        "backend/app/report.py": 99,
+        "backend/app/state.py": 72,
+        "backend/tests/test_devin_agent.py": 8,
+        "backend/tests/test_edge_gateway.py": 111,
+        "backend/tests/test_edge_runtime.py": 64,
+        "backend/tests/test_hardware_routes.py": 145,
+        "backend/tests/test_hmi.py": 22,
+        "backend/tests/test_node_agent.py": 41,
+        "backend/tests/test_orchestrator.py": 60,
+        "backend/tests/test_reports.py": 94,
+        "dashboard/src/App.css": 16,
+        "dashboard/src/App.tsx": 25,
+        "dashboard/src/api.ts": 13,
+        "dashboard/src/dashboardView.test.ts": 13,
+        "dashboard/src/dashboardView.ts": 2,
+        "dashboard/src/reducer.test.ts": 10,
+        "dashboard/src/reducer.ts": 23,
+        "dashboard/src/types.ts": 1,
+        "esp-sniffer-demo/include/lab_secrets.example.h": 5,
+        "firmware/esp32-display/README.md": 10,
+        "firmware/esp32-display/include/app_config.h": 8,
+        "firmware/esp32-display/platformio.ini": 4,
+        "firmware/esp32-display/src/backend_client.cpp": 68,
+        "firmware/esp32-display/src/backend_client.h": 7,
+        "firmware/esp32-display/src/display_ui.cpp": 6,
+        "firmware/esp32-sniffer/README.md": 207,
+        "firmware/esp32-sniffer/include/app_config.h": 128,
+        "firmware/esp32-sniffer/include/secrets.example.h": 24,
+        "firmware/esp32-sniffer/lib/SnifferCore/src/anomaly_detector.cpp": 213,
+        "firmware/esp32-sniffer/lib/SnifferCore/src/anomaly_detector.h": 107,
+        "firmware/esp32-sniffer/lib/SnifferCore/src/blink_pattern.h": 41,
+        "firmware/esp32-sniffer/lib/SnifferCore/src/diagnostic_helpers.h": 80,
+        "firmware/esp32-sniffer/lib/SnifferCore/src/mac_address.h": 43,
+        "firmware/esp32-sniffer/platformio.ini": 90,
+        "firmware/esp32-sniffer/src/backend_client.cpp": 244,
+        "firmware/esp32-sniffer/src/backend_client.h": 65,
+        "firmware/esp32-sniffer/src/main.cpp": 320,
+        "firmware/esp32-sniffer/src/reporter.cpp": 236,
+        "firmware/esp32-sniffer/src/reporter.h": 50,
+        "firmware/esp32-sniffer/src/sniffer_radio.cpp": 326,
+        "firmware/esp32-sniffer/src/sniffer_radio.h": 51,
+        "firmware/esp32-sniffer/src/wifi_scan.cpp": 39,
+        "firmware/esp32-sniffer/test/test_sniffer_core/test_main.cpp": 291
+      },
+      "user_removed_per_file": {
+        "backend/app/agent_devin.py": 1,
+        "backend/app/hmi.py": 4,
+        "backend/app/main.py": 7,
+        "backend/app/orchestrator.py": 10,
+        "backend/tests/test_devin_agent.py": 1,
+        "backend/tests/test_orchestrator.py": 3,
+        "dashboard/src/dashboardView.test.ts": 1,
+        "dashboard/src/reducer.ts": 4,
+        "firmware/esp32-display/README.md": 1,
+        "firmware/esp32-display/include/app_config.h": 1,
+        "firmware/esp32-display/platformio.ini": 3,
+        "firmware/esp32-display/src/backend_client.cpp": 4,
+        "firmware/esp32-display/src/backend_client.h": 1
+      }
+    }
+  ]
+}
