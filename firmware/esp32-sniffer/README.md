@@ -39,6 +39,8 @@ plain GPIO LED, so an external indicator is the predictable option.
 cd firmware/esp32-sniffer
 cp include/secrets.example.h include/secrets.h
 # Edit SSID, password, backend, both tokens, monitored channel and BSSID.
+# SNIFFER_BACKEND_PORT defaults to 8100 (the sentinel-edge gateway) so `/ingest`
+# reports flow through in-path enforcement; use 8000 for a direct backend run.
 
 pio test -e native
 pio run -e sniffer-01

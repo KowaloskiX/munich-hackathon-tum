@@ -11,8 +11,12 @@
 #define SNIFFER_MONITORED_BSSID "aa:bb:cc:dd:ee:ff"
 
 // Host name or IPv4 address only (without http:// and without a path).
+// Point the port at the sentinel-edge enforcement gateway (:8100) so the
+// sniffer's /ingest reports flow ESP -> edge -> backend and enforced frames
+// are really dropped in-path (see EDGE_DEMO.md). Use the backend's :8000 only
+// for a direct, no-enforcement run.
 #define SNIFFER_BACKEND_HOST "192.168.1.100"
-#define SNIFFER_BACKEND_PORT 8000
+#define SNIFFER_BACKEND_PORT 8100
 
 // Leave empty only on an isolated demo network. Each build selects its own
 // token and sends it as Authorization: Bearer <token>.

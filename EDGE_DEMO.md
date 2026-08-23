@@ -84,10 +84,35 @@ Each deploy writes a real, inspectable artifact tree under `backend/deployed/`
 manifest with the sha256 + byte size. That is the deployed code — compiled to a
 native library and executed per frame — not a string in memory.
 
-## Pointing the real sniffer at the edge
+## Real hardware: the sniffer + a one-key trigger (no curl)
 
-No firmware code change — only the backend URL. In
-`esp-sniffer-demo/include/lab_secrets.h`, set `BACKEND_BASE_URL` to the edge's
-`host:8100` instead of the backend's `:8000`. The edge filters `/ingest` and
-passes `/heartbeat` straight through, so everything the sniffer sends still
-works. Start the backend and the edge on the same LAN as the fleet.
+The curl above is the hardware-free stand-in. On the real board the same
+`/ingest` request comes from the promiscuous sniffer `firmware/esp32-sniffer`,
+so the loop runs off actual hardware:
+
+```
+esp32-sniffer ──POST /ingest (frame_hex)──▶ edge (:8100) ──survivors──▶ backend
+```
+
+- **Trigger:** in the sniffer's serial monitor, press **`t`** (also `T`/`d`/`D`).
+  It injects `kDeauthThreshold` (20) synthetic deauth frames through the *local*
+  detector — **nothing is transmitted over the air** — and POSTs the real
+  `/ingest` payload (`frame_hex` = the 20 encoded frames, `anomaly_stats.subtype=12`,
+  `guessed_type=deauth_flood`). The passive RF path still fires the same way on a
+  genuine capture; `t` is just the deterministic stage trigger.
+- **Route it through the edge:** in `firmware/esp32-sniffer/include/secrets.h`
+  set `SNIFFER_BACKEND_PORT` to **8100** (the edge), not 8000 (the example
+  already defaults to 8100). No code change. The edge filters `/ingest` and
+  passes `/heartbeat` straight through; the OLED multicast marker is separate and
+  unaffected.
+
+Two-shot, exactly like the curl version:
+
+- **Press `t` (shot 1)** → no filter yet → edge forwards → backend detects →
+  Devin + oracle → `DEPLOYED`; edge poller loads `v2` for that node.
+- **Press `t` again (shot 2)** → the 20 frames hit the loaded filter → edge drops
+  them, reports the real block via `POST /enforcement`, backend stays quiet. The
+  dashboard shows "blocked N frames at edge (filter v2)".
+
+Start the backend and the edge with `--host 0.0.0.0` on the same LAN as the
+sniffer. For a direct, no-enforcement run, set `SNIFFER_BACKEND_PORT` back to 8000.
