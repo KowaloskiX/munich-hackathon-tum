@@ -1,0 +1,79 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0P2D12N7DVNA9GYCTHBVSXY",
+  "session_id": "995aa2c7-9501-4fca-a713-3a423c7ac70b",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T01:05:19.679407Z",
+  "branch": "integration",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "backend/.env.example",
+    "backend/app/attack_log.py",
+    "backend/app/config.py",
+    "backend/app/models.py",
+    "backend/tests/conftest.py",
+    "backend/tests/test_orchestrator.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-8",
+  "turn_id": "283307205643",
+  "checkpoint_transcript_start": 1358,
+  "transcript_lines_at_start": 1358,
+  "compact_transcript_start": 337,
+  "token_usage": {
+    "input_tokens": 40,
+    "cache_creation_tokens": 21540,
+    "cache_read_tokens": 11885486,
+    "output_tokens": 11675,
+    "api_call_count": 20
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_018UVFYwiXmMgn1w6utJQf5W",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "change-contract"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "283307205643",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 465,
+        "end": 466,
+        "entry_ids": [
+          "c182fc0b-0c71-4876-af41-2c5b116454c3"
+        ],
+        "tool_use_id": "toolu_018UVFYwiXmMgn1w6utJQf5W"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_018UVFYwiXmMgn1w6utJQf5W"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: change-contract",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 23
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T01:05:19.529288Z",
+    "agent_lines": 52,
+    "agent_removed": 53,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 52,
+    "total_lines_changed": 105,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

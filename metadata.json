@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0P2D12N7DVNA9GYCTHBVSXY",
+  "strategy": "manual-commit",
+  "branch": "integration",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "backend/.env.example",
+    "backend/app/attack_log.py",
+    "backend/app/config.py",
+    "backend/app/models.py",
+    "backend/tests/conftest.py",
+    "backend/tests/test_orchestrator.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 40,
+    "cache_creation_tokens": 21540,
+    "cache_read_tokens": 11885486,
+    "output_tokens": 11675,
+    "api_call_count": 20
+  }
+}
