@@ -22,6 +22,10 @@ describe("browser security view", () => {
       legit_score: 0,
       impersonated_brand: "paypal.com",
       top_signals: ["throwaway host"],
+      browse_session_url: null,
+      research_session_url: null,
+      browse_result: {},
+      research_result: {},
     });
   });
 });

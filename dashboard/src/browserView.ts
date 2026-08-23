@@ -37,5 +37,9 @@ export function linkVerdictFromEvent(event: LinkLiveEvent): LinkVerdict | null {
     reasoning: signals.join(" · "),
     browse_score: null,
     research_score: null,
+    browse_session_url: null,
+    research_session_url: null,
+    browse_result: {},
+    research_result: {},
   };
 }
