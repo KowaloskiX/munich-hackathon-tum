@@ -1,0 +1,9 @@
+can we merge into main this current branch now?
+
+---
+
+okej czyli wszystko jest na main?
+
+---
+
+can you prepare a nice readme of everything there is with latest main etc
