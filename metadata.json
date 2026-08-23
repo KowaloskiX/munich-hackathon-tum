@@ -1,0 +1,24 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NZ08HJTHMMK4R9EZNDBP5C",
+  "strategy": "manual-commit",
+  "branch": "claude/esp-serial-trigger",
+  "checkpoints_count": 2,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1564,
+    "cache_creation_tokens": 1208213,
+    "cache_read_tokens": 267232908,
+    "output_tokens": 689648,
+    "api_call_count": 785
+  }
+}
