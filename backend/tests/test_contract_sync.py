@@ -16,11 +16,31 @@ from pydantic import BaseModel
 
 from app.models import (
     Counters,
+    EmailAnalysisDetail,
+    EmailAnalysisList,
+    EmailAnalysisStatus,
+    EmailAnalysisSummary,
+    EmailConnectionStatus,
+    EmailEventType,
+    EmailImportRequest,
+    EmailImportResult,
+    EmailLabels,
+    EmailLiveEvent,
+    EmailMessagePreview,
+    EmailMessagePreviewList,
+    EmailMonitoringMode,
+    EmailReviewDecision,
+    EmailReviewRequest,
+    EmailSettingsUpdate,
+    EmailVerdict,
     EventType,
     FleetSnapshot,
     LiveEvent,
     NodeState,
     NodeView,
+    ThreatCheck,
+    ThreatReason,
+    ThreatReport,
 )
 
 DASHBOARD = Path(__file__).resolve().parents[2] / "dashboard" / "src"
@@ -34,6 +54,21 @@ MIRRORED: dict[str, type[BaseModel]] = {
     "Counters": Counters,
     "FleetSnapshot": FleetSnapshot,
     "LiveEvent": LiveEvent,
+    "EmailLabels": EmailLabels,
+    "EmailConnectionStatus": EmailConnectionStatus,
+    "EmailSettingsUpdate": EmailSettingsUpdate,
+    "ThreatReason": ThreatReason,
+    "ThreatCheck": ThreatCheck,
+    "ThreatReport": ThreatReport,
+    "EmailAnalysisSummary": EmailAnalysisSummary,
+    "EmailAnalysisDetail": EmailAnalysisDetail,
+    "EmailAnalysisList": EmailAnalysisList,
+    "EmailMessagePreview": EmailMessagePreview,
+    "EmailMessagePreviewList": EmailMessagePreviewList,
+    "EmailImportRequest": EmailImportRequest,
+    "EmailImportResult": EmailImportResult,
+    "EmailReviewRequest": EmailReviewRequest,
+    "EmailLiveEvent": EmailLiveEvent,
 }
 
 
@@ -66,6 +101,20 @@ def test_node_state_enum_is_mirrored() -> None:
 
 def test_event_type_enum_is_mirrored() -> None:
     assert _ts_string_union("EventType") == {m.value for m in EventType}
+
+
+@pytest.mark.parametrize(
+    ("name", "enum_type"),
+    [
+        ("EmailMonitoringMode", EmailMonitoringMode),
+        ("EmailAnalysisStatus", EmailAnalysisStatus),
+        ("EmailVerdict", EmailVerdict),
+        ("EmailReviewDecision", EmailReviewDecision),
+        ("EmailEventType", EmailEventType),
+    ],
+)
+def test_email_enums_are_mirrored(name: str, enum_type: type) -> None:
+    assert _ts_string_union(name) == {member.value for member in enum_type}
 
 
 @pytest.mark.parametrize("name", sorted(MIRRORED))

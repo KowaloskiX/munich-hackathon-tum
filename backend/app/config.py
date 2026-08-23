@@ -27,6 +27,30 @@ class Settings(BaseSettings):
     devin_resumable: bool = False  # False = disposable VM, torn down on stop
     devin_terminate_on_done: bool = True  # DELETE the session when finished (no idle VM)
 
+    # Gmail threat review. Disabled until explicitly configured.
+    email_security_enabled: bool = False
+    email_agent: str = "stub"  # "stub" | "devin"
+    google_cloud_project: str = ""
+    gmail_oauth_client_id: str = ""
+    gmail_oauth_client_secret: str = ""
+    gmail_oauth_redirect_uri: str = "http://localhost:8000/v1/gmail/oauth/callback"
+    gmail_pubsub_topic: str = ""
+    gmail_pubsub_subscription: str = ""
+    gmail_allowed_email: str = ""
+    email_token_encryption_key: str = ""
+    app_session_secret: str = ""
+    email_db_path: str = "data/email-security.db"
+    email_report_retention_days: int = 30
+    email_analysis_concurrency: int = 1
+    email_max_body_chars: int = 50_000
+    email_max_attachment_bytes: int = 10 * 1024 * 1024
+    email_max_total_attachment_bytes: int = 20 * 1024 * 1024
+    devin_email_max_acu_limit: float = 1.0
+    devin_email_max_total_acu: float = 2.0
+    devin_email_timeout_s: float = 600.0
+    dashboard_url: str = "http://localhost:5173"
+    app_allowed_origins: str = "http://localhost:5173"
+
     # Langfuse (local instance is fine, e.g. http://localhost:3000).
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
@@ -35,6 +59,10 @@ class Settings(BaseSettings):
     @property
     def langfuse_enabled(self) -> bool:
         return bool(self.langfuse_public_key and self.langfuse_secret_key)
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.app_allowed_origins.split(",") if origin.strip()]
 
 
 settings = Settings()
