@@ -1,0 +1,1 @@
+okej, teraz mam branch email i branch browser, czy jestesmy w stanie wszystko razem podłączyć żeby wszystkie incydenty trafiały do listy incydentów z której pozniej bedziemy mogli robic analizy? zeby np strony, emaile itp trafialy do takiej listy incydentow

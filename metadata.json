@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NYWF6E7YM4YAY67P45QPCB",
+  "strategy": "manual-commit",
+  "branch": "integration",
+  "checkpoints_count": 15,
+  "files_touched": [
+    ".gitignore",
+    "ARCHITECTURE.md",
+    "README.md",
+    "backend/.env.example",
+    "backend/app/config.py",
+    "backend/app/devin_client.py",
+    "backend/app/email_agent.py",
+    "backend/app/email_routes.py",
+    "backend/app/email_service.py",
+    "backend/app/email_store.py",
+    "backend/app/gmail_client.py",
+    "backend/app/main.py",
+    "backend/app/mockgen.py",
+    "backend/app/models.py",
+    "backend/pyproject.toml",
+    "backend/tests/conftest.py",
+    "backend/tests/test_contract_sync.py",
+    "backend/tests/test_email_security.py",
+    "backend/uv.lock",
+    "dashboard/src/App.css",
+    "dashboard/src/App.tsx",
+    "dashboard/src/EmailSecurity.tsx",
+    "dashboard/src/emailView.test.ts",
+    "dashboard/src/emailView.ts",
+    "dashboard/src/types.ts",
+    "docs/GMAIL_SETUP.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 18,
+    "cache_creation_tokens": 35376,
+    "cache_read_tokens": 3255945,
+    "output_tokens": 13651,
+    "api_call_count": 9
+  }
+}
