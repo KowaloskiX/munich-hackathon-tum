@@ -1,0 +1,17 @@
+can you verify if everything is not regressed?
+
+---
+
+jak zapisuhjemy lokalnie te rzeczy
+
+---
+
+ale jakis jsonl?
+
+---
+
+pytanie czy chcemy sqlite czy nie lepiej json, zobacz jak na branchu attack-logs sobie radzi
+
+---
+
+okej to domergujmy do nas ten branch i ogarnijmy przepinke na jsonl
