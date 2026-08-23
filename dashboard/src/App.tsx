@@ -2,7 +2,7 @@ import "./App.css";
 
 import { useState } from "react";
 
-import { incidentReportUrl } from "./api";
+import { flushFixes, incidentReportUrl } from "./api";
 import { selectAttackHistory, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
 import type { NodeView, TimelineLine } from "./types";
@@ -265,7 +265,26 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
 
 export default function App() {
   const { state } = useLive();
+  const [flushState, setFlushState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const nodes = Object.values(state.nodes).sort((a, b) => a.node_id.localeCompare(b.node_id));
+
+  async function handleFlush(): Promise<void> {
+    setFlushState("busy");
+    try {
+      await flushFixes();
+      setFlushState("done");
+      window.setTimeout(() => window.location.reload(), 350);
+    } catch {
+      setFlushState("error");
+    }
+  }
+
+  const flushLabel = {
+    idle: "Flush fixes",
+    busy: "Flushing…",
+    done: "Flushed",
+    error: "Try again",
+  }[flushState];
 
   return (
     <div className="dashboard-shell">
@@ -276,6 +295,18 @@ export default function App() {
           <div><strong>{state.counters.threats_detected}</strong><span>threats</span></div>
           <div><strong>{state.counters.filters_deployed}</strong><span>filters</span></div>
           <div><strong>{compactNumber(state.counters.frames_blocked)}</strong><span>blocked</span></div>
+        </div>
+        <div className="topbar-actions">
+          <button
+            className="flush-fixes-button"
+            type="button"
+            disabled={flushState === "busy" || flushState === "done"}
+            onClick={() => void handleFlush()}
+            title="Clear deployed filters and reset the staged demo"
+          >
+            <span aria-hidden="true">↺</span>
+            {flushLabel}
+          </button>
         </div>
       </header>
 

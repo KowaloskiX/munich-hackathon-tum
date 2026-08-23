@@ -2,18 +2,21 @@
 
 The venue WLAN allows multicast while blocking direct client-to-client TCP.
 The sniffer's safe serial self-test already emits a small UDP marker. This
-module validates that marker, runs the normal anomaly pipeline, and publishes
-the same authoritative HMI event used by the WebSocket endpoint.
+module validates that marker, re-enters the local edge enforcement path, and
+publishes the same authoritative HMI event used by the WebSocket endpoint.
+It falls back to the backend pipeline only when the edge process is unavailable.
 """
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 import socket
 import time
 from typing import Annotated, Any, Literal
 
+import httpx
 from pydantic import BaseModel, Field, TypeAdapter
 
 from .hmi import HmiStream
@@ -27,6 +30,7 @@ HMI_GROUP = "239.255.77.78"
 HMI_PORT = 37778
 HMI_REFRESH_S = 3.0
 HMI_SEND_RETRY_S = 0.25
+DEFAULT_EDGE_URL = "http://127.0.0.1:8100"
 
 _SYNTHETIC_DEAUTH = "c0003a01ffffffffffff00112233445500112233445500700700"
 
@@ -41,6 +45,18 @@ class SimulatedDeauthMarker(BaseModel):
     bssid: str = Field(min_length=17, max_length=17)
 
 
+class SimulatedMgmtFloodMarker(BaseModel):
+    schema_version: Literal[1]
+    type: Literal["SIMULATED_MGMT_FLOOD"]
+    node_id: str = Field(min_length=1, max_length=80)
+    uptime_ms: int = Field(ge=0)
+    count: int = Field(ge=1, le=100_000)
+    channel: int = Field(ge=1, le=14)
+    bssid: str = Field(min_length=17, max_length=17)
+    subtype: Literal[0, 11]
+    attack_class: Literal["association_flood", "auth_flood"]
+
+
 class HeartbeatMarker(BaseModel):
     schema_version: Literal[1]
     type: Literal["HEARTBEAT"]
@@ -50,7 +66,8 @@ class HeartbeatMarker(BaseModel):
     fw_version: str = Field(min_length=1, max_length=80)
 
 
-HardwareMarker = Annotated[SimulatedDeauthMarker | HeartbeatMarker, Field(discriminator="type")]
+SimulatedMarker = SimulatedDeauthMarker | SimulatedMgmtFloodMarker
+HardwareMarker = Annotated[SimulatedMarker | HeartbeatMarker, Field(discriminator="type")]
 _MARKER_ADAPTER = TypeAdapter(HardwareMarker)
 
 
@@ -66,21 +83,24 @@ class _MarkerProtocol(asyncio.DatagramProtocol):
             pass
 
 
-def anomaly_from_marker(
-    marker: SimulatedDeauthMarker, *, received_at: float | None = None
-) -> AnomalyIn:
+def anomaly_from_marker(marker: SimulatedMarker, *, received_at: float | None = None) -> AnomalyIn:
     """Convert a validated safe-test marker to the frozen ingest contract."""
+    subtype = marker.subtype if isinstance(marker, SimulatedMgmtFloodMarker) else 12
+    attack_class = (
+        marker.attack_class if isinstance(marker, SimulatedMgmtFloodMarker) else "deauth_flood"
+    )
+    synthetic_frame = f"{subtype << 4:02x}" + _SYNTHETIC_DEAUTH[2:]
     return AnomalyIn(
         node_id=marker.node_id,
         timestamp=time.time() if received_at is None else received_at,
-        frame_hex=[_SYNTHETIC_DEAUTH],
+        frame_hex=[synthetic_frame],
         anomaly_stats=AnomalyStats(
             frame_type="mgmt",
-            subtype=12,
+            subtype=subtype,
             count_in_window=marker.count,
             window_ms=1000,
         ),
-        guessed_type="deauth_flood",
+        guessed_type=attack_class,
     )
 
 
@@ -100,7 +120,7 @@ def heartbeat_from_marker(
     )
 
 
-def remember_marker(seen: set[tuple[str, int]], marker: SimulatedDeauthMarker) -> bool:
+def remember_marker(seen: set[tuple[str, int]], marker: SimulatedMarker) -> bool:
     """Return false for repeated UDP copies of the same physical keypress."""
     marker_id = (marker.node_id, marker.uptime_ms)
     if marker_id in seen:
@@ -109,6 +129,28 @@ def remember_marker(seen: set[tuple[str, int]], marker: SimulatedDeauthMarker) -
         seen.clear()
     seen.add(marker_id)
     return True
+
+
+async def route_marker_anomaly(
+    state: AppState, anomaly: AnomalyIn, edge_client: httpx.AsyncClient
+) -> Literal["edge", "backend"]:
+    """Put multicast test traffic through enforcement before the backend.
+
+    The UDP bridge exists because the venue WLAN blocks ESP-to-laptop TCP. Once
+    the marker reaches the laptop, it must re-enter at the local edge gateway;
+    sending it straight to the backend would bypass the deployed C filter and
+    make every repeated test look like a new, unhandled incident.
+    """
+    try:
+        response = await edge_client.post("/ingest", json=anomaly.model_dump(mode="json"))
+        response.raise_for_status()
+        return "edge"
+    except httpx.HTTPError as exc:
+        # Preserve the old single-process bench mode when edge is not running.
+        # This fallback detects the incident but cannot claim in-path blocking.
+        print(f"[hardware-multicast] edge unavailable; backend fallback: {exc}", flush=True)
+        await handle_anomaly(state, anomaly)
+        return "backend"
 
 
 def _multicast_receiver(group: str, port: int) -> socket.socket:
@@ -136,38 +178,30 @@ async def listen_for_markers(state: AppState) -> None:
         sock.close()
         raise
     seen: set[tuple[str, int]] = set()
+    edge_url = os.environ.get("HARDWARE_EDGE_URL", DEFAULT_EDGE_URL).rstrip("/")
     try:
-        while True:
-            raw = await datagrams.get()
-            try:
-                marker = _MARKER_ADAPTER.validate_json(raw)
-            except ValueError:
-                continue
-            if isinstance(marker, HeartbeatMarker):
-                heartbeat = heartbeat_from_marker(marker)
-                is_new = state.apply_heartbeat(heartbeat)
-                if is_new:
-                    state.emit(
-                        LiveEvent(
-                            type=EventType.NODE_UP,
-                            node_id=heartbeat.node_id,
-                            ts=time.time(),
+        async with httpx.AsyncClient(base_url=edge_url, timeout=2.0) as edge_client:
+            while True:
+                raw = await datagrams.get()
+                try:
+                    marker = _MARKER_ADAPTER.validate_json(raw)
+                except ValueError:
+                    continue
+                if isinstance(marker, HeartbeatMarker):
+                    heartbeat = heartbeat_from_marker(marker)
+                    is_new = state.apply_heartbeat(heartbeat)
+                    if is_new:
+                        state.emit(
+                            LiveEvent(
+                                type=EventType.NODE_UP,
+                                node_id=heartbeat.node_id,
+                                ts=time.time(),
+                            )
                         )
-                    )
-                continue
-            if not remember_marker(seen, marker):
-                continue
-            anomaly = anomaly_from_marker(marker)
-            if anomaly.node_id not in state.nodes:
-                state.apply_heartbeat(Heartbeat(node_id=anomaly.node_id, timestamp=time.time()))
-                state.emit(
-                    LiveEvent(
-                        type=EventType.NODE_UP,
-                        node_id=anomaly.node_id,
-                        ts=time.time(),
-                    )
-                )
-            await handle_anomaly(state, anomaly)
+                    continue
+                if not remember_marker(seen, marker):
+                    continue
+                await route_marker_anomaly(state, anomaly_from_marker(marker), edge_client)
     finally:
         transport.close()
 

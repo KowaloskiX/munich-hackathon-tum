@@ -1,6 +1,8 @@
 // HTTP base for REST calls (incident reports). The live feed is WebSocket
 // (see useLive.ts); this derives the matching http origin from VITE_WS_URL, or
 // an explicit VITE_API_URL override.
+import type { DemoResetResult } from "./types";
+
 export function apiBase(): string {
   const explicit = import.meta.env.VITE_API_URL as string | undefined;
   if (explicit) return explicit.replace(/\/$/, "");
@@ -10,4 +12,10 @@ export function apiBase(): string {
 
 export function incidentReportUrl(incidentId: string): string {
   return `${apiBase()}/incidents/${encodeURIComponent(incidentId)}/report.md`;
+}
+
+export async function flushFixes(): Promise<DemoResetResult> {
+  const response = await fetch(`${apiBase()}/demo/reset`, { method: "POST" });
+  if (!response.ok) throw new Error(`Reset failed (${response.status})`);
+  return (await response.json()) as DemoResetResult;
 }

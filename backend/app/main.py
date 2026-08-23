@@ -15,6 +15,7 @@ import os
 import time
 from collections.abc import AsyncIterator
 
+import httpx
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
@@ -25,6 +26,7 @@ from .hardware_multicast import listen_for_markers, publish_hmi_status
 from .hmi import HmiStatus, HmiStream
 from .models import (
     AnomalyIn,
+    DemoResetResult,
     EnforcementReport,
     EnforcementResult,
     EventType,
@@ -40,6 +42,7 @@ from .state import AppState
 
 state = AppState()
 hmi_stream = HmiStream()
+ingest_tasks: set[asyncio.Task[bool]] = set()
 
 
 def _flag(name: str, default: bool = True) -> bool:
@@ -109,6 +112,7 @@ async def post_heartbeat(hb: Heartbeat) -> dict[str, str]:
 
 
 def _log_task_error(task: asyncio.Task[bool]) -> None:
+    ingest_tasks.discard(task)
     if not task.cancelled() and (exc := task.exception()) is not None:
         print(f"[ingest] handle_anomaly crashed: {exc!r}")
 
@@ -121,8 +125,29 @@ async def post_ingest(anomaly: AnomalyIn) -> dict[str, str]:
         state.emit(LiveEvent(type=EventType.NODE_UP, node_id=anomaly.node_id, ts=time.time()))
     # Fire and forget: the loop drives itself and streams progress over WS.
     task = asyncio.create_task(handle_anomaly(state, anomaly))
+    ingest_tasks.add(task)
     task.add_done_callback(_log_task_error)
     return {"status": "accepted"}
+
+
+@app.post("/demo/reset", response_model=DemoResetResult)
+async def reset_demo() -> DemoResetResult:
+    """Return the hardware showcase to its pre-attack state."""
+    edge_url = os.environ.get("HARDWARE_EDGE_URL", "http://127.0.0.1:8100").rstrip("/")
+    async with httpx.AsyncClient(base_url=edge_url, timeout=3.0) as client:
+        try:
+            response = await client.post("/demo/reset")
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=502, detail="edge reset failed") from exc
+
+    pending = list(ingest_tasks)
+    for task in pending:
+        task.cancel()
+    if pending:
+        await asyncio.gather(*pending, return_exceptions=True)
+    nodes_preserved = state.reset_demo()
+    return DemoResetResult(nodes_preserved=nodes_preserved)
 
 
 @app.get("/firmware/{node_id}", response_model=FirmwarePayload)

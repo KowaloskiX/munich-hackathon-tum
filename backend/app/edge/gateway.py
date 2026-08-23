@@ -17,6 +17,7 @@ import contextlib
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Literal
 
 import httpx
 from fastapi import FastAPI
@@ -45,6 +46,10 @@ class IngestIn(BaseModel):
     rssi: int | None = None
     anomaly_stats: AnomalyStats = Field(default_factory=AnomalyStats)
     guessed_type: str | None = None
+
+
+class EdgeResetResult(BaseModel):
+    status: Literal["reset"] = "reset"
 
 
 @dataclass
@@ -205,6 +210,14 @@ def create_app(cfg: EdgeSettings | None = None, client: httpx.AsyncClient | None
     @app.get("/status")
     async def status() -> dict[str, object]:
         return _status(st)
+
+    @app.post("/demo/reset", response_model=EdgeResetResult)
+    async def reset_demo() -> EdgeResetResult:
+        st.store.clear()
+        st.seen.clear()
+        st.stats.clear()
+        _log("[edge] demo filters and counters flushed")
+        return EdgeResetResult()
 
     @app.post("/ingest")
     async def ingest(payload: IngestIn) -> dict[str, object]:

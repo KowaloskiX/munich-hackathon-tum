@@ -38,6 +38,11 @@ export interface FleetSnapshot {
   counters: Counters;
 }
 
+export interface DemoResetResult {
+  status: "reset";
+  nodes_preserved: number;
+}
+
 export interface LiveEvent {
   type: EventType;
   node_id: string | null;

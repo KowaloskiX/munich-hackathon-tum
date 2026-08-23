@@ -39,7 +39,7 @@ async def handle_anomaly(
     anomaly: AnomalyIn,
     *,
     agent_call: AgentFn | None = None,
-    oracle_call: OracleFn = run_oracle,
+    oracle_call: OracleFn | None = None,
     step_delay: float = 0.6,
     max_retries: int = MAX_RETRIES,
     agent_conn_retries: int = AGENT_CONN_RETRIES,
@@ -140,7 +140,14 @@ async def handle_anomaly(
 
         await sleep(step_delay)
         emit(EventType.VERIFYING, attempt=attempt + 1)
-        verdict = await asyncio.to_thread(oracle_call, agent_out.filter_c_code)
+        if oracle_call is None:
+            verdict = await asyncio.to_thread(
+                run_oracle,
+                agent_out.filter_c_code,
+                attack_frames=anomaly.frame_hex,
+            )
+        else:
+            verdict = await asyncio.to_thread(oracle_call, agent_out.filter_c_code)
         result_payload = {
             "tpr": verdict.tpr,
             "fpr": verdict.fpr,

@@ -35,6 +35,8 @@ def run_oracle(
     filter_c_code: str,
     attack: Path | None = None,
     benign: Path | None = None,
+    *,
+    attack_frames: list[str] | None = None,
 ) -> OracleOut:
     """Compile `filter_c_code`, replay both captures, return the verdict.
 
@@ -49,6 +51,15 @@ def run_oracle(
         (tmpdir / "filter.c").write_text(filter_c_code)
         shutil.copy(HARNESS, tmpdir / "harness.c")
         binary = tmpdir / "test"
+        if attack_frames:
+            staged_attack = tmpdir / "attack.hex"
+            staged_attack.write_text(
+                attack.read_text()
+                + "\n# Current independently observed incident\n"
+                + "\n".join(attack_frames)
+                + "\n"
+            )
+            attack = staged_attack
 
         try:
             compile_proc = subprocess.run(

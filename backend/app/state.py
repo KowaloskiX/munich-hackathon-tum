@@ -121,7 +121,14 @@ class AppState:
     ) -> str:
         """Publish a filter for OTA and bump the node's fw_version. Returns it."""
         node = self.nodes.get(node_id)
-        current = node.fw_version if node else "v1"
+        previous_deploy = self.deployed.get(node_id)
+        current = (
+            previous_deploy.fw_version
+            if previous_deploy is not None
+            else node.fw_version
+            if node is not None
+            else "v1"
+        )
         version = _next_version(current)
         self.deployed[node_id] = DeployedFilter(
             fw_version=version,
@@ -199,3 +206,17 @@ class AppState:
             nodes=[n.view() for n in self.nodes.values()],
             counters=self.counters,
         )
+
+    def reset_demo(self) -> int:
+        """Forget learned defenses and history while keeping live nodes visible."""
+        self.deployed.clear()
+        self.incidents.clear()
+        self.events.clear()
+        self._incident_seq = 0
+        for node in self.nodes.values():
+            node.state = NodeState.NORMAL
+            node.blocked = 0
+            node.fw_version = "v1"
+        self.counters = Counters()
+        self._recount()
+        return len(self.nodes)

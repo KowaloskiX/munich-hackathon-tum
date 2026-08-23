@@ -6,7 +6,7 @@ Do NOT change a contract without updating both sides + the mock.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -128,6 +128,11 @@ class Counters(BaseModel):
 class FleetSnapshot(BaseModel):
     nodes: list[NodeView]
     counters: Counters
+
+
+class DemoResetResult(BaseModel):
+    status: Literal["reset"] = "reset"
+    nodes_preserved: int
 
 
 # --- Contract 5: real OTA + software enforcement + incident reports -------

@@ -75,25 +75,33 @@ For the second ESP, open another terminal and replace the environment with
 path. Exit the monitor with `Ctrl+C`.
 
 For the end-to-end bench demo, use `sniffer-01-demo`. It keeps telemetry
-enabled and accepts `t` in the serial console to inject a synthetic deauth
-burst into the local detector without transmitting any RF:
+enabled and accepts three serial keys that inject synthetic management bursts
+into the local detector without transmitting any RF:
+
+- `t`: deauthentication flood;
+- `y`: authentication flood;
+- `u`: association flood.
+
+Use them in the order `t`, `y`, `u` to demonstrate three successive filter
+adaptations. Pressing the same key again after deployment demonstrates that the
+edge now blocks that variant.
 
 ```bash
 pio run -e sniffer-01-demo -t upload --upload-port /dev/cu.usbserial-0001
 pio device monitor --port /dev/cu.usbserial-0001 -b 115200
 ```
 
-On client-isolated demo WLANs the command also sends five copies of one marker
+On client-isolated demo WLANs each command also sends five copies of one marker
 to `239.255.77.77:37777`; the backend deduplicates them by node and uptime, so
 packet loss does not hide the demo and one keypress still creates one incident.
 
 If no ingest backend is running, use `sniffer-01-console`. It still joins the
 configured AP to pin the capture channel, but suppresses `/ingest` and
 `/heartbeat` attempts so the terminal contains only local capture, statistics
-and alert output. Type `t` in its serial monitor to inject exactly the configured
-deauthentication threshold into the detector. This exercises detection and the
-four-second lamp locally and does not transmit a disruptive Wi-Fi management
-frame. It also sends a harmless JSON multicast marker to
+and alert output. Type `t`, `y`, or `u` in its serial monitor to inject exactly
+the configured threshold for that management subtype. This exercises detection
+and the four-second lamp locally and does not transmit a disruptive Wi-Fi
+management frame. It also sends a harmless JSON multicast marker to
 `239.255.77.77:37777`; inspect it in Wireshark with the display filter
 `udp.port == 37777`.
 
@@ -111,6 +119,7 @@ The defaults are deliberately simple and explicit for an isolated demo:
 - deauthentication subtype 12: at least 20 frames in 1000 ms;
 - disassociation subtype 10: at least 20 frames in 1000 ms;
 - authentication subtype 11: at least 50 frames in 1000 ms;
+- association subtype 0: at least 20 frames in 1000 ms;
 - an exact sliding one-second window keyed by channel and BSSID;
 - five-second per-key/type cooldown between reports;
 - at most six samples of 192 bytes in each report.

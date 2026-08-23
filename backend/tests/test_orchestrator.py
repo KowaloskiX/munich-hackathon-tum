@@ -8,6 +8,8 @@ from app.orchestrator import handle_anomaly
 from app.state import AppState
 
 DEAUTH = ["c0003a01ffffffffffff001122334455001122334455"]
+AUTH = ["b0003a01ffffffffffff001122334455001122334455"]
+ASSOCIATION = ["00003a01ffffffffffff001122334455001122334455"]
 
 
 async def _nosleep(_: float) -> None:
@@ -64,6 +66,39 @@ def test_deploy_publishes_the_real_filter_for_ota():
     deployed = state.deployed["esp-01"]
     assert "block_frame" in deployed.filter_c_code  # the actual C, not a version string
     assert deployed.fw_version == "v2"  # bumped from v1 on deploy
+
+
+def test_stub_builds_cumulative_filters_for_staged_demo_variants():
+    state = AppState()
+    variants = [
+        (DEAUTH, 12, "deauth_flood"),
+        (AUTH, 11, "auth_flood"),
+        (ASSOCIATION, 0, "association_flood"),
+    ]
+
+    for frames, subtype, attack_class in variants:
+        anomaly = AnomalyIn(
+            node_id="esp-01",
+            timestamp=float(subtype + 20),
+            frame_hex=frames,
+            anomaly_stats=AnomalyStats(subtype=subtype, count_in_window=50),
+            guessed_type=attack_class,
+        )
+        assert asyncio.run(
+            handle_anomaly(
+                state,
+                anomaly,
+                agent_call=call_agent,
+                step_delay=0.0,
+                sleep=_nosleep,
+            )
+        )
+
+    deployed = state.deployed["esp-01"]
+    assert deployed.fw_version == "v4"
+    assert "subtype == 0xC" in deployed.filter_c_code
+    assert "subtype == 0xB" in deployed.filter_c_code
+    assert "subtype == 0x0" in deployed.filter_c_code
 
 
 def test_incident_is_recorded_and_id_stamped():

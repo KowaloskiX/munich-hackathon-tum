@@ -32,3 +32,9 @@ class FilterStore:
     def version(self, node_id: str) -> str | None:
         rt = self._by_node.get(node_id)
         return rt.version if rt else None
+
+    def clear(self) -> None:
+        """Unload every demo filter and release its temporary artifacts."""
+        for runtime in self._by_node.values():
+            runtime.close()
+        self._by_node.clear()

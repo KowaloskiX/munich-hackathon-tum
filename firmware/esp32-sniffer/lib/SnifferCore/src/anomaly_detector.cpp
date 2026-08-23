@@ -9,6 +9,7 @@ namespace {
 constexpr uint8_t kDisassocSubtype = 10;
 constexpr uint8_t kAuthSubtype = 11;
 constexpr uint8_t kDeauthSubtype = 12;
+constexpr uint8_t kAssociationSubtype = 0;
 
 }  // namespace
 
@@ -20,6 +21,8 @@ const char* attackKindName(AttackKind kind) {
       return "disassoc_flood";
     case AttackKind::AuthFlood:
       return "auth_flood";
+    case AttackKind::AssociationFlood:
+      return "association_flood";
     default:
       return "unknown_mgmt_flood";
   }
@@ -44,6 +47,8 @@ int MgmtFloodDetector::ruleIndexForSubtype(uint8_t subtype) const {
       return 1;
     case kAuthSubtype:
       return 2;
+    case kAssociationSubtype:
+      return 3;
     default:
       return -1;
   }
@@ -57,6 +62,8 @@ uint16_t MgmtFloodDetector::thresholdForRule(size_t index) const {
       return config_.disassocThreshold;
     case 2:
       return config_.authThreshold;
+    case 3:
+      return config_.associationThreshold;
     default:
       return 0;
   }
@@ -70,6 +77,8 @@ AttackKind MgmtFloodDetector::kindForRule(size_t index) const {
       return AttackKind::DisassocFlood;
     case 2:
       return AttackKind::AuthFlood;
+    case 3:
+      return AttackKind::AssociationFlood;
     default:
       return AttackKind::DeauthFlood;
   }
