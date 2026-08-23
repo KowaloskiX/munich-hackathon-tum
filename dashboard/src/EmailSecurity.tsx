@@ -1,6 +1,7 @@
 import "./EmailSecurity.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { apiBase, emailLiveUrl } from "./api";
 import type {
   EmailAnalysisDetail,
   EmailAnalysisList,
@@ -15,8 +16,8 @@ import type {
 } from "./types";
 import { emailVerdictLabel, formatRiskScore, newestEmailsFirst, pendingEmailCount } from "./emailView";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-const EMAIL_WS_URL = import.meta.env.VITE_EMAIL_WS_URL ?? "ws://localhost:8000/v1/email/live";
+const API_URL = apiBase();
+const EMAIL_WS_URL = emailLiveUrl();
 
 const EMPTY_STATUS: EmailConnectionStatus = {
   connected: false,

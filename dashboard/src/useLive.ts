@@ -1,9 +1,10 @@
 import { useEffect, useReducer, useState } from "react";
 
+import { liveUrl } from "./api";
 import { initialState, reduce } from "./reducer";
 import type { WsMessage } from "./types";
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/live";
+const WS_URL = liveUrl();
 
 export function useLive() {
   const [state, dispatch] = useReducer(reduce, initialState);

@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     devin_email_max_total_acu: float = 2.0
     devin_email_timeout_s: float = 600.0
     dashboard_url: str = "http://localhost:5173"
-    app_allowed_origins: str = "http://localhost:5173"
+    app_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # Langfuse (local instance is fine, e.g. http://localhost:3000).
     langfuse_public_key: str = ""

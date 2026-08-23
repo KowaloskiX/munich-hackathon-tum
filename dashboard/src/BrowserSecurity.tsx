@@ -2,12 +2,13 @@ import "./BrowserSecurity.css";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { apiBase, liveUrl } from "./api";
 import { isLinkEvent, LINK_PHASES, linkPhaseIndex, linkVerdictFromEvent } from "./browserView";
 import type { LinkLiveEvent } from "./browserView";
 import type { LinkScanIn, LinkVerdict } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-const LIVE_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:8000/live";
+const API_URL = apiBase();
+const LIVE_URL = liveUrl();
 
 const PHASE_COPY = {
   LINK_SUBMITTED: ["01", "Submitted", "Normalize the URL and open a fresh case."],
