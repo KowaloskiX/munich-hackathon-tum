@@ -58,35 +58,35 @@ std::uint32_t armed_until_ms = 0U;
 std::uint32_t last_station_attempt_ms = 0U;
 
 constexpr char kIndexHtml[] PROGMEM = R"HTML(
-<!doctype html><html lang="pl"><head><meta charset="utf-8">
+<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Red ESP — bezpieczne demo</title><style>
+<title>Red ESP — safe demo</title><style>
 body{font:16px system-ui;background:#0b1020;color:#eef2ff;max-width:720px;margin:32px auto;padding:0 18px}
 .card{background:#151c32;border:1px solid #334066;border-radius:14px;padding:18px;margin:14px 0}
 label{display:block;margin:12px 0 5px}select,input,button{font:inherit;border-radius:8px;padding:10px;border:1px solid #5a668f}
 select,input{width:100%;box-sizing:border-box;background:#0f1629;color:#fff}button{cursor:pointer;margin:6px;background:#3446a8;color:#fff}
 button.danger{background:#a52b3b}.ok{color:#63e6a6}.warn{color:#ffc857}code{color:#8bd5ff}
-</style></head><body><h1>Red ESP <small>syntetyczny atak</small></h1>
-<div class="card"><div id="status">Ładowanie…</div></div>
-<div class="card"><h2>Scenariusz</h2><form id="config">
-<label for="mode">Profil</label><select id="mode" name="mode">
+</style></head><body><h1>Red ESP <small>synthetic attack</small></h1>
+<div class="card"><div id="status">Loading…</div></div>
+<div class="card"><h2>Scenario</h2><form id="config">
+<label for="mode">Profile</label><select id="mode" name="mode">
 <option value="synthetic_deauth_flood">Deauthentication flood (SIMULATED)</option>
 <option value="traffic_spike">Traffic spike</option>
 <option value="sequence_replay">Sequence replay</option>
 <option value="sequence_jump">Sequence jump</option>
 <option value="identity_churn">Application identity churn</option>
 <option value="malformed_payload">Malformed payload</option></select>
-<label for="pps">Fizyczne pakiety demo/s (1–50)</label><input id="pps" name="pps" type="number" min="1" max="50" value="10">
-<label for="duration">Czas (1–10 s)</label><input id="duration" name="duration" type="number" min="1" max="10" value="5">
-<p><button type="submit">Zapisz</button><button id="start" type="button">START</button><button class="danger" id="stop" type="button">STOP</button></p>
-</form><p class="warn">BOOT przez 1,5 s uzbraja na 30 s. W eterze jest wyłącznie oznaczony broadcast ESP-NOW — osadzona ramka deauth nie jest nadawana jako ramka zarządzająca.</p></div>
+<label for="pps">Physical demo packets/s (1–50)</label><input id="pps" name="pps" type="number" min="1" max="50" value="10">
+<label for="duration">Duration (1–10 s)</label><input id="duration" name="duration" type="number" min="1" max="10" value="5">
+<p><button type="submit">Save</button><button id="start" type="button">START</button><button class="danger" id="stop" type="button">STOP</button></p>
+</form><p class="warn">Hold BOOT for 1.5 s to arm for 30 s. Only a marked ESP-NOW broadcast is on the air — the embedded deauth frame is never transmitted as a management frame.</p></div>
 <script>
 async function call(path,options={}){const r=await fetch(path,options);const t=await r.text();if(!r.ok)throw Error(t);return t}
 async function refresh(){try{const s=JSON.parse(await call('/api/status'));document.querySelector('#status').innerHTML=
-`Stan: <b class="${s.running?'warn':'ok'}">${s.running?'RUNNING':'IDLE'}</b><br>Hotspot: <code>${s.station}</code><br>`+
-`Transport: <code>${s.transport}</code>, profil: <code>${s.mode}</code><br>`+
-`Tempo logiczne: ~${s.logical_rate} ramek/s, wysłane: ${s.sent}, błędy: ${s.failed}<br>`+
-`Uzbrojony: ${s.armed?'TAK':'nie'}`;}catch(e){document.querySelector('#status').textContent=e}}
+`State: <b class="${s.running?'warn':'ok'}">${s.running?'RUNNING':'IDLE'}</b><br>Hotspot: <code>${s.station}</code><br>`+
+`Transport: <code>${s.transport}</code>, profile: <code>${s.mode}</code><br>`+
+`Logical rate: ~${s.logical_rate} frames/s, sent: ${s.sent}, errors: ${s.failed}<br>`+
+`Armed: ${s.armed?'YES':'no'}`;}catch(e){document.querySelector('#status').textContent=e}}
 document.querySelector('#config').onsubmit=async e=>{e.preventDefault();try{await call('/api/config',{method:'POST',body:new URLSearchParams(new FormData(e.target))});await refresh()}catch(e){alert(e)}};
 document.querySelector('#start').onclick=async()=>{try{await call('/api/start',{method:'POST'});await refresh()}catch(e){alert(e)}};
 document.querySelector('#stop').onclick=async()=>{await call('/api/stop',{method:'POST'});await refresh()};
@@ -209,7 +209,7 @@ void handle_config() {
         return;
     }
     if (running) {
-        send_text(409, "Najpierw zatrzymaj aktywny scenariusz.");
+        send_text(409, "Stop the active scenario first.");
         return;
     }
     AttackMode requested_mode = attack_config.mode;
@@ -218,7 +218,7 @@ void handle_config() {
     if (!red_esp::parse_mode(server.arg("mode").c_str(), requested_mode) ||
         !parse_bounded_number(server.arg("pps"), 1L, 50L, requested_pps) ||
         !parse_bounded_number(server.arg("duration"), 1L, 10L, requested_duration)) {
-        send_text(400, "Nieprawidłowy profil, pps lub czas.");
+        send_text(400, "Invalid profile, pps or duration.");
         return;
     }
     const AttackConfig candidate{requested_mode, requested_pps, requested_duration};
@@ -236,19 +236,19 @@ void handle_start() {
         return;
     }
     if (running) {
-        send_text(409, "Scenariusz już działa.");
+        send_text(409, "Scenario already running.");
         return;
     }
     if (!lab_ssid_is_locked()) {
-        send_text(423, "LAB lock: nazwa hotspotu musi zaczynać się od LAB_.");
+        send_text(423, "LAB lock: hotspot name must start with LAB_.");
         return;
     }
     if (WiFi.status() != WL_CONNECTED || !ensure_esp_now()) {
-        send_text(503, "Brak połączenia z hotspotem lub ESP-NOW nie jest gotowy.");
+        send_text(503, "No hotspot connection or ESP-NOW not ready.");
         return;
     }
     if (!deadline_active(armed_until_ms)) {
-        send_text(423, "Przytrzymaj BOOT przez 1,5 s, aby uzbroić urządzenie.");
+        send_text(423, "Hold BOOT for 1.5 s to arm the device.");
         return;
     }
     const auto validation = red_esp::validate_config(attack_config);

@@ -109,7 +109,8 @@
 .command-report-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; }
 .command-report-columns section { padding-top: 14px; border-top: 3px solid #171717; }
 .command-report-columns h3,
-.command-correlations h3 { font: 900 11px var(--mono); text-transform: uppercase; }
+.command-correlations h3,
+.command-attribution h3 { font: 900 11px var(--mono); text-transform: uppercase; }
 .command-report-columns p { position: relative; padding-left: 14px; color: #444; font-size: 12px; line-height: 1.5; }
 .command-report-columns p::before { position: absolute; left: 0; content: "→"; color: #ff6422; font-weight: 900; }
 .command-correlations { margin-top: 30px; padding: 20px; border: 2px solid #171717; background: #f4efe6; }
@@ -117,6 +118,15 @@
 .command-correlations article > strong { color: #ff6422; font-size: 24px; }
 .command-correlations p { margin: 4px 0; color: #555; font-size: 12px; }
 .command-correlations small { font: 700 9px var(--mono); }
+.command-attribution { margin-top: 18px; padding: 20px; border: 2px solid #171717; background: #171717; color: #fff; }
+.command-attribution h3 { display: flex; justify-content: space-between; gap: 16px; }
+.command-attribution h3 span { color: #ffd43b; font-size: 9px; }
+.command-attribution article { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid #555; }
+.command-attribution article > strong { color: #ffd43b; font-size: 24px; }
+.command-attribution p { max-width: 760px; margin: 4px 0; color: #ccc; font-size: 12px; line-height: 1.5; }
+.command-attribution small { display: block; font: 700 9px var(--mono); }
+.command-attribution nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.command-attribution a { color: #ffd43b; font: 800 9px var(--mono); text-transform: uppercase; }
 .command-advisory { margin-top: 28px; padding: 22px; border: 2px solid #171717; background: #356ae6; color: #fff; }
 .command-advisory span { font: 900 9px var(--mono); text-transform: uppercase; }
 .command-advisory strong { display: block; margin-top: 14px; font-size: 20px; }
