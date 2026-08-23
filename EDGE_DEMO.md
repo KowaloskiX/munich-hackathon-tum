@@ -84,10 +84,41 @@ Each deploy writes a real, inspectable artifact tree under `backend/deployed/`
 manifest with the sha256 + byte size. That is the deployed code — compiled to a
 native library and executed per frame — not a string in memory.
 
-## Pointing the real sniffer at the edge
+## Real hardware: two ESP32s + a one-key trigger
 
-No firmware code change — only the backend URL. In
-`esp-sniffer-demo/include/lab_secrets.h`, set `BACKEND_BASE_URL` to the edge's
-`host:8100` instead of the backend's `:8000`. The edge filters `/ingest` and
-passes `/heartbeat` straight through, so everything the sniffer sends still
-works. Start the backend and the edge on the same LAN as the fleet.
+The curl above is the hardware-free stand-in. On real boards the same `/ingest`
+request comes from the **sniffer bridge**, so the loop runs off actual RF:
+
+```
+esp-attacker ──ESP-NOW (marked frames)──▶ esp-sniffer-demo ──POST /ingest──▶ edge (:8100) ──▶ backend
+```
+
+- **esp-attacker** broadcasts marked synthetic ESP-NOW frames (never a real
+  over-the-air deauth). Press **`T`** in its serial monitor to fire one scenario
+  — it self-arms and starts in a single keypress (a second `T` stops early). The
+  BOOT-hold + web `START` panel still work; `T` is just the stage shortcut.
+- **esp-sniffer-demo** receives those frames, batches a capture window, and
+  POSTs the exact `/ingest` JSON shape above to `BACKEND_BASE_URL`. Point that at
+  the **edge** `host:8100` (default in `sniffer_config.h` / `lab_secrets.example.h`)
+  so frames flow through enforcement. It also sends `/heartbeat`, which the edge
+  passes straight through.
+
+Wiring (all boards + the backend/edge host share the same `LAB_*` phone hotspot):
+
+```bash
+# flash both boards (copy lab_secrets.example.h -> lab_secrets.h and fill in first)
+cd esp-attacker      && pio run -e esp32dev --target upload && pio device monitor
+cd esp-sniffer-demo  && pio run -e esp32dev --target upload
+```
+
+Two-shot, exactly as the curl version:
+
+- **Press `T` (shot 1)** → attacker floods → bridge POSTs to edge → no filter yet
+  → forwarded → backend detects → Devin + oracle → `DEPLOYED`; edge poller loads
+  `v2`.
+- **Press `T` again (shot 2)** → same frames hit the loaded filter → edge drops
+  them, reports the real block via `POST /enforcement`, backend stays quiet. The
+  dashboard shows "blocked N frames at edge (filter v2)".
+
+Start the backend and the edge with `--host 0.0.0.0` on the same LAN as the
+fleet. For a direct, no-enforcement run, set `BACKEND_BASE_URL` back to `:8000`.

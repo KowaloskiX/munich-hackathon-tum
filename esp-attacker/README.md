@@ -44,5 +44,10 @@ pod `http://192.168.4.1`. Login panelu to `redesp`, a hasło pochodzi z
 Scenariusz wymaga przytrzymania BOOT przez 1,5 s i automatycznie kończy się po
 10 sekundach. Naciśnięcie BOOT podczas działania jest natychmiastowym STOP-em.
 
+Na scenie najszybszy trigger to klawisz **`T`** w monitorze szeregowym
+(`pio device monitor`): jedno naciśnięcie samo uzbraja i odpala jeden scenariusz,
+kolejne `T` zatrzymuje go wcześniej. Wszystkie bezpieczniki (blokada `LAB_`,
+połączenie z hotspotem, gotowość ESP-NOW, walidacja profilu) nadal obowiązują.
+
 Pełny runbook dla nadajnika, trzech snifferów, OLED i backendu znajduje się w
 [ESP_DEMO.md](../ESP_DEMO.md).

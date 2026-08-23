@@ -159,6 +159,29 @@ void stop_attack(const char* reason) {
     );
 }
 
+// Start a run. Caller must have already satisfied every gate (lab lock, hotspot,
+// ESP-NOW, arming, config validation); this only flips state + resets counters,
+// so the web panel and the serial 'T' trigger share one code path.
+void begin_run() {
+    armed_until_ms = 0U;
+    running = true;
+    run_id = esp_random();
+    sent_packets = 0U;
+    failed_packets = 0U;
+    attack_started_ms = millis();
+    next_send_us = micros();
+    Serial.printf(
+        "Scenario started: %s, %u physical pps, %lu logical fps, %u s\n",
+        red_esp::mode_name(attack_config.mode),
+        attack_config.packets_per_second,
+        static_cast<unsigned long>(
+            static_cast<std::uint32_t>(attack_config.packets_per_second) *
+            logical_frames_per_packet(attack_config.mode)
+        ),
+        attack_config.duration_seconds
+    );
+}
+
 void handle_root() {
     if (authorize()) {
         server.send_P(200, "text/html; charset=utf-8", kIndexHtml);
@@ -256,23 +279,7 @@ void handle_start() {
         send_text(400, validation.message);
         return;
     }
-    armed_until_ms = 0U;
-    running = true;
-    run_id = esp_random();
-    sent_packets = 0U;
-    failed_packets = 0U;
-    attack_started_ms = millis();
-    next_send_us = micros();
-    Serial.printf(
-        "Scenario started: %s, %u physical pps, %lu logical fps, %u s\n",
-        red_esp::mode_name(attack_config.mode),
-        attack_config.packets_per_second,
-        static_cast<unsigned long>(
-            static_cast<std::uint32_t>(attack_config.packets_per_second) *
-            logical_frames_per_packet(attack_config.mode)
-        ),
-        attack_config.duration_seconds
-    );
+    begin_run();
     send_text(202, "started");
 }
 
@@ -402,6 +409,37 @@ void tick_button() {
     was_pressed = pressed;
 }
 
+// Serial 'T' = one-key demo trigger: self-arm and fire a single scenario
+// (a second 'T' stops early). Every physical-safety gate the web START enforces
+// still applies; only the manual BOOT-hold arming is folded into the keypress.
+void tick_serial() {
+    while (Serial.available() > 0) {
+        const int key = Serial.read();
+        if (key != 'T' && key != 't') {
+            continue;
+        }
+        if (running) {
+            stop_attack("serial toggle");
+            continue;
+        }
+        if (!lab_ssid_is_locked()) {
+            Serial.println("T ignored: LAB lock (hotspot SSID must start with LAB_)");
+            continue;
+        }
+        if (WiFi.status() != WL_CONNECTED || !ensure_esp_now()) {
+            Serial.println("T ignored: no hotspot connection or ESP-NOW not ready");
+            continue;
+        }
+        const auto validation = red_esp::validate_config(attack_config);
+        if (!validation.ok) {
+            Serial.printf("T ignored: %s\n", validation.message);
+            continue;
+        }
+        armed_until_ms = millis() + kArmWindowMs;  // self-arm for this keypress
+        begin_run();
+    }
+}
+
 void tick_led() {
     if (running) {
         digitalWrite(kStatusLedPin, ((millis() / 100U) % 2U) == 0U ? HIGH : LOW);
@@ -462,10 +500,12 @@ void setup() {
         tick_station();
     }
     setup_web_server();
+    Serial.println("Serial trigger ready: press 'T' to fire one scenario (self-arms; 'T' again stops)");
 }
 
 void loop() {
     server.handleClient();
+    tick_serial();
     tick_button();
     tick_station();
     tick_attack();

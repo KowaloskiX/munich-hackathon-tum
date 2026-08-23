@@ -5,7 +5,10 @@
 #else
 #define LAB_WIFI_SSID "UNCONFIGURED"
 #define LAB_WIFI_PASSWORD ""
-#define BACKEND_BASE_URL "http://192.168.1.2:8000"
+// Point at the edge gateway (:8100), not the backend (:8000). The edge inline-
+// drops enforced frames on /ingest and passes /heartbeat straight through, so
+// the whole bridge can target one host. Set the real host in lab_secrets.h.
+#define BACKEND_BASE_URL "http://192.168.1.2:8100"
 #endif
 
 #ifndef LAB_WIFI_SSID
