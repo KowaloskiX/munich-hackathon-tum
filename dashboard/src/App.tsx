@@ -91,8 +91,8 @@ const AGENTS: Array<{
     name: "INBOX",
     title: "Reads the email. Spots the trap.",
     description: "Scans messages and attachments for impersonation, pressure tactics and malicious intent.",
-    image: "/logo.jpg",
-    imageAlt: "Beaver agent working on a laptop",
+    image: "/beaver-inbox.png",
+    imageAlt: "Beaver agent holding an envelope with a letter",
     tone: "blue",
     status: "Live now",
   },
@@ -112,8 +112,8 @@ const AGENTS: Array<{
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <button className="brand" data-compact={compact || undefined} type="button" onClick={() => navigate("home")}>
-      <span className="brand-dam" aria-hidden="true"><i /><i /><i /></span>
-      <span className="brand-name">DAM<span>SECURE</span></span>
+      <img className="brand-beaver" src="/beavin-logo.png" alt="" aria-hidden="true" />
+      <span className="brand-name">BEAVIN</span>
     </button>
   );
 }
@@ -202,7 +202,7 @@ function LandingPage() {
           <button type="button" onClick={() => navigate("network")}>Open live network defense <ArrowIcon /></button>
         </section>
       </main>
-      <footer className="landing-footer"><Brand compact /><p>Autonomous defense for the network, browser and inbox.</p><span>© 2026 DAM SECURE</span></footer>
+      <footer className="landing-footer"><Brand compact /><p>Autonomous defense for the network, browser and inbox.</p><span>© 2026 BEAVIN</span></footer>
     </div>
   );
 }

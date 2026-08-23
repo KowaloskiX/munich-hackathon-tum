@@ -1434,7 +1434,7 @@ button {
   }
 }
 
-/* DAM SECURE landing */
+/* BEAVIN landing */
 .landing-shell {
   min-height: 100%;
   overflow-x: hidden;
@@ -1467,40 +1467,18 @@ button {
   cursor: pointer;
 }
 
-.brand-dam {
-  width: 35px;
-  height: 29px;
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  transform: skewY(-6deg);
-}
-
-.brand-dam i {
-  width: 9px;
-  height: 100%;
+.brand-beaver {
+  width: 40px;
+  height: 40px;
   display: block;
-  border: 2px solid #151515;
-  background: #ff6422;
+  object-fit: contain;
 }
-
-.brand-dam i:nth-child(2) { height: 78%; }
-.brand-dam i:nth-child(3) { height: 56%; }
 
 .brand-name {
-  display: flex;
-  flex-direction: column;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 950;
-  line-height: 0.78;
-  letter-spacing: -0.06em;
-}
-
-.brand-name span {
-  margin-top: 5px;
-  color: #ff6422;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  line-height: 1;
+  letter-spacing: -0.04em;
 }
 
 .landing-nav nav {
@@ -2043,7 +2021,7 @@ button {
   .preview-art { height: 380px; }
 }
 
-/* SIGNAL dashboard — DAM SECURE product system */
+/* SIGNAL dashboard — BEAVIN product system */
 .dashboard-shell .topbar-metrics {
   height: 48px;
   border: 2px solid #171717;

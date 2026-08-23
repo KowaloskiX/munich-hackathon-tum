@@ -298,7 +298,7 @@ export function EmailSecurity() {
           <p>New Inbox mail or messages carrying Sentinel/Scan are analyzed. Flagged mail waits for your decision.</p>
           <label className="consent-row">
             <input type="checkbox" checked={consented} onChange={(event) => setConsented(event.target.checked)} />
-            <span>I understand selected message content and agent-selected attachments are processed by DAM SECURE through Cognition/Devin.</span>
+            <span>I understand selected message content and agent-selected attachments are processed by BEAVIN through Cognition/Devin.</span>
           </label>
           <button
             className="primary-action"
