@@ -1,7 +1,7 @@
 // Pure reducer: folds WS messages into dashboard state. No React, no I/O -
 // so it is unit-testable in isolation (see reducer.test.ts).
 
-import type { DashState, LiveEvent, NodeState, TimelineLine, WsMessage } from "./types";
+import type { DashState, Incident, LiveEvent, NodeState, TimelineLine, WsMessage } from "./types";
 
 export const initialState: DashState = {
   nodes: {},
@@ -13,6 +13,7 @@ export const initialState: DashState = {
   agent: { iterations: null, self_tpr: null, self_fpr: null },
   agentStatus: null,
   error: null,
+  feed: [],
   seq: 0,
 };
 
@@ -77,6 +78,11 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
         tone: bad ? "bad" : "ok",
       };
     }
+    case "INCIDENT_CREATED":
+      return {
+        text: `incident [${p.source ?? "?"}] ${p.title ?? ""}`,
+        tone: p.severity === "CRITICAL" ? "bad" : "warn",
+      };
     default:
       return { text: e.type, tone: "info" };
   }
@@ -102,6 +108,7 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   let agent = state.agent;
   let agentStatus = state.agentStatus;
   let error = state.error;
+  let feed = state.feed;
   let appendLine = true;
 
   switch (e.type) {
@@ -171,6 +178,11 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
     case "LINK_VERDICT":
       if (e.payload.verdict === "malicious") counters.threats_detected += 1;
       break;
+    case "INCIDENT_CREATED":
+      // Feed accumulation only; the threat counter is driven by ANOMALY_DETECTED
+      // and LINK_VERDICT so email/link/esp are not double-counted.
+      feed = [e.payload as unknown as Incident, ...state.feed].slice(0, 100);
+      break;
     default:
       break;
   }
@@ -205,6 +217,7 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
     agent,
     agentStatus,
     error,
+    feed,
     seq: state.seq + 1,
   };
 }

@@ -37,6 +37,8 @@ class EventType(StrEnum):
     LINK_BROWSING = "LINK_BROWSING"
     LINK_RESEARCHING = "LINK_RESEARCHING"
     LINK_VERDICT = "LINK_VERDICT"
+    # --- unified cross-domain feed (email + link + esp land here) ---
+    INCIDENT_CREATED = "INCIDENT_CREATED"
 
 
 # --- Contract 1: ESP -> POST /ingest -------------------------------------
@@ -120,6 +122,38 @@ class LinkVerdict(BaseModel):
     reasoning: str = ""
     browse_score: float | None = None
     research_score: float | None = None
+
+
+# --- Unified cross-domain feed (email + link + esp land in one list) ----
+class IncidentSource(StrEnum):
+    EMAIL = "EMAIL"
+    LINK = "LINK"
+    ESP = "ESP"
+
+
+class IncidentSeverity(StrEnum):
+    INFO = "INFO"
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
+
+
+class Incident(BaseModel):
+    id: int
+    ts: float
+    source: IncidentSource
+    severity: IncidentSeverity
+    title: str
+    summary: str = ""
+    verdict: str = ""
+    risk_score: int | None = None
+    status: str = "OPEN"
+    ref: str = ""  # domain ref: url / node_id / gmail_message_id
+    url: str = ""
+
+
+class IncidentList(BaseModel):
+    items: list[Incident]
+    next_cursor: int | None = None
 
 
 # --- WebSocket /live event (drives the dashboard) ------------------------

@@ -42,7 +42,13 @@ from .models import (
     GmailMessage,
     GmailNotification,
     GmailPart,
+    IncidentSeverity,
+    IncidentSource,
 )
+
+# Sink that funnels a flagged email into the unified feed. Injected by main.py
+# (state.add_feed_item) so this module stays decoupled from AppState.
+IncidentSink = Callable[..., object]
 
 _LABEL_NAMES = {
     "scan": "Sentinel/Scan",
@@ -201,6 +207,8 @@ class EmailSecurityService:
             DevinEmailThreatAgent() if settings.email_agent == "devin" else StubEmailThreatAgent()
         )
         self.broadcaster = EmailBroadcaster()
+        # Set by main.py to funnel flagged emails into the unified feed.
+        self.incident_sink: IncidentSink | None = None
         self._sync_lock = asyncio.Lock()
         self._subscriber: pubsub_v1.SubscriberClient | None = None
         self._streaming_future: Any = None
@@ -511,6 +519,20 @@ class EmailSecurityService:
                         ],
                     )
                     self._emit(EmailEventType.FLAGGED, result.report.summary, analysis_id)
+                    if self.incident_sink is not None:
+                        self.incident_sink(
+                            source=IncidentSource.EMAIL,
+                            severity=(
+                                IncidentSeverity.CRITICAL
+                                if result.report.risk_score >= 70
+                                else IncidentSeverity.WARNING
+                            ),
+                            title=f"Flagged email: {payload.subject}",
+                            summary=result.report.summary,
+                            verdict=result.report.verdict.value,
+                            risk_score=result.report.risk_score,
+                            ref=payload.gmail_message_id,
+                        )
                 else:
                     self._emit(
                         EmailEventType.ANALYSIS_COMPLETED, result.report.summary, analysis_id

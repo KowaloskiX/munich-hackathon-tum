@@ -6,6 +6,7 @@ Single process, single source of truth. No DB — this is a hackathon spine.
 from __future__ import annotations
 
 import asyncio
+import time
 from collections import deque
 
 from .models import (
@@ -14,7 +15,11 @@ from .models import (
     EventType,
     FleetSnapshot,
     Heartbeat,
+    Incident,
+    IncidentList,
     IncidentReport,
+    IncidentSeverity,
+    IncidentSource,
     IncidentSummary,
     LiveEvent,
     NodeState,
@@ -89,6 +94,9 @@ class AppState:
         self.deployed: dict[str, DeployedFilter] = {}
         # Durable per-incident record backing the incident report + history.
         self.incidents: dict[str, IncidentReport] = {}
+        # Unified cross-domain feed (email + link + esp) for the dashboard list.
+        # Bounded like the event log so a long run can't grow it without limit.
+        self.feed: deque[Incident] = deque(maxlen=500)
         self._incident_seq = 0
 
     # --- ingest paths ----------------------------------------------------
@@ -132,6 +140,71 @@ class AppState:
         if node is not None:
             node.fw_version = version
         return version
+
+    # --- unified cross-domain feed (email + link + esp) -----------------
+    def add_feed_item(
+        self,
+        *,
+        source: IncidentSource,
+        severity: IncidentSeverity,
+        title: str,
+        summary: str = "",
+        verdict: str = "",
+        risk_score: int | None = None,
+        ref: str = "",
+        url: str = "",
+        report_id: str = "",
+    ) -> Incident:
+        """Append a cross-domain feed item and stream it to the dashboard.
+
+        Every domain (email, link, esp) funnels findings here so there is one
+        queryable list (GET /feed) for later analysis. Distinct from the ESP-only
+        IncidentReport store (self.incidents) that drives OTA/report. `report_id`
+        links an ESP item to its IncidentReport so the emitted event keeps the
+        loop-wide `incident_id` stamp other events carry.
+        """
+        self._incident_seq += 1
+        incident = Incident(
+            id=self._incident_seq,
+            ts=time.time(),
+            source=source,
+            severity=severity,
+            title=title,
+            summary=summary,
+            verdict=verdict,
+            risk_score=risk_score,
+            ref=ref,
+            url=url,
+        )
+        self.feed.append(incident)
+        payload = incident.model_dump(mode="json")
+        if report_id:
+            payload["incident_id"] = report_id
+        self.emit(
+            LiveEvent(
+                type=EventType.INCIDENT_CREATED,
+                node_id=ref if source is IncidentSource.ESP else None,
+                ts=incident.ts,
+                payload=payload,
+            )
+        )
+        return incident
+
+    def list_feed(
+        self,
+        source: IncidentSource | None = None,
+        cursor: int | None = None,
+        limit: int = 50,
+    ) -> IncidentList:
+        """Newest-first feed page (id-descending), optionally by source."""
+        items = [
+            i
+            for i in reversed(self.feed)
+            if (source is None or i.source is source) and (cursor is None or i.id < cursor)
+        ]
+        page = items[:limit]
+        next_cursor = page[-1].id if len(items) > limit and page else None
+        return IncidentList(items=page, next_cursor=next_cursor)
 
     # --- incidents -------------------------------------------------------
     def create_incident(self, node_id: str, ts: float) -> IncidentReport:

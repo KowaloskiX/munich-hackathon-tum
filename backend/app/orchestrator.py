@@ -20,6 +20,8 @@ from .models import (
     AnomalyIn,
     EventType,
     Heartbeat,
+    IncidentSeverity,
+    IncidentSource,
     LinkScanIn,
     LinkVerdict,
     LiveEvent,
@@ -92,6 +94,15 @@ async def handle_anomaly(
         subtype=anomaly.anomaly_stats.subtype,
         count=anomaly.anomaly_stats.count_in_window,
         attack_class=anomaly.guessed_type or "unknown",
+    )
+    state.add_feed_item(
+        source=IncidentSource.ESP,
+        severity=IncidentSeverity.WARNING,
+        title=f"{node_id}: {anomaly.anomaly_stats.frame_type} anomaly",
+        summary=f"{anomaly.anomaly_stats.count_in_window} frames in window "
+        f"(subtype {anomaly.anomaly_stats.subtype})",
+        ref=node_id,
+        report_id=incident.id,
     )
 
     agent_in = AgentIn(frame_hex=anomaly.frame_hex, anomaly_stats=anomaly.anomaly_stats)
@@ -248,4 +259,19 @@ async def handle_link_scan(
         brand=verdict.impersonated_brand,
         signals=verdict.top_signals,
     )
+    if verdict.verdict in ("malicious", "suspicious"):
+        state.add_feed_item(
+            source=IncidentSource.LINK,
+            severity=(
+                IncidentSeverity.CRITICAL
+                if verdict.verdict == "malicious"
+                else IncidentSeverity.WARNING
+            ),
+            title=f"Suspicious link: {scan.url}",
+            summary=verdict.reasoning,
+            verdict=verdict.verdict,
+            risk_score=round((1.0 - verdict.legit_score) * 100),
+            ref=scan.url,
+            url=scan.url,
+        )
     return verdict
