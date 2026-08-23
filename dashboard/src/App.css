@@ -185,6 +185,41 @@ button {
   letter-spacing: 0;
 }
 
+.topbar-actions {
+  justify-self: end;
+}
+
+.flush-fixes-button {
+  min-width: 112px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+.flush-fixes-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 86%, #000);
+}
+
+.flush-fixes-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.flush-fixes-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .workspace {
   min-height: 0;
   display: grid;

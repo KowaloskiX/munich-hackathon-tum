@@ -11,6 +11,8 @@ from app.orchestrator import handle_anomaly
 from app.state import AppState
 
 DEAUTH = ["c0003a01ffffffffffff001122334455001122334455"]
+AUTH = ["b0003a01ffffffffffff001122334455001122334455"]
+ASSOCIATION = ["00003a01ffffffffffff001122334455001122334455"]
 
 
 async def _nosleep(_: float) -> None:
@@ -23,7 +25,10 @@ def _run_loop(attack_log_path: Path | None = None) -> tuple[bool, AppState]:
         node_id="esp-01",
         timestamp=1.0,
         frame_hex=DEAUTH,
-        anomaly_stats=AnomalyStats(subtype=12, count_in_window=200),
+        rssi=-42,
+        bssid="34:fa:9f:5d:24:a9",
+        sender_mac="02:00:00:00:00:01",
+        anomaly_stats=AnomalyStats(subtype=12, channel=11, count_in_window=200),
         guessed_type="deauth_flood",
     )
     deployed = asyncio.run(
@@ -68,6 +73,59 @@ def test_deploy_publishes_the_real_filter_for_ota():
     deployed = state.deployed["esp-01"]
     assert "block_frame" in deployed.filter_c_code  # the actual C, not a version string
     assert deployed.fw_version == "v2"  # bumped from v1 on deploy
+
+
+def test_stub_builds_cumulative_filters_for_staged_demo_variants(tmp_path):
+    state = AppState()
+    path = tmp_path / "attack_responses.jsonl"
+    previous_filters: list[str | None] = []
+
+    def recording_agent(payload, on_step=None):
+        previous_filters.append(payload.prev_filter)
+        return call_agent(payload, on_step=on_step)
+
+    variants = [
+        (DEAUTH, 12, "deauth_flood"),
+        (AUTH, 11, "auth_flood"),
+        (ASSOCIATION, 0, "association_flood"),
+    ]
+
+    for frames, subtype, attack_class in variants:
+        anomaly = AnomalyIn(
+            node_id="esp-01",
+            timestamp=float(subtype + 20),
+            frame_hex=frames,
+            anomaly_stats=AnomalyStats(subtype=subtype, count_in_window=50),
+            guessed_type=attack_class,
+        )
+        assert asyncio.run(
+            handle_anomaly(
+                state,
+                anomaly,
+                agent_call=recording_agent,
+                attack_log_path=path,
+                step_delay=0.0,
+                sleep=_nosleep,
+            )
+        )
+
+    deployed = state.deployed["esp-01"]
+    assert deployed.fw_version == "v4"
+    assert "subtype == 0xC" in deployed.filter_c_code
+    assert "subtype == 0xB" in deployed.filter_c_code
+    assert "subtype == 0x0" in deployed.filter_c_code
+    assert deployed.sample_frames == [*DEAUTH, *AUTH, *ASSOCIATION]
+    assert previous_filters[0] is None
+    assert previous_filters[-1] is not None
+
+    responses = read_attack_responses(path)
+    assert len(responses) == 3
+    assert responses[0].previous_deployment is None
+    assert responses[1].previous_deployment is not None
+    assert responses[1].previous_deployment.firmware_version == "v2"
+    assert responses[1].previous_deployment.protected_attack_frame_count == 1
+    assert responses[2].previous_deployment is not None
+    assert responses[2].previous_deployment.protected_attack_frame_count == 2
 
 
 def test_incident_is_recorded_and_id_stamped():
@@ -187,12 +245,16 @@ def test_attack_response_log_keeps_failed_and_successful_approaches(tmp_path):
     assert response["incident_id"] == incident.id
     assert response["node_id"] == "esp-01"
     assert response["outcome"] == "deployed"
+    assert response["schema_version"] == 2
     assert response["capture"]["frame_count"] == 1
+    assert response["capture"]["bssid"] == "34:fa:9f:5d:24:a9"
+    assert response["capture"]["sender_mac"] == "02:00:00:00:00:01"
+    assert response["capture"]["stats"]["channel"] == 11
     assert len(response["capture"]["sha256"]) == 64
     assert response["agent_backend"] == "stub"
     assert response["summary"]["attack_type"] == "deauth_flood"
     assert response["summary"]["successful_attempt"] == 2
-    assert "Narrowed to 802.11" in response["summary"]["successful_approach"]
+    assert "Narrowed to the observed" in response["summary"]["successful_approach"]
     assert len(response["summary"]["failed_approaches"]) == 1
     assert "block all mgmt" in response["summary"]["failed_approaches"][0]
 

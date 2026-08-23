@@ -91,6 +91,7 @@ inline constexpr uint32_t kDetectionCooldownMs = 5000;
 inline constexpr uint16_t kDeauthThreshold = 20;
 inline constexpr uint16_t kDisassocThreshold = 20;
 inline constexpr uint16_t kAuthThreshold = 50;
+inline constexpr uint16_t kAssociationThreshold = 20;
 inline constexpr char kPolicyId[] = "builtin-baseline-v1";
 inline constexpr uint32_t kPolicyVersion = 1;
 

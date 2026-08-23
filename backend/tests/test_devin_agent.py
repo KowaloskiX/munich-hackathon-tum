@@ -68,6 +68,14 @@ def test_prompt_contains_frames_signature_and_spec():
     assert "filter_c_code" in prompt
 
 
+def test_prompt_requires_existing_protections_to_survive_adaptation():
+    prompt = build_devin_prompt(_payload(prev_filter=DEAUTH))
+
+    assert "Existing deployed protection" in prompt
+    assert "Preserve every attack subtype" in prompt
+    assert DEAUTH in prompt
+
+
 def test_retry_sends_followup_message_and_reuses_session():
     calls: list[str] = []
 

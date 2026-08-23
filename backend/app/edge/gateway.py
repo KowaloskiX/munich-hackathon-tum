@@ -17,6 +17,7 @@ import contextlib
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Literal
 
 import httpx
 from fastapi import FastAPI
@@ -34,6 +35,7 @@ CLANG_ARGS_STR = " ".join(CLANG_ARGS)
 class AnomalyStats(BaseModel):
     frame_type: str = "mgmt"
     subtype: int | None = None
+    channel: int | None = Field(default=None, ge=1, le=14)
     count_in_window: int = 0
     window_ms: int = 1000
 
@@ -43,8 +45,14 @@ class IngestIn(BaseModel):
     timestamp: float
     frame_hex: list[str] = Field(default_factory=list)
     rssi: int | None = None
+    bssid: str | None = Field(default=None, pattern=r"^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+    sender_mac: str | None = Field(default=None, pattern=r"^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
     anomaly_stats: AnomalyStats = Field(default_factory=AnomalyStats)
     guessed_type: str | None = None
+
+
+class EdgeResetResult(BaseModel):
+    status: Literal["reset"] = "reset"
 
 
 @dataclass
@@ -205,6 +213,14 @@ def create_app(cfg: EdgeSettings | None = None, client: httpx.AsyncClient | None
     @app.get("/status")
     async def status() -> dict[str, object]:
         return _status(st)
+
+    @app.post("/demo/reset", response_model=EdgeResetResult)
+    async def reset_demo() -> EdgeResetResult:
+        st.store.clear()
+        st.seen.clear()
+        st.stats.clear()
+        _log("[edge] demo filters and counters flushed")
+        return EdgeResetResult()
 
     @app.post("/ingest")
     async def ingest(payload: IngestIn) -> dict[str, object]:

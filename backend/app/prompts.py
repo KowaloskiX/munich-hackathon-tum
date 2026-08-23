@@ -172,6 +172,18 @@ Report `iterations` as the real number of compile+run cycles you performed, and
 `self_tpr`/`self_fpr` as the final numbers your harness printed.
 """
 
+    if payload.prev_filter and not payload.failure_log:
+        base += f"""
+
+## Existing deployed protection
+Extend the currently deployed filter below. Preserve every attack subtype it
+already blocks while adding protection for the new captured anomaly. Independent
+verification will replay both earlier and current attack frames.
+
+Existing filter.c:
+{payload.prev_filter}
+"""
+
     if payload.failure_log:
         base += f"""
 

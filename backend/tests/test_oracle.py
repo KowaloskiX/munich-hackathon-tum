@@ -17,6 +17,7 @@ bool block_frame(const uint8_t *f, size_t n) {
 """
 
 WONT_COMPILE = "this is not C code {{{"
+AUTH = "b0003a01ffffffffffff001122334455001122334455"
 
 
 def test_good_filter_passes():
@@ -37,3 +38,10 @@ def test_compile_error_is_a_failure_not_a_crash():
     out = run_oracle(WONT_COMPILE)
     assert out.passed is False
     assert "compile failed" in out.log
+
+
+def test_current_incident_is_added_to_authoritative_replay():
+    out = run_oracle(GOOD, attack_frames=[AUTH])
+
+    assert out.passed is False
+    assert out.tpr < 1.0

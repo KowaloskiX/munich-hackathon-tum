@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { BrowserSecurity } from "./BrowserSecurity";
-import { incidentReportUrl } from "./api";
+import { flushFixes, incidentReportUrl } from "./api";
 import { selectAttackHistory, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
 import { EmailSecurity } from "./EmailSecurity";
@@ -415,7 +415,26 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
 
 function NetworkDashboard() {
   const { state, connected } = useLive();
+  const [flushState, setFlushState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const nodes = Object.values(state.nodes).sort((a, b) => a.node_id.localeCompare(b.node_id));
+
+  async function handleFlush(): Promise<void> {
+    setFlushState("busy");
+    try {
+      await flushFixes();
+      setFlushState("done");
+      window.setTimeout(() => window.location.reload(), 350);
+    } catch {
+      setFlushState("error");
+    }
+  }
+
+  const flushLabel = {
+    idle: "Flush fixes",
+    busy: "Flushing…",
+    done: "Flushed",
+    error: "Try again",
+  }[flushState];
 
   return (
     <div className="dashboard-shell">
@@ -432,6 +451,16 @@ function NetworkDashboard() {
         </div>
         <div className="dashboard-actions">
           <span className="connection-state" data-connected={connected || undefined}><i />{connected ? "System live" : "Connecting"}</span>
+          <button
+            className="flush-fixes-button"
+            type="button"
+            disabled={flushState === "busy" || flushState === "done"}
+            onClick={() => void handleFlush()}
+            title="Clear deployed filters and reset the staged demo"
+          >
+            <span aria-hidden="true">↺</span>
+            {flushLabel}
+          </button>
           <button className="dashboard-back" type="button" onClick={() => navigate("home")}>All agents <span aria-hidden="true">↗</span></button>
         </div>
       </header>

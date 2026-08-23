@@ -77,8 +77,13 @@ async def anomaly_loop(state: AppState, *, min_gap: float = 8.0, max_gap: float 
             timestamp=time.time(),
             frame_hex=list(DEAUTH_FRAMES),
             rssi=random.randint(-70, -40),
+            bssid="02:00:00:00:00:01",
+            sender_mac="02:00:00:00:00:02",
             anomaly_stats=AnomalyStats(
-                frame_type="mgmt", subtype=12, count_in_window=random.randint(120, 400)
+                frame_type="mgmt",
+                subtype=12,
+                channel=6,
+                count_in_window=random.randint(120, 400),
             ),
             guessed_type="deauth_flood",
         )

@@ -65,6 +65,30 @@ export interface FleetSnapshot {
   counters: Counters;
 }
 
+export interface AnomalyStats {
+  frame_type: string;
+  subtype: number | null;
+  channel: number | null;
+  count_in_window: number;
+  window_ms: number;
+}
+
+export interface AnomalyIn {
+  node_id: string;
+  timestamp: number;
+  frame_hex: string[];
+  rssi: number | null;
+  bssid: string | null;
+  sender_mac: string | null;
+  anomaly_stats: AnomalyStats;
+  guessed_type: string | null;
+}
+
+export interface DemoResetResult {
+  status: "reset";
+  nodes_preserved: number;
+}
+
 export interface LiveEvent {
   type: EventType;
   node_id: string | null;

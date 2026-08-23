@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from pathlib import Path
 
 import httpx
 from fastapi.testclient import TestClient
@@ -109,3 +110,22 @@ def test_heartbeat_passes_through():
     with TestClient(app) as tc:
         assert tc.post("/heartbeat", json=hb).json() == {"status": "ok"}
     assert [c for c in calls if c[1] == "/heartbeat"]
+
+
+def test_demo_reset_unloads_filters_and_clears_edge_counters():
+    client = httpx.AsyncClient(base_url="http://backend", transport=httpx.MockTransport(_ok))
+    app = create_app(cfg=EdgeSettings(poll_interval_s=999.0), client=client)
+    edge = app.state.edge
+    runtime = edge.store.runtime("esp-01")
+    runtime.reload(DEAUTH_C, "v2", "deauth_flood")
+    so_path = Path(runtime.so_path or "")
+    edge.seen.add("esp-01")
+    edge.stats["esp-01"] = {"evaluated": 2, "blocked": 1, "passed": 1}
+
+    with TestClient(app) as tc:
+        assert tc.post("/demo/reset").json() == {"status": "reset"}
+
+    assert edge.store.get("esp-01") is None
+    assert not edge.seen
+    assert not edge.stats
+    assert not so_path.exists()

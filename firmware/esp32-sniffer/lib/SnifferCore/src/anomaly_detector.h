@@ -13,6 +13,7 @@ enum class AttackKind : uint8_t {
   DeauthFlood = 0,
   DisassocFlood,
   AuthFlood,
+  AssociationFlood,
 };
 
 const char* attackKindName(AttackKind kind);
@@ -23,6 +24,7 @@ struct DetectorConfig {
   uint16_t deauthThreshold{20};
   uint16_t disassocThreshold{20};
   uint16_t authThreshold{50};
+  uint16_t associationThreshold{20};
 };
 
 struct FrameObservation {
@@ -69,7 +71,7 @@ class MgmtFloodDetector {
   void reset();
 
  private:
-  static constexpr size_t kRuleCount = 3;
+  static constexpr size_t kRuleCount = 4;
   static constexpr size_t kBucketsPerRule = 4;
 
   struct RuleState {

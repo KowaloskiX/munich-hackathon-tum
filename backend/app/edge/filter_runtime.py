@@ -139,3 +139,18 @@ class FilterRuntime:
                 self.evaluated += 1
             (dropped if self.blocks(frame_hex) else kept).append(frame_hex)
         return kept, dropped
+
+    def close(self) -> None:
+        """Disable this runtime and remove its temporary compiled artifact."""
+        workdir = self._workdir
+        self._fn = None
+        self._workdir = None
+        self.version = None
+        self.attack_class = ""
+        self.code = ""
+        self.so_path = None
+        self.so_sha = ""
+        self.so_bytes = 0
+        self.evaluated = 0
+        if workdir is not None:
+            shutil.rmtree(workdir, ignore_errors=True)

@@ -24,6 +24,11 @@ void encodeHex(const uint8_t* bytes, size_t length, char* output) {
   output[length * 2] = '\0';
 }
 
+void formatMac(const uint8_t* mac, char* output, size_t outputSize) {
+  std::snprintf(output, outputSize, "%02x:%02x:%02x:%02x:%02x:%02x",
+                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
 PostResult classifyHttpStatus(int statusCode) {
   if (statusCode >= 200 && statusCode < 300) {
     return PostResult::Success;
@@ -133,10 +138,17 @@ PostResult BackendClient::postAnomaly(const AnomalyReport& report,
   if (report.sampleCount > 0) {
     document["rssi"] = report.samples[0].rssi;
   }
+  char bssid[18];
+  char senderMac[18];
+  formatMac(report.bssid, bssid, sizeof(bssid));
+  formatMac(report.sender, senderMac, sizeof(senderMac));
+  document["bssid"] = bssid;
+  document["sender_mac"] = senderMac;
 
   JsonObject anomaly = document["anomaly_stats"].to<JsonObject>();
   anomaly["frame_type"] = "mgmt";
   anomaly["subtype"] = report.subtype;
+  anomaly["channel"] = report.channel;
   anomaly["count_in_window"] = report.countInWindow;
   anomaly["window_ms"] = report.windowMs;
   document["guessed_type"] = attackKindName(report.kind);

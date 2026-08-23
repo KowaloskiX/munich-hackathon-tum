@@ -12,6 +12,27 @@ def test_anomaly_parses_minimal():
     assert a.anomaly_stats.window_ms == 1000  # default applied
 
 
+def test_anomaly_accepts_network_identity_metadata():
+    anomaly = AnomalyIn.model_validate(
+        {
+            "node_id": "esp-01",
+            "timestamp": 1.0,
+            "bssid": "34:fa:9f:5d:24:a9",
+            "sender_mac": "02:00:00:00:00:01",
+            "anomaly_stats": {"channel": 11},
+        }
+    )
+
+    assert anomaly.bssid == "34:fa:9f:5d:24:a9"
+    assert anomaly.sender_mac == "02:00:00:00:00:01"
+    assert anomaly.anomaly_stats.channel == 11
+
+
+def test_anomaly_rejects_invalid_network_identity_metadata():
+    with pytest.raises(ValidationError):
+        AnomalyIn(node_id="esp-01", timestamp=1.0, sender_mac="not-a-mac")
+
+
 def test_heartbeat_defaults():
     hb = Heartbeat(node_id="esp-02", timestamp=2.0)
     assert hb.state is NodeState.NORMAL

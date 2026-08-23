@@ -39,9 +39,9 @@ from .models import (
     OracleOut,
     PatchAttemptLog,
     PatchAttemptOutcome,
+    PreviousDeploymentLog,
 )
 from .oracle import run_oracle
-from .prompts import SAMPLE_BENIGN
 from .state import AppState
 
 LinkScoutFn = Callable[..., LinkVerdict]  # (LinkScanIn, on_step=None) -> LinkVerdict
@@ -58,7 +58,7 @@ async def handle_anomaly(
     anomaly: AnomalyIn,
     *,
     agent_call: AgentFn | None = None,
-    oracle_call: OracleFn = run_oracle,
+    oracle_call: OracleFn | None = None,
     step_delay: float = 0.6,
     max_retries: int = MAX_RETRIES,
     agent_conn_retries: int = AGENT_CONN_RETRIES,
@@ -82,6 +82,7 @@ async def handle_anomaly(
     incident.frames = len(anomaly.frame_hex)
     response_started_ts = time.time()
     initial_attack_guess = anomaly.guessed_type or "unknown"
+    previous_deployment = state.deployed.get(node_id)
     response_log = AttackResponseLog(
         response_id=str(uuid4()),
         incident_id=incident.id,
@@ -94,7 +95,19 @@ async def handle_anomaly(
             frame_count=len(anomaly.frame_hex),
             sha256=capture_sha256(anomaly.frame_hex),
             rssi=anomaly.rssi,
+            bssid=anomaly.bssid,
+            sender_mac=anomaly.sender_mac,
             stats=anomaly.anomaly_stats,
+        ),
+        previous_deployment=(
+            PreviousDeploymentLog(
+                firmware_version=previous_deployment.fw_version,
+                attack_class=previous_deployment.attack_class,
+                filter_sha256=filter_sha256(previous_deployment.filter_c_code),
+                protected_attack_frame_count=len(previous_deployment.sample_frames),
+            )
+            if previous_deployment is not None
+            else None
         ),
         summary=AttackResponseSummary(attack_type=initial_attack_guess),
     )
@@ -197,7 +210,17 @@ async def handle_anomaly(
         report_id=incident.id,
     )
 
-    agent_in = AgentIn(frame_hex=anomaly.frame_hex, anomaly_stats=anomaly.anomaly_stats)
+    previous_attack_frames = (
+        previous_deployment.sample_frames if previous_deployment is not None else []
+    )
+    verification_attack_frames = list(dict.fromkeys([*previous_attack_frames, *anomaly.frame_hex]))
+    agent_in = AgentIn(
+        frame_hex=anomaly.frame_hex,
+        anomaly_stats=anomaly.anomaly_stats,
+        prev_filter=(
+            previous_deployment.filter_c_code if previous_deployment is not None else None
+        ),
+    )
     verdict: OracleOut | None = None
     agent_out: AgentOut | None = None
 
@@ -274,7 +297,14 @@ async def handle_anomaly(
 
         await sleep(step_delay)
         emit(EventType.VERIFYING, attempt=attempt + 1)
-        verdict = await asyncio.to_thread(oracle_call, agent_out.filter_c_code)
+        if oracle_call is None:
+            verdict = await asyncio.to_thread(
+                run_oracle,
+                agent_out.filter_c_code,
+                attack_frames=verification_attack_frames,
+            )
+        else:
+            verdict = await asyncio.to_thread(oracle_call, agent_out.filter_c_code)
         result_payload = {
             "tpr": verdict.tpr,
             "fpr": verdict.fpr,
@@ -322,9 +352,11 @@ async def handle_anomaly(
     response_log.deployment.started_ts = deployment_started_ts
 
     # Publish the real filter for OTA (a node can pull + load it) and bump fw.
-    sample_frames = [*anomaly.frame_hex, *SAMPLE_BENIGN]
     firmware_version = state.set_deployed_filter(
-        node_id, agent_out.filter_c_code, agent_out.attack_class, sample_frames
+        node_id,
+        agent_out.filter_c_code,
+        agent_out.attack_class,
+        verification_attack_frames,
     )
 
     await sleep(step_delay)

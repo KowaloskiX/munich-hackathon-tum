@@ -1,3 +1,5 @@
+import type { DemoResetResult } from "./types";
+
 function localBackendOrigin(protocol: "http" | "ws"): string {
   const hostname = typeof window === "undefined" ? "localhost" : window.location.hostname;
   return `${protocol}://${hostname || "localhost"}:8000`;
@@ -25,4 +27,10 @@ export function emailLiveUrl(): string {
 
 export function incidentReportUrl(incidentId: string): string {
   return `${apiBase()}/incidents/${encodeURIComponent(incidentId)}/report.md`;
+}
+
+export async function flushFixes(): Promise<DemoResetResult> {
+  const response = await fetch(`${apiBase()}/demo/reset`, { method: "POST" });
+  if (!response.ok) throw new Error(`Reset failed (${response.status})`);
+  return (await response.json()) as DemoResetResult;
 }

@@ -21,6 +21,7 @@ defense_sniffer::DetectorConfig detectorConfig() {
   config.deauthThreshold = app_config::kDeauthThreshold;
   config.disassocThreshold = app_config::kDisassocThreshold;
   config.authThreshold = app_config::kAuthThreshold;
+  config.associationThreshold = app_config::kAssociationThreshold;
   return config;
 }
 
@@ -38,6 +39,8 @@ void writeLamp(bool on);
 
 const char* subtypeName(uint8_t subtype) {
   switch (subtype) {
+    case 0:
+      return "association";
     case 10:
       return "disassoc";
     case 11:
@@ -119,8 +122,9 @@ void handleAcceptedReport(const defense_sniffer::AnomalyReport& report,
       static_cast<unsigned long>(report.windowMs), report.channel);
 }
 
-void sendSimulatedDeauthMarker(uint16_t count, uint8_t channel,
-                               const char* bssid) {
+void sendSimulatedMarker(uint16_t count, uint8_t channel, const char* bssid,
+                         const char* senderMac, uint8_t subtype,
+                         const char* attackClass) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println(
         "[test-net] marker not sent: ESP is not connected to Wi-Fi yet");
@@ -128,13 +132,24 @@ void sendSimulatedDeauthMarker(uint16_t count, uint8_t channel,
   }
 
   char payload[256];
-  const int length = std::snprintf(
-      payload, sizeof(payload),
-      "{\"schema_version\":1,\"type\":\"SIMULATED_DEAUTH\","
-      "\"node_id\":\"%s\",\"uptime_ms\":%lu,\"count\":%u,"
-      "\"channel\":%u,\"bssid\":\"%s\"}",
-      app_config::kNodeId, static_cast<unsigned long>(millis()), count, channel,
-      bssid);
+  const int length =
+      subtype == 12
+          ? std::snprintf(
+                payload, sizeof(payload),
+                "{\"schema_version\":1,\"type\":\"SIMULATED_DEAUTH\","
+                "\"node_id\":\"%s\",\"uptime_ms\":%lu,\"count\":%u,"
+                "\"channel\":%u,\"bssid\":\"%s\",\"sender_mac\":\"%s\"}",
+                app_config::kNodeId, static_cast<unsigned long>(millis()),
+                count, channel, bssid, senderMac)
+          : std::snprintf(
+                payload, sizeof(payload),
+                "{\"schema_version\":1,\"type\":\"SIMULATED_MGMT_FLOOD\","
+                "\"node_id\":\"%s\",\"uptime_ms\":%lu,\"count\":%u,"
+                "\"channel\":%u,\"bssid\":\"%s\",\"sender_mac\":\"%s\","
+                "\"subtype\":%u,"
+                "\"attack_class\":\"%s\"}",
+                app_config::kNodeId, static_cast<unsigned long>(millis()),
+                count, channel, bssid, senderMac, subtype, attackClass);
   if (length <= 0 || static_cast<size_t>(length) >= sizeof(payload)) {
     Serial.println("[test-net] marker JSON did not fit in the buffer");
     return;
@@ -159,15 +174,15 @@ void sendSimulatedDeauthMarker(uint16_t count, uint8_t channel,
   }
   if (sent > 0) {
     Serial.printf(
-        "[test-net] sent %u copies of SIMULATED_DEAUTH to %s:%u (%d bytes)\n",
-        sent, destination.toString().c_str(), app_config::kTestMulticastPort,
-        length);
+        "[test-net] sent %u copies of %s to %s:%u (%d bytes)\n", sent,
+        attackClass, destination.toString().c_str(),
+        app_config::kTestMulticastPort, length);
   } else {
     Serial.println("[test-net] multicast marker send failed");
   }
 }
 
-void runSyntheticDeauthSelfTest() {
+void runSyntheticMgmtSelfTest(uint8_t subtype, uint16_t threshold) {
   if constexpr (!app_config::kSerialSelfTest) {
     return;
   }
@@ -179,8 +194,10 @@ void runSyntheticDeauthSelfTest() {
 
   static constexpr uint8_t kSyntheticSender[6] = {0x02, 0x00, 0x00,
                                                    0x00, 0x00, 0x01};
+  char formattedSender[18];
+  formatMac(kSyntheticSender, formattedSender, sizeof(formattedSender));
   uint8_t frameBytes[26]{};
-  frameBytes[0] = 0xc0;  // 802.11 deauthentication management frame.
+  frameBytes[0] = static_cast<uint8_t>(subtype << 4U);
   std::copy(bssid, bssid + 6, frameBytes + 4);
   std::copy(kSyntheticSender, kSyntheticSender + 6, frameBytes + 10);
   std::copy(bssid, bssid + 6, frameBytes + 16);
@@ -189,13 +206,14 @@ void runSyntheticDeauthSelfTest() {
   const uint32_t nowMs = millis();
   const uint32_t nowUs = micros();
   bool triggered = false;
-  for (uint16_t index = 0; index < app_config::kDeauthThreshold; ++index) {
+  const char* detectedKind = "unknown_mgmt_flood";
+  for (uint16_t index = 0; index < threshold; ++index) {
     defense_sniffer::FrameObservation observation;
     observation.observedAtMs = nowMs;
     observation.observedAtUs = nowUs + index;
     observation.rssi = -42;
     observation.channel = radio.targetChannel();
-    observation.subtype = 12;
+    observation.subtype = subtype;
     observation.bssid = bssid;
     observation.sender = kSyntheticSender;
     observation.bytes = frameBytes;
@@ -205,16 +223,17 @@ void runSyntheticDeauthSelfTest() {
     defense_sniffer::AnomalyReport report;
     if (detector.observe(observation, report)) {
       handleAcceptedReport(report, millis());
+      detectedKind = defense_sniffer::attackKindName(report.kind);
       triggered = true;
     }
   }
 
   Serial.printf(
-      "[self-test] injected %u synthetic deauth frames; deauth RF "
+      "[self-test] injected %u synthetic %s frames; attack RF "
       "transmitted: no; result=%s\n",
-      app_config::kDeauthThreshold, triggered ? "ALERT" : "FAILED");
-  sendSimulatedDeauthMarker(app_config::kDeauthThreshold,
-                            radio.targetChannel(), formattedBssid);
+      threshold, subtypeName(subtype), triggered ? "ALERT" : "FAILED");
+  sendSimulatedMarker(threshold, radio.targetChannel(), formattedBssid,
+                      formattedSender, subtype, detectedKind);
 }
 
 void synchronizeRadioTarget() {
@@ -233,7 +252,11 @@ void serviceSerialCommands() {
     const char command = static_cast<char>(Serial.read());
     if (command == 't' || command == 'T' || command == 'd' ||
         command == 'D') {
-      runSyntheticDeauthSelfTest();
+      runSyntheticMgmtSelfTest(12, app_config::kDeauthThreshold);
+    } else if (command == 'y' || command == 'Y') {
+      runSyntheticMgmtSelfTest(11, app_config::kAuthThreshold);
+    } else if (command == 'u' || command == 'U') {
+      runSyntheticMgmtSelfTest(0, app_config::kAssociationThreshold);
     }
   }
 }
@@ -299,7 +322,7 @@ void setup() {
   }
   if constexpr (app_config::kSerialSelfTest) {
     Serial.println(
-        "[self-test] type 't' in the serial console to simulate deauth_flood");
+        "[self-test] staged demo keys: t=deauth, y=auth, u=association flood");
   }
 }
 

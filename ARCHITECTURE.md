@@ -172,7 +172,9 @@ flowchart TD
   "timestamp": 1690000000.123,
   "frame_hex": ["c0003a01ffffffff...", "..."],
   "rssi": -52,
-  "anomaly_stats": { "frame_type": "mgmt", "subtype": 12, "count_in_window": 240, "window_ms": 1000 },
+  "bssid": "34:fa:9f:5d:24:a9",
+  "sender_mac": "02:00:00:00:00:01",
+  "anomaly_stats": { "frame_type": "mgmt", "subtype": 12, "channel": 11, "count_in_window": 240, "window_ms": 1000 },
   "guessed_type": null
 }
 ```

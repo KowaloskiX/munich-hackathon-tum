@@ -45,6 +45,7 @@ defense_sniffer::DetectorConfig testConfig() {
   config.deauthThreshold = 20;
   config.disassocThreshold = 20;
   config.authThreshold = 50;
+  config.associationThreshold = 20;
   return config;
 }
 
@@ -76,6 +77,17 @@ void test_auth_threshold_is_independent() {
   }
   TEST_ASSERT_TRUE(detector.observe(observation(11, 49), report));
   TEST_ASSERT_EQUAL_STRING("auth_flood",
+                           defense_sniffer::attackKindName(report.kind));
+}
+
+void test_association_threshold_is_independent() {
+  defense_sniffer::MgmtFloodDetector detector(testConfig());
+  defense_sniffer::AnomalyReport report;
+  for (uint32_t index = 0; index < 19; ++index) {
+    TEST_ASSERT_FALSE(detector.observe(observation(0, index), report));
+  }
+  TEST_ASSERT_TRUE(detector.observe(observation(0, 19), report));
+  TEST_ASSERT_EQUAL_STRING("association_flood",
                            defense_sniffer::attackKindName(report.kind));
 }
 
@@ -274,6 +286,7 @@ int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_deauth_threshold_and_samples);
   RUN_TEST(test_auth_threshold_is_independent);
+  RUN_TEST(test_association_threshold_is_independent);
   RUN_TEST(test_untracked_beacons_do_not_alert);
   RUN_TEST(test_cooldown_suppresses_duplicate_windows);
   RUN_TEST(test_frames_outside_window_do_not_accumulate);

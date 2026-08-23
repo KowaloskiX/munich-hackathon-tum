@@ -6,7 +6,7 @@ Do NOT change a contract without updating both sides + the mock.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -45,6 +45,7 @@ class EventType(StrEnum):
 class AnomalyStats(BaseModel):
     frame_type: str = "mgmt"
     subtype: int | None = None
+    channel: int | None = Field(default=None, ge=1, le=14)
     count_in_window: int = 0
     window_ms: int = 1000
 
@@ -54,6 +55,8 @@ class AnomalyIn(BaseModel):
     timestamp: float
     frame_hex: list[str] = Field(default_factory=list)
     rssi: int | None = None
+    bssid: str | None = Field(default=None, pattern=r"^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+    sender_mac: str | None = Field(default=None, pattern=r"^(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
     anomaly_stats: AnomalyStats = Field(default_factory=AnomalyStats)
     guessed_type: str | None = None
 
@@ -184,6 +187,11 @@ class Counters(BaseModel):
 class FleetSnapshot(BaseModel):
     nodes: list[NodeView]
     counters: Counters
+
+
+class DemoResetResult(BaseModel):
+    status: Literal["reset"] = "reset"
+    nodes_preserved: int
 
 
 # --- Contract 5: real OTA + software enforcement + incident reports -------
@@ -568,7 +576,16 @@ class AttackCaptureSummary(BaseModel):
     frame_count: int
     sha256: str
     rssi: int | None = None
+    bssid: str | None = None
+    sender_mac: str | None = None
     stats: AnomalyStats
+
+
+class PreviousDeploymentLog(BaseModel):
+    firmware_version: str
+    attack_class: str
+    filter_sha256: str
+    protected_attack_frame_count: int
 
 
 class PatchAttemptLog(BaseModel):
@@ -610,7 +627,7 @@ class DeploymentLog(BaseModel):
 
 
 class AttackResponseLog(BaseModel):
-    schema_version: int = 1
+    schema_version: int = 2
     response_id: str
     incident_id: str
     node_id: str
@@ -621,6 +638,7 @@ class AttackResponseLog(BaseModel):
     agent_backend: str = "unknown"
     initial_attack_guess: str
     capture: AttackCaptureSummary
+    previous_deployment: PreviousDeploymentLog | None = None
     outcome: AttackResponseOutcome | None = None
     summary: AttackResponseSummary
     attempts: list[PatchAttemptLog] = Field(default_factory=list)
