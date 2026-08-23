@@ -65,6 +65,22 @@ describe("dashboard attack views", () => {
     expect(record.events.map((e) => e.id)).toEqual([2, 3, 4]);
   });
 
+  it("does not reuse the previous attack label while Devin analyzes a new incident", () => {
+    const next: TimelineLine = {
+      id: 5,
+      ts: 6,
+      node_id: "esp-01",
+      type: "ANOMALY_DETECTED",
+      text: "esp-01 anomaly: 50 frames in window",
+      tone: "warn",
+      incidentId: "inc-0003",
+    };
+
+    const record = selectAttackHistory([next, ...timeline], "deauth_flood")[0];
+    expect(record.name).toBe("Analyzing frame flow");
+    expect(record.events.map((event) => event.incidentId)).toEqual(["inc-0003"]);
+  });
+
   it("builds a bounded packet sample linked to an attack", () => {
     const attack = selectAttackHistory(timeline, null)[0];
     expect(selectAttackPackets(attack, 2)).toEqual([

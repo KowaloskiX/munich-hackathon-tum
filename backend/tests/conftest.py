@@ -18,7 +18,11 @@ def _isolate_external(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "agent", "stub")  # never resolve real Devin
     monkeypatch.setattr(settings, "email_agent", "stub")
     monkeypatch.setattr(settings, "email_security_enabled", False)
+    monkeypatch.setattr(settings, "command_enabled", False)
+    monkeypatch.setattr(settings, "command_agent", "stub")
     monkeypatch.setattr(settings, "attack_responses_path", str(tmp_path / "attack_responses.jsonl"))
+    monkeypatch.setattr(settings, "scope_history_path", str(tmp_path / "scope_history.jsonl"))
+    monkeypatch.setattr(settings, "command_db_path", str(tmp_path / "command.db"))
     agents.get_agent.cache_clear()
     yield
     agents.get_agent.cache_clear()

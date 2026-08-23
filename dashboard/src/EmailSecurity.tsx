@@ -36,8 +36,21 @@ function clock(value: number | null): string {
 
 async function jsonRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { credentials: "include", ...init });
-  if (!response.ok) throw new Error((await response.text()) || `Request failed: ${response.status}`);
+  if (response.status === 401) throw new GmailSessionExpiredError();
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    const detail = typeof body === "object" && body !== null && "detail" in body
+      ? (body as { detail?: unknown }).detail
+      : null;
+    throw new Error(typeof detail === "string" ? detail : `Request failed: ${response.status}`);
+  }
   return response.json() as Promise<T>;
+}
+
+class GmailSessionExpiredError extends Error {
+  constructor() {
+    super("Gmail connection expired. Reconnect Gmail.");
+  }
 }
 
 export function EmailSecurity() {
@@ -67,27 +80,50 @@ export function EmailSecurity() {
     setSelectedMessageIds([]);
   }, []);
 
+  const clearExpiredSession = useCallback(() => {
+    setStatus(EMPTY_STATUS);
+    setItems([]);
+    setSelected(null);
+    selectedId.current = null;
+    setMailboxItems([]);
+    setNextPageToken(null);
+    closePicker();
+  }, [closePicker]);
+
   const refresh = useCallback(async () => {
     if (refreshing.current) return;
     refreshing.current = true;
     try {
+      const nextStatus = await jsonRequest<EmailConnectionStatus>("/v1/gmail/status");
+      if (!nextStatus.connected) {
+        clearExpiredSession();
+        return;
+      }
+      setStatus(nextStatus);
       const detailRequest = selectedId.current === null
         ? Promise.resolve(null)
         : jsonRequest<EmailAnalysisDetail>(`/v1/email/analyses/${selectedId.current}`);
-      const [statusResult, analysesResult, detailResult] = await Promise.allSettled([
-        jsonRequest<EmailConnectionStatus>("/v1/gmail/status"),
+      const [analysesResult, detailResult] = await Promise.allSettled([
         jsonRequest<EmailAnalysisList>("/v1/email/analyses"),
         detailRequest,
       ]);
-      if (statusResult.status === "fulfilled") setStatus(statusResult.value);
+      if (
+        analysesResult.status === "rejected"
+        && analysesResult.reason instanceof GmailSessionExpiredError
+      ) {
+        clearExpiredSession();
+      }
       if (analysesResult.status === "fulfilled") setItems(analysesResult.value.items);
       if (detailResult.status === "fulfilled" && detailResult.value !== null) {
         setSelected(detailResult.value);
       }
+    } catch (reason) {
+      if (reason instanceof GmailSessionExpiredError) clearExpiredSession();
+      else setError(reason instanceof Error ? reason.message : "Could not refresh Gmail");
     } finally {
       refreshing.current = false;
     }
-  }, []);
+  }, [clearExpiredSession]);
 
   useEffect(() => {
     const initialRefresh = setTimeout(() => void refresh(), 0);
@@ -115,13 +151,14 @@ export function EmailSecurity() {
       });
       setNextPageToken(result.next_page_token);
     } catch (reason) {
+      if (reason instanceof GmailSessionExpiredError) clearExpiredSession();
       const message = reason instanceof Error ? reason.message : "Could not load Gmail messages";
       setError(message);
       setMailboxError(message);
     } finally {
       setMailboxBusy(false);
     }
-  }, []);
+  }, [clearExpiredSession]);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -169,11 +206,12 @@ export function EmailSecurity() {
       await work();
       await refresh();
     } catch (reason) {
+      if (reason instanceof GmailSessionExpiredError) clearExpiredSession();
       setError(reason instanceof Error ? reason.message : "Request failed");
     } finally {
       setBusy(false);
     }
-  }, [refresh]);
+  }, [clearExpiredSession, refresh]);
 
   const changeMode = (mode: EmailMonitoringMode) => mutate(async () => {
     const next = await jsonRequest<EmailConnectionStatus>("/v1/gmail/settings", {
@@ -234,6 +272,7 @@ export function EmailSecurity() {
     try {
       setSelected(await jsonRequest<EmailAnalysisDetail>(`/v1/email/analyses/${id}`));
     } catch (reason) {
+      if (reason instanceof GmailSessionExpiredError) clearExpiredSession();
       setError(reason instanceof Error ? reason.message : "Could not load analysis");
     }
   };

@@ -125,6 +125,10 @@ class LinkVerdict(BaseModel):
     reasoning: str = ""
     browse_score: float | None = None
     research_score: float | None = None
+    browse_session_url: str | None = None
+    research_session_url: str | None = None
+    browse_result: dict[str, Any] = Field(default_factory=dict)
+    research_result: dict[str, Any] = Field(default_factory=dict)
 
 
 # --- Unified cross-domain feed (email + link + esp land in one list) ----
@@ -643,3 +647,166 @@ class AttackResponseLog(BaseModel):
     summary: AttackResponseSummary
     attempts: list[PatchAttemptLog] = Field(default_factory=list)
     deployment: DeploymentLog = Field(default_factory=DeploymentLog)
+
+
+# --- SCOPE durable tool-call history ------------------------------------
+class ScopeToolCall(BaseModel):
+    tool: str
+    started_ts: float
+    completed_ts: float
+    request: dict[str, Any] = Field(default_factory=dict)
+    result: dict[str, Any] = Field(default_factory=dict)
+    session_url: str | None = None
+    outcome: str = "completed"
+
+
+class ScopeHistoryLog(BaseModel):
+    schema_version: int = 1
+    scan_id: str
+    url: str
+    source: str
+    started_ts: float
+    completed_ts: float
+    scout_backend: str
+    tool_calls: list[ScopeToolCall] = Field(default_factory=list)
+    verdict: LinkVerdict
+
+
+# --- COMMAND cross-domain intelligence and company reports --------------
+class EvidenceSource(StrEnum):
+    SIGNAL = "SIGNAL"
+    INBOX = "INBOX"
+    SCOPE = "SCOPE"
+
+
+class EvidenceProvenance(StrEnum):
+    LIVE = "LIVE"
+    DEMO = "DEMO"
+
+
+class EvidenceEntities(BaseModel):
+    domains: list[str] = Field(default_factory=list)
+    urls: list[str] = Field(default_factory=list)
+    ips: list[str] = Field(default_factory=list)
+    macs: list[str] = Field(default_factory=list)
+    emails: list[str] = Field(default_factory=list)
+    brands: list[str] = Field(default_factory=list)
+
+
+class IntelligenceObservation(BaseModel):
+    id: int = 0
+    occurred_ts: float
+    recorded_ts: float
+    source: EvidenceSource
+    event_type: str
+    severity: IncidentSeverity
+    title: str
+    summary: str = ""
+    verdict: str = ""
+    risk_score: int | None = Field(default=None, ge=0, le=100)
+    entities: EvidenceEntities = Field(default_factory=EvidenceEntities)
+    source_ref: str = ""
+    provenance: EvidenceProvenance = EvidenceProvenance.LIVE
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class CommandMetrics(BaseModel):
+    window_end_ts: float
+    email_current_total: int = 0
+    email_current_flagged: int = 0
+    email_baseline_total: int = 0
+    email_baseline_flagged: int = 0
+    current_flagged_rate: float = 0.0
+    baseline_flagged_rate: float = 0.0
+    phishing_spike: bool = False
+    signal_incidents: int = 0
+    malicious_scope_checks: int = 0
+    shared_entities: list[str] = Field(default_factory=list)
+
+
+class CommandCorrelation(BaseModel):
+    claim: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence_ids: list[int] = Field(default_factory=list)
+    explanation: str = ""
+
+
+class AttackerContextFinding(BaseModel):
+    entity: str
+    finding: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    evidence_ids: list[int] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list)
+
+
+class EmployeeAdvisory(BaseModel):
+    needed: bool = False
+    subject: str = ""
+    body: str = ""
+
+
+class CommandDecision(BaseModel):
+    decision: Literal["CREATE_REPORT", "NO_REPORT"]
+    reason: str
+    urgency: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"] = "LOW"
+    title: str = ""
+    executive_summary: str = ""
+    what_happened: list[str] = Field(default_factory=list)
+    cause_analysis: list[str] = Field(default_factory=list)
+    correlations: list[CommandCorrelation] = Field(default_factory=list)
+    attacker_context: list[AttackerContextFinding] = Field(default_factory=list)
+    actions_taken: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    evidence_ids: list[int] = Field(default_factory=list)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    employee_advisory: EmployeeAdvisory = Field(default_factory=EmployeeAdvisory)
+
+
+class CommandAssessmentSummary(BaseModel):
+    id: int
+    created_ts: float
+    completed_ts: float | None = None
+    status: str
+    decision: str = ""
+    reason: str = ""
+    report_id: str | None = None
+    session_url: str | None = None
+    error: str | None = None
+
+
+class CommandReportSummary(BaseModel):
+    id: str
+    created_ts: float
+    title: str
+    urgency: str
+    executive_summary: str
+    confidence: float
+    provenance: EvidenceProvenance
+
+
+class CommandReport(CommandReportSummary):
+    trigger_reason: str
+    what_happened: list[str] = Field(default_factory=list)
+    cause_analysis: list[str] = Field(default_factory=list)
+    correlations: list[CommandCorrelation] = Field(default_factory=list)
+    attacker_context: list[AttackerContextFinding] = Field(default_factory=list)
+    actions_taken: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    evidence_ids: list[int] = Field(default_factory=list)
+    metrics: CommandMetrics
+    employee_advisory: EmployeeAdvisory = Field(default_factory=EmployeeAdvisory)
+    devin_session_url: str | None = None
+    evidence_sha256: str
+
+
+class CommandOverview(BaseModel):
+    assessing: bool
+    metrics: CommandMetrics
+    observations: list[IntelligenceObservation] = Field(default_factory=list)
+    assessments: list[CommandAssessmentSummary] = Field(default_factory=list)
+    reports: list[CommandReportSummary] = Field(default_factory=list)
+
+
+class CommandDemoSeedResult(BaseModel):
+    inserted: int
+    trigger_observation_id: int

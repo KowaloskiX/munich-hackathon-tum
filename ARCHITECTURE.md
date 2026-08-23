@@ -251,6 +251,25 @@ flowchart LR
     UI --> GL["Sentinel Gmail labels"]
 ```
 
+### Contract 6 — COMMAND cross-domain intelligence
+
+Completed SIGNAL responses, INBOX analyses, and SCOPE verdicts are normalized into a
+durable SQLite evidence ledger. SCOPE also appends one JSONL record per scan to
+`data/scope_history.jsonl`; each line includes the browser/research calls, exact structured
+results, Devin session URLs when available, and the combined verdict. COMMAND imports this
+history after restart instead of depending on the transient WebSocket feed.
+
+Every new observation queues an autonomous COMMAND assessment. Devin returns a typed
+`CREATE_REPORT | NO_REPORT` decision. An independent backend policy rejects `NO_REPORT`
+when a phishing spike, network attack, malicious SCOPE result, critical risk score, or
+cross-domain entity requires an artifact. Report correlations must cite existing evidence
+IDs; unsupported citations fail verification and are fed back for one retry.
+
+Company reports are stored as typed JSON and exposed as both JSON and Markdown. They contain
+server-computed baseline metrics, cited correlations, bounded attacker-context hypotheses,
+verified actions already taken, recommendations, and an employee-advisory artifact. Demo
+evidence uses the identical path but is permanently marked `DEMO`.
+
 ---
 
 ## 5. Backend — build order (so you never block on the team)

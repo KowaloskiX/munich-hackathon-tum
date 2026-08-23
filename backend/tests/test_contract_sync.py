@@ -15,6 +15,14 @@ import pytest
 from pydantic import BaseModel
 
 from app.models import (
+    AttackerContextFinding,
+    CommandAssessmentSummary,
+    CommandCorrelation,
+    CommandDemoSeedResult,
+    CommandMetrics,
+    CommandOverview,
+    CommandReport,
+    CommandReportSummary,
     Counters,
     EmailAnalysisDetail,
     EmailAnalysisList,
@@ -33,9 +41,15 @@ from app.models import (
     EmailReviewRequest,
     EmailSettingsUpdate,
     EmailVerdict,
+    EmployeeAdvisory,
     EventType,
+    EvidenceEntities,
+    EvidenceProvenance,
+    EvidenceSource,
     FleetSnapshot,
     Incident,
+    IntelligenceObservation,
+    LinkVerdict,
     LiveEvent,
     NodeState,
     NodeView,
@@ -56,6 +70,7 @@ MIRRORED: dict[str, type[BaseModel]] = {
     "FleetSnapshot": FleetSnapshot,
     "LiveEvent": LiveEvent,
     "Incident": Incident,
+    "LinkVerdict": LinkVerdict,
     "EmailLabels": EmailLabels,
     "EmailConnectionStatus": EmailConnectionStatus,
     "EmailSettingsUpdate": EmailSettingsUpdate,
@@ -71,6 +86,17 @@ MIRRORED: dict[str, type[BaseModel]] = {
     "EmailImportResult": EmailImportResult,
     "EmailReviewRequest": EmailReviewRequest,
     "EmailLiveEvent": EmailLiveEvent,
+    "EvidenceEntities": EvidenceEntities,
+    "IntelligenceObservation": IntelligenceObservation,
+    "CommandMetrics": CommandMetrics,
+    "CommandCorrelation": CommandCorrelation,
+    "AttackerContextFinding": AttackerContextFinding,
+    "EmployeeAdvisory": EmployeeAdvisory,
+    "CommandAssessmentSummary": CommandAssessmentSummary,
+    "CommandReportSummary": CommandReportSummary,
+    "CommandReport": CommandReport,
+    "CommandOverview": CommandOverview,
+    "CommandDemoSeedResult": CommandDemoSeedResult,
 }
 
 
@@ -113,6 +139,8 @@ def test_event_type_enum_is_mirrored() -> None:
         ("EmailVerdict", EmailVerdict),
         ("EmailReviewDecision", EmailReviewDecision),
         ("EmailEventType", EmailEventType),
+        ("EvidenceSource", EvidenceSource),
+        ("EvidenceProvenance", EvidenceProvenance),
     ],
 )
 def test_email_enums_are_mirrored(name: str, enum_type: type) -> None:

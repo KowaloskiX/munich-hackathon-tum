@@ -19,6 +19,13 @@ from app.edge.gateway import (
 )
 from tests.test_edge_runtime import ATTACK, BENIGN, DEAUTH_C
 
+AUTH = "b0003a01ffffffffffff001122334455001122334455"
+ASSOCIATION = "00003a01ffffffffffff001122334455001122334455"
+DEAUTH_AUTH_C = DEAUTH_C.replace(
+    "return subtype == 0xC || subtype == 0xA;",
+    "return subtype == 0xC || subtype == 0xA || subtype == 0xB;",
+)
+
 
 def _state(handler) -> tuple[EdgeState, list[tuple[str, str, dict]]]:
     calls: list[tuple[str, str, dict]] = []
@@ -61,6 +68,21 @@ def test_drops_attack_and_suppresses_residual():
         "blocked": 2,
         "passed": 2,
     }
+
+
+def test_repeat_is_suppressed_but_unseen_stage_reaches_backend():
+    st, calls = _state(_ok)
+    st.store.runtime("esp-01").reload(DEAUTH_AUTH_C, "v3", "auth_flood")
+
+    repeated = IngestIn(node_id="esp-01", timestamp=1.0, frame_hex=[AUTH])
+    unseen = IngestIn(node_id="esp-01", timestamp=2.0, frame_hex=[ASSOCIATION])
+    assert asyncio.run(process_ingest(st, repeated))["dropped"] == 1
+    assert asyncio.run(process_ingest(st, unseen))["forwarded"] == 1
+
+    assert len([call for call in calls if call[1] == "/enforcement"]) == 1
+    ingests = [call for call in calls if call[1] == "/ingest"]
+    assert len(ingests) == 1
+    assert ingests[0][2]["frame_hex"] == [ASSOCIATION]
 
 
 def test_poll_compiles_persists_and_status(tmp_path):

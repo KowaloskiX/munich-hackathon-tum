@@ -14,6 +14,8 @@ from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
+import httpx
+
 from .agents import get_agent
 from .attack_log import append_attack_response, capture_sha256, filter_sha256
 from .config import settings
@@ -41,7 +43,8 @@ from .models import (
     PatchAttemptOutcome,
     PreviousDeploymentLog,
 )
-from .oracle import run_oracle
+from .oracle import run_oracle, unseen_staged_mgmt_frames
+from .scope_log import append_scope_history
 from .state import AppState
 
 LinkScoutFn = Callable[..., LinkVerdict]  # (LinkScanIn, on_step=None) -> LinkVerdict
@@ -164,6 +167,10 @@ async def handle_anomaly(
         path = attack_log_path or Path(settings.attack_responses_path)
         try:
             await asyncio.to_thread(append_attack_response, path, response_log)
+            if settings.command_enabled:
+                from .command_service import get_command_service
+
+                await asyncio.to_thread(get_command_service().record_attack, response_log)
         except Exception as exc:
             # Analytics must never prevent an independently verified deployment.
             emit(EventType.AGENT_STEP, text=f"attack response log failed: {exc}")
@@ -214,6 +221,7 @@ async def handle_anomaly(
         previous_deployment.sample_frames if previous_deployment is not None else []
     )
     verification_attack_frames = list(dict.fromkeys([*previous_attack_frames, *anomaly.frame_hex]))
+    unseen_stage_frames = unseen_staged_mgmt_frames(verification_attack_frames)
     agent_in = AgentIn(
         frame_hex=anomaly.frame_hex,
         anomaly_stats=anomaly.anomaly_stats,
@@ -236,7 +244,7 @@ async def handle_anomaly(
             try:
                 agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
                 break
-            except OSError as exc:
+            except (OSError, httpx.TransportError) as exc:
                 patch_attempt.connection_errors.append(
                     AgentConnectionFailure(
                         try_number=conn_try + 1,
@@ -302,6 +310,7 @@ async def handle_anomaly(
                 run_oracle,
                 agent_out.filter_c_code,
                 attack_frames=verification_attack_frames,
+                must_pass_frames=unseen_stage_frames,
             )
         else:
             verdict = await asyncio.to_thread(oracle_call, agent_out.filter_c_code)
@@ -387,6 +396,7 @@ async def handle_link_scan(
     scout: LinkScoutFn | None = None,
     step_delay: float = 0.5,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    scope_log_path: Path | None = None,
 ) -> LinkVerdict:
     """Run the web domain's scan loop: submit -> browse -> research -> verdict.
 
@@ -402,6 +412,7 @@ async def handle_link_scan(
     def emit(etype: EventType, **payload: object) -> None:
         state.emit(LiveEvent(type=etype, node_id=None, ts=time.time(), payload=payload))
 
+    scan_started_ts = time.time()
     emit(EventType.LINK_SUBMITTED, url=scan.url, source=scan.source)
     await sleep(step_delay)
     emit(EventType.LINK_BROWSING, url=scan.url)
@@ -416,6 +427,43 @@ async def handle_link_scan(
         loop.call_soon_threadsafe(lambda: emit(EventType.AGENT_STEP, text=msg))
 
     verdict = await asyncio.to_thread(partial(scout, scan, on_step=on_step))
+
+    completed_ts = time.time()
+    from .models import ScopeHistoryLog, ScopeToolCall
+
+    scope_record = ScopeHistoryLog(
+        scan_id=str(uuid4()),
+        url=scan.url,
+        source=scan.source,
+        started_ts=scan_started_ts,
+        completed_ts=completed_ts,
+        scout_backend=settings.link_agent,
+        tool_calls=[
+            ScopeToolCall(
+                tool="devin_browser" if settings.link_agent == "devin" else "scope_browser_stub",
+                started_ts=scan_started_ts,
+                completed_ts=completed_ts,
+                request={"url": scan.url, "objective": "inspect destination and page signals"},
+                result=verdict.browse_result,
+                session_url=verdict.browse_session_url,
+            ),
+            ScopeToolCall(
+                tool="devin_research" if settings.link_agent == "devin" else "scope_research_stub",
+                started_ts=scan_started_ts,
+                completed_ts=completed_ts,
+                request={"url": scan.url, "objective": "research ownership and reputation"},
+                result=verdict.research_result,
+                session_url=verdict.research_session_url,
+            ),
+        ],
+        verdict=verdict,
+    )
+    path = scope_log_path or Path(settings.scope_history_path)
+    await asyncio.to_thread(append_scope_history, path, scope_record)
+    if settings.command_enabled:
+        from .command_service import get_command_service
+
+        await asyncio.to_thread(get_command_service().record_scope, scope_record)
 
     await sleep(step_delay)
     emit(

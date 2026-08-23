@@ -105,6 +105,7 @@ class DevinAgent:
         self._on_step: StepFn | None = None
         self._seen_events: set[str] = set()
         self._msg_cursor: str | None = None
+        self._last_structured_output: Any = None
 
     def call(self, payload: AgentIn, on_step: StepFn | None = None) -> AgentOut:
         self._on_step = on_step
@@ -114,7 +115,8 @@ class DevinAgent:
         )
 
         # Retry path: reuse the open session with a follow-up message.
-        if payload.failure_log and self._session_id:
+        retrying = bool(payload.failure_log and self._session_id)
+        if retrying:
             model_input = f"[retry] failure log:\n{payload.failure_log}"
             with tracing.span(
                 trace, "devin.retry_message", input={"log": payload.failure_log[:2000]}
@@ -132,8 +134,13 @@ class DevinAgent:
             )
             self._session_id = session.session_id
             self.session_url = session.url
+            self._last_structured_output = None
 
-        session = self._poll(trace)
+        session = self._poll(
+            trace,
+            previous_output=self._last_structured_output if retrying else None,
+        )
+        self._last_structured_output = session.structured_output
         data = _extract_json(session.structured_output)
         out = _to_agent_out(data)
         out.session_url = self.session_url  # surface for the incident report
@@ -203,6 +210,7 @@ class DevinAgent:
             with contextlib.suppress(Exception):
                 self.client.terminate(self._session_id)
             self._session_id = None
+            self._last_structured_output = None
 
     def _drain_messages(self) -> None:
         """Forward new Devin narration messages to on_step (deduped)."""
@@ -220,7 +228,7 @@ class DevinAgent:
                 if msg.get("source") == "devin" and msg.get("message"):
                     self._on_step(str(msg["message"]))
 
-    def _poll(self, trace: tracing.Trace) -> Any:
+    def _poll(self, trace: tracing.Trace, previous_output: Any = None) -> Any:
         assert self._session_id is not None
         start = time.monotonic()
         deadline = start + settings.devin_timeout_s
@@ -229,7 +237,8 @@ class DevinAgent:
             self._drain_messages()
             session = self.client.get_session(self._session_id)
             polls += 1
-            if session.has_output:
+            completed = session.status_detail == "finished" or session.is_dead
+            if completed and session.has_output and session.structured_output != previous_output:
                 self._drain_messages()  # flush any final narration
                 with tracing.span(
                     trace, "devin.poll_done", output={"polls": polls, "status": session.status}
@@ -314,7 +323,7 @@ def build_mock_client(filter_code: str | None = None) -> DevinClient:
                 200,
                 json={
                     "status": "running",
-                    "status_detail": "waiting_for_user",
+                    "status_detail": "finished",
                     "structured_output": structured,
                     "acus_consumed": 0.25,
                 },

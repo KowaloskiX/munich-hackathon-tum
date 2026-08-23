@@ -29,6 +29,10 @@ export function incidentReportUrl(incidentId: string): string {
   return `${apiBase()}/incidents/${encodeURIComponent(incidentId)}/report.md`;
 }
 
+export function commandReportUrl(reportId: string): string {
+  return `${apiBase()}/v1/command/reports/${encodeURIComponent(reportId)}.md`;
+}
+
 export async function flushFixes(): Promise<DemoResetResult> {
   const response = await fetch(`${apiBase()}/demo/reset`, { method: "POST" });
   if (!response.ok) throw new Error(`Reset failed (${response.status})`);

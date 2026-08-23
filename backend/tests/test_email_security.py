@@ -2,8 +2,11 @@ import base64
 
 import pytest
 from cryptography.fernet import Fernet
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from app import email_routes
 from app.email_agent import StubEmailThreatAgent
 from app.email_service import EmailSecurityService, parse_message
 from app.email_store import EmailStore, GmailAccountRecord, SecretBox
@@ -232,3 +235,34 @@ def test_quick_import_does_not_download_existing_messages(tmp_path):
     assert result.imported == 1
     assert result.duplicates == 1
     assert gmail.fetched_ids == ["m2"]
+
+
+def test_gmail_status_requires_valid_browser_session(tmp_path, monkeypatch):
+    store = EmailStore(str(tmp_path / "email.db"), SecretBox(Fernet.generate_key().decode()))
+    store.save_account(
+        GmailAccountRecord(
+            email="owner@example.com",
+            access_token="access",
+            refresh_token="refresh",
+            token_expires_at=9_999_999_999,
+            mode=EmailMonitoringMode.ALL,
+            history_id="10",
+            watch_expiration=9_999_999_999,
+            labels=EmailLabels(scan="SCAN"),
+            last_sync=1.0,
+        )
+    )
+    service = EmailSecurityService(store=store, agent=StubEmailThreatAgent())
+    monkeypatch.setattr(email_routes.settings, "email_security_enabled", True)
+    monkeypatch.setattr(email_routes, "get_email_service", lambda: service)
+    app = FastAPI()
+    app.include_router(email_routes.router)
+
+    with TestClient(app) as client:
+        assert client.get("/v1/gmail/status").json()["connected"] is False
+        token, _ = service.create_session()
+        client.cookies.set("email_session", token)
+        response = client.get("/v1/gmail/status")
+
+    assert response.status_code == 200
+    assert response.json()["connected"] is True

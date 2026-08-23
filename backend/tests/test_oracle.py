@@ -18,6 +18,18 @@ bool block_frame(const uint8_t *f, size_t n) {
 
 WONT_COMPILE = "this is not C code {{{"
 AUTH = "b0003a01ffffffffffff001122334455001122334455"
+ASSOCIATION = "00003a01ffffffffffff001122334455001122334455"
+
+PREEMPTIVE = """\
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+bool block_frame(const uint8_t *f, size_t n) {
+    if (n < 1) return false;
+    uint8_t subtype = (f[0] >> 4) & 0xF;
+    return subtype == 0xC || subtype == 0xA || subtype == 0xB || subtype == 0x0;
+}
+"""
 
 
 def test_good_filter_passes():
@@ -45,3 +57,14 @@ def test_current_incident_is_added_to_authoritative_replay():
 
     assert out.passed is False
     assert out.tpr < 1.0
+
+
+def test_unseen_demo_subtype_must_remain_observable():
+    out = run_oracle(
+        PREEMPTIVE,
+        attack_frames=[AUTH],
+        must_pass_frames=[ASSOCIATION],
+    )
+
+    assert out.passed is False
+    assert out.fpr > 0.0

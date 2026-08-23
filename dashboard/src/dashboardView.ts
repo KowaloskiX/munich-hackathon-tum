@@ -54,7 +54,7 @@ function parseAttackClass(lines: TimelineLine[]): string | undefined {
 }
 
 function formatAttackName(value?: string | null): string {
-  if (!value) return "Frame flood";
+  if (!value) return "Analyzing frame flow";
   const words = value.replaceAll("_", " ").trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -65,11 +65,15 @@ export function selectAttackHistory(timeline: TimelineLine[], activeAttack: stri
   return anomalyIndexes.map((index, attackIndex) => {
     const segmentStart = attackIndex === 0 ? 0 : anomalyIndexes[attackIndex - 1] + 1;
     const anomaly = timeline[index];
-    const related = timeline
+    const positional = timeline
       .slice(segmentStart, index + 1)
       .filter((line) => line.node_id === anomaly.node_id);
+    const related = anomaly.incidentId
+      ? timeline.filter((line) => line.incidentId === anomaly.incidentId)
+      : positional;
     const status = related.map((line) => STATUS_BY_EVENT[line.type]).find(Boolean) ?? "Signal processing";
-    const attackClass = parseAttackClass(related) ?? (attackIndex === 0 ? activeAttack : null);
+    const legacyFallback = !anomaly.incidentId && attackIndex === 0 ? activeAttack : null;
+    const attackClass = parseAttackClass(related) ?? legacyFallback;
 
     return {
       id: anomaly.id,

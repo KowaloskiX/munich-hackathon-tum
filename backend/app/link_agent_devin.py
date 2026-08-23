@@ -99,7 +99,11 @@ def _score(out: dict[str, Any]) -> float:
 
 
 def _combine(
-    url: str, browse: dict[str, Any] | None, research: dict[str, Any] | None
+    url: str,
+    browse: dict[str, Any] | None,
+    research: dict[str, Any] | None,
+    browse_session_url: str | None = None,
+    research_session_url: str | None = None,
 ) -> LinkVerdict:
     scores = [_score(o) for o in (browse, research) if o is not None]
     avg = sum(scores) / len(scores) if scores else 0.5
@@ -125,6 +129,10 @@ def _combine(
         reasoning=reason or "no agent output",
         browse_score=_score(browse) if browse else None,
         research_score=_score(research) if research else None,
+        browse_session_url=browse_session_url,
+        research_session_url=research_session_url,
+        browse_result=browse or {},
+        research_result=research or {},
     )
 
 
@@ -187,7 +195,13 @@ def scan_link_devin(
             with contextlib.suppress(Exception):
                 client.terminate(sid)
 
-    return _combine(scan.url, results["browse"], results["research"])
+    return _combine(
+        scan.url,
+        results["browse"],
+        results["research"],
+        browse.url,
+        research.url,
+    )
 
 
 # --- offline mock client (no key / no network) — for tests ---------------

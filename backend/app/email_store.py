@@ -415,6 +415,16 @@ class EmailStore:
             error=str(row["error"]) if row["error"] else None,
         )
 
+    def analysis_details(self, limit: int = 500) -> list[EmailAnalysisDetail]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id FROM email_analysis WHERE report_json IS NOT NULL "
+                "ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        details = [self.get_analysis(int(row["id"])) for row in rows]
+        return [detail for detail in details if detail is not None]
+
     def purge_old(self, retention_days: int) -> None:
         cutoff = time.time() - retention_days * 86400
         with self._lock, self._connect() as conn:

@@ -107,7 +107,8 @@ def build_devin_prompt(payload: AgentIn) -> str:
     """Build the task prompt for a Devin session from an anomaly."""
     frames = "\n".join(payload.frame_hex) or "(none provided)"
     stats = payload.anomaly_stats
-    sample_attack = "\n".join(SAMPLE_ATTACK)
+    current_attack = "\n".join(payload.frame_hex) or "# no captured frame provided"
+    regression_attacks = "\n".join(SAMPLE_ATTACK)
     sample_benign = "\n".join(SAMPLE_BENIGN)
     harness = HARNESS_C
 
@@ -140,7 +141,10 @@ Do the real engineering loop in your sandbox, do not just write code:
 2. Create `attack.hex` and `benign.hex`, one hex frame per line:
 
    attack.hex:
-   {sample_attack}
+   # Current captured anomaly — classify from this section only
+   {current_attack}
+   # Regression attacks — preserve protection; not evidence of the current attack
+   {regression_attacks}
 
    benign.hex:
    {sample_benign}
@@ -164,6 +168,12 @@ Do the real engineering loop in your sandbox, do not just write code:
 - Edit only `filter.c`; keep the exact signature. Do not edit harness.c.
 - Must compile clean with `gcc -Wall` (no warnings, C11).
 - Match on frame structure (type/subtype), not exact byte-for-byte frames.
+- Use only the current captured anomaly to classify the attack. The regression
+  samples exist only to prevent earlier protections from regressing.
+- Block the current captured subtype and subtypes already blocked by the existing
+  deployed filter. Do not proactively block any other management subtype.
+- Keep unseen management subtypes observable as legitimate must-pass traffic;
+  one can become a future attack stage and must still reach anomaly detection.
 - You MUST have actually run ./test and seen TPR=1.000 FPR=0.000 before finishing.
 
 ## Output

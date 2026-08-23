@@ -94,6 +94,12 @@ def scan_link_stub(scan: LinkScanIn, on_step: StepFn | None = None) -> LinkVerdi
         reasoning="heuristic stub: host/brand/throwaway analysis (no live fetch)",
         browse_score=score,
         research_score=score,
+        browse_result={"verdict": verdict, "legit_score": score, "signals": signals},
+        research_result={
+            "verdict": verdict,
+            "legit_score": score,
+            "brand": official if impersonates else "",
+        },
     )
 
 

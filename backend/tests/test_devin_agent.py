@@ -76,22 +76,104 @@ def test_prompt_requires_existing_protections_to_survive_adaptation():
     assert DEAUTH in prompt
 
 
-def test_retry_sends_followup_message_and_reuses_session():
+def test_prompt_forbids_preemptively_blocking_future_demo_subtypes():
+    prompt = build_devin_prompt(_payload(prev_filter=DEAUTH))
+
+    assert "Do not proactively block" in prompt
+    assert "future attack stage" in prompt
+
+
+def test_prompt_self_test_includes_current_non_deauth_capture():
+    auth = "b0003a01ffffffffffff001122334455"
+    payload = AgentIn(
+        frame_hex=[auth],
+        anomaly_stats=AnomalyStats(subtype=11, count_in_window=200),
+    )
+    prompt = build_devin_prompt(payload)
+    attack_section = prompt.split("attack.hex:", 1)[1].split("benign.hex:", 1)[0]
+
+    assert auth in attack_section
+
+
+def test_prompt_classifies_from_current_capture_not_regression_samples():
+    prompt = build_devin_prompt(_payload())
+
+    assert "Use only the current captured anomaly to classify" in prompt
+    assert "not evidence of the current attack" in prompt
+
+
+def test_poll_ignores_intermediate_output_until_session_finishes(monkeypatch):
+    polls = 0
+    from app.agent_devin import settings
+
+    monkeypatch.setattr(settings, "devin_poll_interval_s", 0)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal polls
+        if request.method == "POST" and request.url.path.endswith("/sessions"):
+            return httpx.Response(200, json={"session_id": "s1", "status": "new"})
+        polls += 1
+        if polls == 1:
+            draft = _good_output()
+            draft["attack_class"] = "deauth_flood"
+            draft["filter_c_code"] = "/* incomplete progress draft */"
+            return httpx.Response(
+                200,
+                json={
+                    "session_id": "s1",
+                    "status": "running",
+                    "status_detail": "working",
+                    "structured_output": draft,
+                },
+            )
+        final = _good_output()
+        final["attack_class"] = "auth_flood"
+        return httpx.Response(
+            200,
+            json={
+                "session_id": "s1",
+                "status": "running",
+                "status_detail": "finished",
+                "structured_output": final,
+            },
+        )
+
+    agent = DevinAgent(
+        client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
+    )
+    out = agent.call(_payload())
+
+    assert polls >= 2
+    assert out.attack_class == "auth_flood"
+    assert out.filter_c_code == DEAUTH.strip()
+
+
+def test_retry_waits_for_revised_output_from_reused_session(monkeypatch):
     calls: list[str] = []
+    state = {"retry": False, "retry_gets": 0}
+    from app.agent_devin import settings
+
+    monkeypatch.setattr(settings, "devin_poll_interval_s", 0)
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         calls.append(f"{request.method} {path}")
         if request.method == "POST" and path.endswith("/messages"):
+            state["retry"] = True
             return httpx.Response(200, json={"ok": True})
         if request.method == "POST" and path.endswith("/sessions"):
             return httpx.Response(200, json={"session_id": "s1", "url": "u", "status": "new"})
+        output = _good_output()
+        if state["retry"]:
+            state["retry_gets"] += 1
+            if state["retry_gets"] > 1:
+                output["explanation"] = "revised after independent oracle failure"
         return httpx.Response(
             200,
             json={
                 "status": "running",
                 "status_detail": "finished",
-                "structured_output": _good_output(),
+                "structured_output": output,
             },
         )
 
@@ -99,11 +181,15 @@ def test_retry_sends_followup_message_and_reuses_session():
         client=DevinClient(api_key="k", org_id="o", transport=httpx.MockTransport(handler))
     )
     agent.call(_payload())  # opens session s1
-    agent.call(_payload(failure_log="fpr=0.5 too many false positives", prev_filter=DEAUTH))
+    retried = agent.call(
+        _payload(failure_log="fpr=0.5 too many false positives", prev_filter=DEAUTH)
+    )
 
     assert any(c.endswith("/messages") for c in calls)
     # exactly one session created; the retry reuses it via a message.
     assert sum(1 for c in calls if c.endswith("/sessions")) == 1
+    assert state["retry_gets"] >= 2
+    assert retried.explanation == "revised after independent oracle failure"
 
 
 def test_unparseable_output_raises():

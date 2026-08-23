@@ -258,6 +258,127 @@ export interface EmailReviewRequest {
   decision: EmailReviewDecision;
 }
 
+export type EvidenceSource = "SIGNAL" | "INBOX" | "SCOPE";
+export type EvidenceProvenance = "LIVE" | "DEMO";
+
+export interface EvidenceEntities {
+  domains: string[];
+  urls: string[];
+  ips: string[];
+  macs: string[];
+  emails: string[];
+  brands: string[];
+}
+
+export interface IntelligenceObservation {
+  id: number;
+  occurred_ts: number;
+  recorded_ts: number;
+  source: EvidenceSource;
+  event_type: string;
+  severity: IncidentSeverity;
+  title: string;
+  summary: string;
+  verdict: string;
+  risk_score: number | null;
+  entities: EvidenceEntities;
+  source_ref: string;
+  provenance: EvidenceProvenance;
+  evidence: Record<string, unknown>;
+}
+
+export interface CommandMetrics {
+  window_end_ts: number;
+  email_current_total: number;
+  email_current_flagged: number;
+  email_baseline_total: number;
+  email_baseline_flagged: number;
+  current_flagged_rate: number;
+  baseline_flagged_rate: number;
+  phishing_spike: boolean;
+  signal_incidents: number;
+  malicious_scope_checks: number;
+  shared_entities: string[];
+}
+
+export interface CommandCorrelation {
+  claim: string;
+  confidence: number;
+  evidence_ids: number[];
+  explanation: string;
+}
+
+export interface AttackerContextFinding {
+  entity: string;
+  finding: string;
+  confidence: number;
+  evidence_ids: number[];
+  sources: string[];
+}
+
+export interface EmployeeAdvisory {
+  needed: boolean;
+  subject: string;
+  body: string;
+}
+
+export interface CommandAssessmentSummary {
+  id: number;
+  created_ts: number;
+  completed_ts: number | null;
+  status: string;
+  decision: string;
+  reason: string;
+  report_id: string | null;
+  session_url: string | null;
+  error: string | null;
+}
+
+export interface CommandReportSummary {
+  id: string;
+  created_ts: number;
+  title: string;
+  urgency: string;
+  executive_summary: string;
+  confidence: number;
+  provenance: EvidenceProvenance;
+}
+
+export interface CommandReport {
+  id: string;
+  created_ts: number;
+  title: string;
+  urgency: string;
+  executive_summary: string;
+  confidence: number;
+  provenance: EvidenceProvenance;
+  trigger_reason: string;
+  what_happened: string[];
+  cause_analysis: string[];
+  correlations: CommandCorrelation[];
+  attacker_context: AttackerContextFinding[];
+  actions_taken: string[];
+  recommendations: string[];
+  evidence_ids: number[];
+  metrics: CommandMetrics;
+  employee_advisory: EmployeeAdvisory;
+  devin_session_url: string | null;
+  evidence_sha256: string;
+}
+
+export interface CommandOverview {
+  assessing: boolean;
+  metrics: CommandMetrics;
+  observations: IntelligenceObservation[];
+  assessments: CommandAssessmentSummary[];
+  reports: CommandReportSummary[];
+}
+
+export interface CommandDemoSeedResult {
+  inserted: number;
+  trigger_observation_id: number;
+}
+
 export interface EmailLiveEvent {
   type: EmailEventType;
   analysis_id: number | null;
@@ -281,4 +402,8 @@ export interface LinkVerdict {
   reasoning: string;
   browse_score: number | null;
   research_score: number | null;
+  browse_session_url: string | null;
+  research_session_url: string | null;
+  browse_result: Record<string, unknown>;
+  research_result: Record<string, unknown>;
 }

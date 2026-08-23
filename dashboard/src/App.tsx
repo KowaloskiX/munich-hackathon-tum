@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { BrowserSecurity } from "./BrowserSecurity";
+import { CommandCenter } from "./CommandCenter";
 import { flushFixes, incidentReportUrl } from "./api";
 import { selectAttackHistory, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
@@ -95,6 +96,17 @@ const AGENTS: Array<{
     tone: "blue",
     status: "Live now",
   },
+  {
+    route: "command",
+    eyebrow: "04 / SECURITY COMMAND",
+    name: "COMMAND",
+    title: "Turns every signal into company intelligence.",
+    description: "Correlates the crew's evidence, researches campaigns and autonomously creates verified reports.",
+    image: "/logo.jpg",
+    imageAlt: "Beaver security lead coordinating the autonomous crew",
+    tone: "command",
+    status: "Autonomous",
+  },
 ];
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -129,7 +141,7 @@ function LandingPage() {
       <main>
         <section className="hero-section">
           <div className="hero-kicker"><span>Autonomous security crew</span><i /> Built for the attack, not the report</div>
-          <h1>THREE AGENTS.<br /><em>ZERO EASY TARGETS.</em></h1>
+          <h1>FOUR AGENTS.<br /><em>ZERO EASY TARGETS.</em></h1>
           <div className="hero-bottom">
             <p>One tireless crew protects your network, browser and inbox — before a threat becomes somebody's very bad day.</p>
             <a href="#agents" className="hero-link">Meet the crew <span aria-hidden="true">↓</span></a>
@@ -178,7 +190,7 @@ function LandingPage() {
         </section>
 
         <section className="proof-strip" aria-label="Product principles">
-          <div><strong>3</strong><span>attack surfaces</span></div>
+          <div><strong>4</strong><span>autonomous agents</span></div>
           <div><strong>1</strong><span>autonomous crew</span></div>
           <div><strong>24/7</strong><span>eyes open</span></div>
           <p>No fatigue.<br />No panic clicks.<br />No easy targets.</p>
@@ -494,10 +506,10 @@ function AgentWorkspace({ route, children }: { route: Exclude<AppRoute, "home">;
   );
 }
 
-function FeaturePage({ route }: { route: "phishing" | "mail" }) {
+function FeaturePage({ route }: { route: "phishing" | "mail" | "command" }) {
   return (
     <AgentWorkspace route={route}>
-      {route === "phishing" ? <BrowserSecurity /> : <EmailSecurity />}
+      {route === "phishing" ? <BrowserSecurity /> : route === "mail" ? <EmailSecurity /> : <CommandCenter />}
     </AgentWorkspace>
   );
 }
@@ -512,6 +524,6 @@ export default function App() {
   }, []);
 
   if (route === "network") return <NetworkDashboard />;
-  if (route === "phishing" || route === "mail") return <FeaturePage route={route} />;
+  if (route === "phishing" || route === "mail" || route === "command") return <FeaturePage route={route} />;
   return <LandingPage />;
 }

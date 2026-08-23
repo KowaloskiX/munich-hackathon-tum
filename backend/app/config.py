@@ -61,6 +61,18 @@ class Settings(BaseSettings):
     attack_responses_path: str = str(
         Path(__file__).resolve().parent.parent / "data" / "attack_responses.jsonl"
     )
+    scope_history_path: str = str(
+        Path(__file__).resolve().parent.parent / "data" / "scope_history.jsonl"
+    )
+
+    # Cross-domain security lead (SIGNAL + INBOX + SCOPE -> COMMAND).
+    command_enabled: bool = False
+    command_agent: str = "stub"  # "stub" | "devin"
+    command_db_path: str = "data/command-intelligence.db"
+    command_debounce_s: float = 2.0
+    command_poll_interval_s: float = 5.0
+    command_timeout_s: float = 600.0
+    command_max_acu_limit: float = 2.0
 
     # Langfuse (local instance is fine, e.g. http://localhost:3000).
     langfuse_public_key: str = ""

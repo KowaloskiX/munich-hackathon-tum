@@ -7,6 +7,7 @@ describe("app routes", () => {
     expect(routeFromHash("#/network")).toBe("network");
     expect(routeFromHash("#/phishing")).toBe("phishing");
     expect(routeFromHash("#/mail")).toBe("mail");
+    expect(routeFromHash("#/command")).toBe("command");
   });
 
   it("falls back to the landing page for unknown routes", () => {

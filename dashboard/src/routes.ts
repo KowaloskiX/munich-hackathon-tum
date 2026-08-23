@@ -1,6 +1,6 @@
-export type AppRoute = "home" | "network" | "phishing" | "mail";
+export type AppRoute = "home" | "network" | "phishing" | "mail" | "command";
 
-const ROUTES = new Set<AppRoute>(["home", "network", "phishing", "mail"]);
+const ROUTES = new Set<AppRoute>(["home", "network", "phishing", "mail", "command"]);
 
 export function routeFromHash(hash: string): AppRoute {
   const candidate = hash.replace(/^#\/?/, "").split("/")[0] || "home";

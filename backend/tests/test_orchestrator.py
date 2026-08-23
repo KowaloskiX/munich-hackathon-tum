@@ -4,15 +4,27 @@ import asyncio
 import json
 from pathlib import Path
 
+import httpx
+
 from app.agent_stub import call_agent
 from app.attack_log import read_attack_responses
-from app.models import AnomalyIn, AnomalyStats, EventType
+from app.models import AgentOut, AnomalyIn, AnomalyStats, EventType
 from app.orchestrator import handle_anomaly
 from app.state import AppState
 
 DEAUTH = ["c0003a01ffffffffffff001122334455001122334455"]
 AUTH = ["b0003a01ffffffffffff001122334455001122334455"]
 ASSOCIATION = ["00003a01ffffffffffff001122334455001122334455"]
+PREEMPTIVE_FILTER = """\
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+bool block_frame(const uint8_t *f, size_t n) {
+    if (n < 1) return false;
+    uint8_t subtype = (f[0] >> 4) & 0xF;
+    return subtype == 0xC || subtype == 0xA || subtype == 0xB || subtype == 0x0;
+}
+"""
 
 
 async def _nosleep(_: float) -> None:
@@ -128,6 +140,41 @@ def test_stub_builds_cumulative_filters_for_staged_demo_variants(tmp_path):
     assert responses[2].previous_deployment.protected_attack_frame_count == 2
 
 
+def test_orchestrator_rejects_filter_that_hides_future_demo_stages(tmp_path):
+    state = AppState()
+    anomaly = AnomalyIn(
+        node_id="esp-01",
+        timestamp=1.0,
+        frame_hex=DEAUTH,
+        anomaly_stats=AnomalyStats(subtype=12, count_in_window=50),
+        guessed_type="deauth_flood",
+    )
+
+    def preemptive_agent(_payload, on_step=None):
+        return AgentOut(
+            attack_class="deauth_flood",
+            confidence=0.9,
+            filter_c_code=PREEMPTIVE_FILTER,
+            explanation="Block every staged subtype up front.",
+        )
+
+    deployed = asyncio.run(
+        handle_anomaly(
+            state,
+            anomaly,
+            agent_call=preemptive_agent,
+            attack_log_path=tmp_path / "attacks.jsonl",
+            step_delay=0.0,
+            max_retries=0,
+            sleep=_nosleep,
+        )
+    )
+
+    assert deployed is False
+    assert "esp-01" not in state.deployed
+    assert EventType.VERIFY_FAILED in [event.type for event in state.events]
+
+
 def test_incident_is_recorded_and_id_stamped():
     _, state = _run_loop()
     assert len(state.incidents) == 1
@@ -188,7 +235,7 @@ def test_transient_connection_error_is_retried_then_succeeds():
     def flaky(payload, on_step=None):
         if fails["left"] > 0:
             fails["left"] -= 1
-            raise OSError(8, "nodename nor servname provided")
+            raise httpx.ConnectError("[Errno 8] nodename nor servname provided")
         return call_agent(payload, on_step=on_step)
 
     state = AppState()

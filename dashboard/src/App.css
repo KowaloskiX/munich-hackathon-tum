@@ -1651,7 +1651,7 @@ button {
 
 .agent-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 22px;
 }
 
@@ -1702,6 +1702,7 @@ button {
 .agent-card[data-tone="orange"] .agent-card-top { background: #ff6422; }
 .agent-card[data-tone="yellow"] .agent-card-top { background: #ffd43b; }
 .agent-card[data-tone="blue"] .agent-card-top { background: #79b8ff; }
+.agent-card[data-tone="command"] .agent-card-top { background: #ff9f7b; }
 
 .agent-art {
   position: relative;
@@ -2484,6 +2485,7 @@ button {
 }
 
 .agent-product-shell[data-tone="blue"] .agent-product-brand i { background: #79b8ff; }
+.agent-product-shell[data-tone="command"] .agent-product-brand i { background: #ff6422; }
 
 .agent-product-brand strong {
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
@@ -2512,6 +2514,7 @@ button {
 .agent-product-nav nav button:last-child { border-right: 0; }
 .agent-product-nav nav button[data-active="true"] { background: #ffd43b; }
 .agent-product-shell[data-tone="blue"] .agent-product-nav nav button[data-active="true"] { background: #79b8ff; }
+.agent-product-shell[data-tone="command"] .agent-product-nav nav button[data-active="true"] { background: #ff6422; }
 
 .agent-home-link {
   justify-self: end;

@@ -284,7 +284,7 @@ class EmailSecurityService:
     def status(self, session_token: str | None) -> EmailConnectionStatus:
         account = self.store.get_account()
         csrf = self.store.session_csrf(session_token) if session_token else None
-        if account is None:
+        if account is None or csrf is None:
             return EmailConnectionStatus(connected=False)
         return EmailConnectionStatus(
             connected=True,
@@ -506,6 +506,16 @@ class EmailSecurityService:
                 await asyncio.to_thread(
                     self.store.complete, analysis_id, result.report, result.session_url
                 )
+                if settings.command_enabled:
+                    from .command_service import get_command_service
+
+                    await asyncio.to_thread(
+                        get_command_service().record_email,
+                        payload,
+                        result.report,
+                        analysis_id,
+                        result.session_url,
+                    )
                 if result.report.verdict.value != "CLEAR":
                     account = await asyncio.to_thread(self._account_with_token)
                     await asyncio.to_thread(

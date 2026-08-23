@@ -22,6 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
 from . import mockgen
+from .command_routes import router as command_router
+from .command_service import get_command_service
 from .config import settings
 from .email_routes import router as email_router
 from .email_service import get_email_service
@@ -82,6 +84,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         tasks.append(asyncio.create_task(email_service.worker_loop()))
         tasks.append(asyncio.create_task(email_service.maintenance_loop()))
         email_service.start_subscriber(asyncio.get_running_loop())
+    if settings.command_enabled:
+        command_service = get_command_service()
+        email_details = email_service.store.analysis_details() if email_service is not None else []
+        await asyncio.to_thread(command_service.bootstrap_history, email_details)
+        tasks.append(asyncio.create_task(command_service.worker_loop()))
     # The stub scout is offline+cheap so it can drive the mock loop; a real devin
     # scout is a multi-minute paid session, so only scan on manual POST /scan.
     if _flag("MOCK_LINK") and settings.link_agent != "devin":
@@ -105,6 +112,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(email_router)
+app.include_router(command_router)
 
 
 @app.get("/health")
