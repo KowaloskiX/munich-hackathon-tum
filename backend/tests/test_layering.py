@@ -21,6 +21,14 @@ FORBIDDEN: dict[str, tuple[set[str], str]] = {
         {"oracle", "orchestrator", "state"},
         "the agent side must not reach the verifier or the live fleet state",
     ),
+    "link_scout": (
+        {"oracle", "orchestrator", "state"},
+        "the web-domain scout is an agent: no reach to the verifier or fleet state",
+    ),
+    "link_agent_devin": (
+        {"oracle", "orchestrator", "state"},
+        "the devin scout is an agent: no reach to the verifier or fleet state",
+    ),
     "oracle": (
         {"agent_stub", "orchestrator", "state"},
         "the oracle stays independent of what it judges",

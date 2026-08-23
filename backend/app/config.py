@@ -13,6 +13,9 @@ class Settings(BaseSettings):
 
     # Which agent backend the orchestrator talks to.
     agent: str = "stub"  # "stub" | "devin"
+    # Which scout backs the web/link domain. "devin" runs a real browse+research
+    # scout on any URL; "stub" is an offline host heuristic (default: cheap CI).
+    link_agent: str = "stub"  # "stub" | "devin"
 
     # Devin external API (v3). PATs (cog_...) and service-user keys use v3;
     # the legacy v1 endpoints reject PATs with 403.

@@ -19,9 +19,10 @@ from .models import (
     EventType,
     Heartbeat,
     HeartbeatStats,
+    LinkScanIn,
     LiveEvent,
 )
-from .orchestrator import handle_anomaly
+from .orchestrator import handle_anomaly, handle_link_scan
 from .state import AppState
 
 FAKE_NODES = ["esp-01", "esp-02"]
@@ -82,4 +83,23 @@ async def anomaly_loop(state: AppState, *, min_gap: float = 8.0, max_gap: float 
             guessed_type="deauth_flood",
         )
         await handle_anomaly(state, anomaly)
+        await asyncio.sleep(random.uniform(min_gap, max_gap))
+
+
+MOCK_LINKS = [
+    LinkScanIn(url="https://www.ledger.com/", source="mock"),
+    LinkScanIn(url="https://ledger-livedsktpp.pages.dev/", source="mock"),
+    LinkScanIn(url="https://www.kraken.com/", source="mock"),
+    LinkScanIn(url="http://kraknkrakenlogn.webflow.io/", source="mock"),
+]
+
+
+async def link_scan_loop(state: AppState, *, min_gap: float = 10.0, max_gap: float = 16.0) -> None:
+    """Periodically scan a mock URL (alternating legit/phishing) through the same
+    web-domain orchestrator the real /scan endpoint uses."""
+    await asyncio.sleep(7.0)
+    i = 0
+    while True:
+        await handle_link_scan(state, MOCK_LINKS[i % len(MOCK_LINKS)])
+        i += 1
         await asyncio.sleep(random.uniform(min_gap, max_gap))

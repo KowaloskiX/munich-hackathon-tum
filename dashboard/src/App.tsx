@@ -26,6 +26,10 @@ const EVENT_NAMES: Record<TimelineLine["type"], string> = {
   OTA_DEPLOYING: "OTA deploy",
   DEPLOYED: "Filter deployed",
   FRAME_BLOCKED: "Frame blocked",
+  LINK_SUBMITTED: "Link submitted",
+  LINK_BROWSING: "Browser analysis",
+  LINK_RESEARCHING: "Reputation check",
+  LINK_VERDICT: "Link verdict",
 };
 
 function formatClock(ts: number): string {

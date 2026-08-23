@@ -32,6 +32,11 @@ class EventType(StrEnum):
     OTA_DEPLOYING = "OTA_DEPLOYING"
     DEPLOYED = "DEPLOYED"
     FRAME_BLOCKED = "FRAME_BLOCKED"
+    # --- web/link-detection domain (2nd domain, same skeleton) ---
+    LINK_SUBMITTED = "LINK_SUBMITTED"
+    LINK_BROWSING = "LINK_BROWSING"
+    LINK_RESEARCHING = "LINK_RESEARCHING"
+    LINK_VERDICT = "LINK_VERDICT"
 
 
 # --- Contract 1: ESP -> POST /ingest -------------------------------------
@@ -98,6 +103,23 @@ class OracleOut(BaseModel):
     tests_total: int
     tests_passed: int
     log: str = ""
+
+
+# --- Contract 5: Extension/Scout <-> Backend (web/link domain) -----------
+class LinkScanIn(BaseModel):
+    url: str
+    source: str = "manual"
+
+
+class LinkVerdict(BaseModel):
+    url: str
+    verdict: str  # legit | suspicious | malicious
+    legit_score: float  # 0..1, 1 = clearly legit
+    impersonated_brand: str = ""
+    top_signals: list[str] = Field(default_factory=list)
+    reasoning: str = ""
+    browse_score: float | None = None
+    research_score: float | None = None
 
 
 # --- WebSocket /live event (drives the dashboard) ------------------------

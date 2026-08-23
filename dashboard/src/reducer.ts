@@ -63,6 +63,20 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
       }
       return { text: `${node} blocked ${p.count ?? 1} attack frames`, tone: "ok" };
     }
+    case "LINK_SUBMITTED":
+      return { text: `scanning link ${p.url ?? ""}`, tone: "info" };
+    case "LINK_BROWSING":
+      return { text: `browse-agent walking ${p.url ?? ""}`, tone: "info" };
+    case "LINK_RESEARCHING":
+      return { text: `research-agent checking reputation`, tone: "info" };
+    case "LINK_VERDICT": {
+      const bad = p.verdict === "malicious" || p.verdict === "suspicious";
+      const brand = p.brand ? ` — impersonates ${p.brand}` : "";
+      return {
+        text: `link verdict: ${p.verdict ?? "?"} (${p.legit_score ?? "?"})${brand}`,
+        tone: bad ? "bad" : "ok",
+      };
+    }
     default:
       return { text: e.type, tone: "info" };
   }
@@ -154,6 +168,9 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
       }
       break;
     }
+    case "LINK_VERDICT":
+      if (e.payload.verdict === "malicious") counters.threats_detected += 1;
+      break;
     default:
       break;
   }

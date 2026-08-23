@@ -13,7 +13,8 @@ import asyncio
 import contextlib
 import os
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,9 +35,10 @@ from .models import (
     FleetSnapshot,
     Heartbeat,
     IncidentSummary,
+    LinkScanIn,
     LiveEvent,
 )
-from .orchestrator import handle_anomaly
+from .orchestrator import handle_anomaly, handle_link_scan
 from .report import render_markdown
 from .state import AppState
 
@@ -74,6 +76,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         tasks.append(asyncio.create_task(email_service.worker_loop()))
         tasks.append(asyncio.create_task(email_service.maintenance_loop()))
         email_service.start_subscriber(asyncio.get_running_loop())
+    # The stub scout is offline+cheap so it can drive the mock loop; a real devin
+    # scout is a multi-minute paid session, so only scan on manual POST /scan.
+    if _flag("MOCK_LINK") and settings.link_agent != "devin":
+        tasks.append(asyncio.create_task(mockgen.link_scan_loop(state)))
     try:
         yield
     finally:
@@ -120,9 +126,12 @@ async def post_heartbeat(hb: Heartbeat) -> dict[str, str]:
     return {"status": "ok"}
 
 
-def _log_task_error(task: asyncio.Task[bool]) -> None:
-    if not task.cancelled() and (exc := task.exception()) is not None:
-        print(f"[ingest] handle_anomaly crashed: {exc!r}")
+def _log_task_error(name: str) -> Callable[[asyncio.Task[Any]], None]:
+    def cb(task: asyncio.Task[Any]) -> None:
+        if not task.cancelled() and (exc := task.exception()) is not None:
+            print(f"[{name}] task crashed: {exc!r}")
+
+    return cb
 
 
 @app.post("/ingest")
@@ -133,7 +142,15 @@ async def post_ingest(anomaly: AnomalyIn) -> dict[str, str]:
         state.emit(LiveEvent(type=EventType.NODE_UP, node_id=anomaly.node_id, ts=time.time()))
     # Fire and forget: the loop drives itself and streams progress over WS.
     task = asyncio.create_task(handle_anomaly(state, anomaly))
-    task.add_done_callback(_log_task_error)
+    task.add_done_callback(_log_task_error("ingest"))
+    return {"status": "accepted"}
+
+
+@app.post("/scan")
+async def post_scan(scan: LinkScanIn) -> dict[str, str]:
+    # Web domain: same fire-and-forget shape as /ingest.
+    task = asyncio.create_task(handle_link_scan(state, scan))
+    task.add_done_callback(_log_task_error("scan"))
     return {"status": "accepted"}
 
 

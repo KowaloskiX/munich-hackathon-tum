@@ -13,12 +13,15 @@ from collections.abc import Awaitable, Callable
 from functools import partial
 
 from .agents import get_agent
+from .link_agents import get_link_scout
 from .models import (
     AgentIn,
     AgentOut,
     AnomalyIn,
     EventType,
     Heartbeat,
+    LinkScanIn,
+    LinkVerdict,
     LiveEvent,
     NodeState,
     OracleOut,
@@ -26,6 +29,8 @@ from .models import (
 from .oracle import run_oracle
 from .prompts import SAMPLE_BENIGN
 from .state import AppState
+
+LinkScoutFn = Callable[..., LinkVerdict]  # (LinkScanIn, on_step=None) -> LinkVerdict
 
 MAX_RETRIES = 2
 AGENT_CONN_RETRIES = 4  # extra tries on a transient network error (e.g. DNS blip)
@@ -195,3 +200,52 @@ async def handle_anomaly(
     # sentinel-edge gateway, which pulls this filter over /firmware, drops
     # matching frames, and reports real counts back via POST /enforcement.
     return True
+
+
+async def handle_link_scan(
+    state: AppState,
+    scan: LinkScanIn,
+    *,
+    scout: LinkScoutFn | None = None,
+    step_delay: float = 0.5,
+    sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+) -> LinkVerdict:
+    """Run the web domain's scan loop: submit -> browse -> research -> verdict.
+
+    The web analogue of `handle_anomaly`: no human in the loop, and every phase
+    is streamed as a LiveEvent so the dashboard mirrors the two-agent scan. The
+    scout stays independent (it never sees the fleet state); this orchestrator
+    owns the event stream and the threat counter (via state.emit). When `scout`
+    is None the configured scout (stub or devin) is resolved via get_link_scout().
+    """
+    if scout is None:
+        scout = get_link_scout()
+
+    def emit(etype: EventType, **payload: object) -> None:
+        state.emit(LiveEvent(type=etype, node_id=None, ts=time.time(), payload=payload))
+
+    emit(EventType.LINK_SUBMITTED, url=scan.url, source=scan.source)
+    await sleep(step_delay)
+    emit(EventType.LINK_BROWSING, url=scan.url)
+    await sleep(step_delay)
+    emit(EventType.LINK_RESEARCHING, url=scan.url)
+
+    # Marshal scout narration (from the worker thread) back onto the loop thread
+    # before touching the event queue, then stream it as AGENT_STEP lines.
+    loop = asyncio.get_running_loop()
+
+    def on_step(msg: str) -> None:
+        loop.call_soon_threadsafe(lambda: emit(EventType.AGENT_STEP, text=msg))
+
+    verdict = await asyncio.to_thread(partial(scout, scan, on_step=on_step))
+
+    await sleep(step_delay)
+    emit(
+        EventType.LINK_VERDICT,
+        url=scan.url,
+        verdict=verdict.verdict,
+        legit_score=verdict.legit_score,
+        brand=verdict.impersonated_brand,
+        signals=verdict.top_signals,
+    )
+    return verdict
