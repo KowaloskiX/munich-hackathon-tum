@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NZ1AXK3DQM9XEZG6J1XQGF",
+  "strategy": "manual-commit",
+  "branch": "integration",
+  "checkpoints_count": 15,
+  "files_touched": [
+    "backend/app/main.py",
+    "backend/app/mockgen.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 14,
+    "cache_creation_tokens": 6735,
+    "cache_read_tokens": 2665708,
+    "output_tokens": 4721,
+    "api_call_count": 7
+  }
+}
