@@ -1,0 +1,86 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0P0SBS604G8WYA0S3HEJPEX",
+  "session_id": "995aa2c7-9501-4fca-a713-3a423c7ac70b",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T00:37:06.422554Z",
+  "branch": "integration",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "backend/.env.example",
+    "backend/app/state.py",
+    "dashboard/src/reducer.test.ts",
+    "dashboard/src/reducer.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-8",
+  "turn_id": "95c1de8db157",
+  "checkpoint_transcript_start": 982,
+  "transcript_lines_at_start": 982,
+  "compact_transcript_start": 247,
+  "token_usage": {
+    "input_tokens": 32,
+    "cache_creation_tokens": 30807,
+    "cache_read_tokens": 7348116,
+    "output_tokens": 24315,
+    "api_call_count": 16
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_018UVFYwiXmMgn1w6utJQf5W",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "change-contract"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "95c1de8db157",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 465,
+        "end": 466,
+        "entry_ids": [
+          "c182fc0b-0c71-4876-af41-2c5b116454c3"
+        ],
+        "tool_use_id": "toolu_018UVFYwiXmMgn1w6utJQf5W"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_018UVFYwiXmMgn1w6utJQf5W"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: change-contract",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 18
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T00:37:06.305216Z",
+    "agent_lines": 28,
+    "agent_removed": 10,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 28,
+    "total_lines_changed": 38,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
