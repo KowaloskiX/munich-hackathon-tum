@@ -44,4 +44,5 @@ describe("reducer", () => {
     expect(s.nodes["esp-01"].state).toBe("OFFLINE");
     expect(s.counters.active_nodes).toBe(0);
   });
+
 });

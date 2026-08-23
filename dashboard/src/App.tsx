@@ -1,11 +1,16 @@
 import "./App.css";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
+import { BrowserSecurity } from "./BrowserSecurity";
 import { selectAttackHistory, selectAttackPackets, selectFrameFeed } from "./dashboardView";
 import type { AttackRecord } from "./dashboardView";
+import { EmailSecurity } from "./EmailSecurity";
 import type { NodeView, TimelineLine } from "./types";
 import { useLive } from "./useLive";
+import { hashForRoute, routeFromHash } from "./routes";
+import type { AppRoute } from "./routes";
 
 const EVENT_NAMES: Record<TimelineLine["type"], string> = {
   NODE_UP: "Node online",
@@ -39,14 +44,146 @@ function displayRouterName(value: string): string {
   return value.replace(/\besp(?=-|\b)/gi, "router");
 }
 
-function Wordmark() {
+const AGENTS: Array<{
+  route: Exclude<AppRoute, "home">;
+  eyebrow: string;
+  name: string;
+  title: string;
+  description: string;
+  image: string;
+  imageAlt: string;
+  tone: string;
+  status: string;
+}> = [
+  {
+    route: "network",
+    eyebrow: "01 / LIVE DEFENSE",
+    name: "SIGNAL",
+    title: "Stops attacks at the edge.",
+    description: "Detects hostile traffic, writes a filter, proves it works and deploys it — autonomously.",
+    image: "/beaver-antenna.png",
+    imageAlt: "Beaver agent holding a radio antenna",
+    tone: "orange",
+    status: "Live now",
+  },
+  {
+    route: "phishing",
+    eyebrow: "02 / BROWSER SHIELD",
+    name: "SCOPE",
+    title: "Calls out the fake before you click.",
+    description: "Checks links, domains and page signals in the browser, right where the decision happens.",
+    image: "/beaver-scope.png",
+    imageAlt: "Beaver agent inspecting with a magnifying glass",
+    tone: "yellow",
+    status: "Live now",
+  },
+  {
+    route: "mail",
+    eyebrow: "03 / INBOX SCANNER",
+    name: "INBOX",
+    title: "Reads the email. Spots the trap.",
+    description: "Scans messages and attachments for impersonation, pressure tactics and malicious intent.",
+    image: "/logo.jpg",
+    imageAlt: "Beaver agent working on a laptop",
+    tone: "blue",
+    status: "Live now",
+  },
+];
+
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="wordmark" role="img" aria-label="Sentinel autonomous defense">
-      <span className="wordmark-mark" aria-hidden="true">
-        <img src="/logo.jpg" alt="" />
-      </span>
-      <span>Sentinel</span>
-      <span className="wordmark-edition">ROUTER</span>
+    <button className="brand" data-compact={compact || undefined} type="button" onClick={() => navigate("home")}>
+      <span className="brand-dam" aria-hidden="true"><i /><i /><i /></span>
+      <span className="brand-name">DAM<span>SECURE</span></span>
+    </button>
+  );
+}
+
+function navigate(route: AppRoute): void {
+  window.location.hash = hashForRoute(route);
+}
+
+function ArrowIcon() {
+  return <span aria-hidden="true">↗</span>;
+}
+
+function LandingPage() {
+  return (
+    <div className="landing-shell">
+      <header className="landing-nav">
+        <Brand />
+        <nav aria-label="Primary navigation">
+          <a href="#agents">Agents</a>
+          <a href="#how-it-works">How it works</a>
+        </nav>
+        <button className="nav-cta" type="button" onClick={() => navigate("network")}>Open live defense <ArrowIcon /></button>
+      </header>
+
+      <main>
+        <section className="hero-section">
+          <div className="hero-kicker"><span>Autonomous security crew</span><i /> Built for the attack, not the report</div>
+          <h1>THREE AGENTS.<br /><em>ZERO EASY TARGETS.</em></h1>
+          <div className="hero-bottom">
+            <p>One tireless crew protects your network, browser and inbox — before a threat becomes somebody's very bad day.</p>
+            <a href="#agents" className="hero-link">Meet the crew <span aria-hidden="true">↓</span></a>
+          </div>
+        </section>
+
+        <section className="agents-section" id="agents" aria-labelledby="agents-title">
+          <div className="section-intro">
+            <span>Choose your agent</span>
+            <h2 id="agents-title">Security that actually does the work.</h2>
+          </div>
+          <div className="agent-grid">
+            {AGENTS.map((agent) => (
+              <button
+                className="agent-card"
+                data-tone={agent.tone}
+                key={agent.route}
+                type="button"
+                onClick={() => navigate(agent.route)}
+                aria-label={`Open ${agent.name}: ${agent.title}`}
+              >
+                <span className="agent-card-top"><span>{agent.eyebrow}</span><b>{agent.status}</b></span>
+                <span className="agent-art"><img src={agent.image} alt={agent.imageAlt} /></span>
+                <span className="agent-copy">
+                  <strong>{agent.name}</strong>
+                  <span>{agent.title}</span>
+                  <small>{agent.description}</small>
+                </span>
+                <span className="agent-open">Open agent <ArrowIcon /></span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="method-section" id="how-it-works" aria-labelledby="method-title">
+          <div className="method-lead">
+            <span>How the crew works</span>
+            <h2 id="method-title">Not another dashboard that watches the fire.</h2>
+            <p>Each agent closes the loop: it sees the signal, makes the call and takes action at machine speed.</p>
+          </div>
+          <ol className="method-steps">
+            <li><b>01</b><strong>Observe</strong><span>Watch the attack surface continuously, without waiting for a ticket.</span></li>
+            <li><b>02</b><strong>Decide</strong><span>Separate a real threat from noise using evidence from the live environment.</span></li>
+            <li><b>03</b><strong>Act</strong><span>Block, warn or isolate the threat — then show exactly what happened.</span></li>
+          </ol>
+        </section>
+
+        <section className="proof-strip" aria-label="Product principles">
+          <div><strong>3</strong><span>attack surfaces</span></div>
+          <div><strong>1</strong><span>autonomous crew</span></div>
+          <div><strong>24/7</strong><span>eyes open</span></div>
+          <p>No fatigue.<br />No panic clicks.<br />No easy targets.</p>
+        </section>
+
+        <section className="final-cta">
+          <span>Start with the agent that is live today</span>
+          <h2>BUILD THE DAM<br /><em>BEFORE THE FLOOD.</em></h2>
+          <button type="button" onClick={() => navigate("network")}>Open live network defense <ArrowIcon /></button>
+        </section>
+      </main>
+      <footer className="landing-footer"><Brand compact /><p>Autonomous defense for the network, browser and inbox.</p><span>© 2026 DAM SECURE</span></footer>
     </div>
   );
 }
@@ -94,7 +231,11 @@ function NodeCard({ node }: { node: NodeView }) {
 
 function SensorRail({ nodes }: { nodes: NodeView[] }) {
   return (
-    <section className="sensor-stage flow-card" aria-label="Router sensor rail">
+    <section className="sensor-stage flow-card" data-empty={nodes.length === 0 || undefined} aria-label="Router sensor rail">
+      <div className="panel-heading sensor-heading">
+        <div><span className="panel-index">01 / EDGE NODES</span><h2>Network perimeter</h2></div>
+        <span className="panel-count">{nodes.length} nodes</span>
+      </div>
       <div className="rail-wrap">
         <div className="rail-axis" aria-hidden="true">
           <span>RF edge</span>
@@ -121,7 +262,7 @@ function FrameFeed({ timeline }: { timeline: TimelineLine[] }) {
   return (
     <aside className="frame-log flow-card" aria-labelledby="frames-heading">
       <div className="panel-heading">
-        <h2 id="frames-heading">Frame feed</h2>
+        <div><span className="panel-index">02 / LIVE TRAFFIC</span><h2 id="frames-heading">Frame feed</h2></div>
         <span className="live-wave" role="status" aria-label="Feed active">
           <i />
           live
@@ -137,7 +278,6 @@ function FrameFeed({ timeline }: { timeline: TimelineLine[] }) {
       <div className="frame-list" aria-live="polite">
         {frames.length === 0 ? (
           <div className="frame-empty">
-            <span className="scan-line" />
             Listening for live traffic
           </div>
         ) : (
@@ -169,8 +309,9 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
     <section className="attack-history" aria-labelledby="attack-history-heading">
       <div className="attack-history-heading">
         <div>
+          <span className="panel-index">03 / INCIDENT MEMORY</span>
           <h2 id="attack-history-heading">Attack history</h2>
-          <p>Detected incidents and Devin response state</p>
+          <p>Detected incidents and autonomous response state</p>
         </div>
         <span>{attacks.length} attacks</span>
       </div>
@@ -186,9 +327,13 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
 
       <div className="attack-history-list">
         {attacks.length === 0 ? (
-          <div className="attack-history-empty">
-            <strong>No attacks recorded</strong>
-            <span>Waiting for an anomaly detection event.</span>
+          <div className="attack-history-empty" role="status">
+            <div className="attack-empty-card">
+              <span className="attack-empty-status"><i aria-hidden="true" /> Perimeter clear</span>
+              <strong>No attacks recorded</strong>
+              <p>Nothing has crossed the line. SIGNAL is watching for the next anomaly.</p>
+              <small>Live monitoring active</small>
+            </div>
           </div>
         ) : (
           attacks.map((attack) => {
@@ -248,19 +393,26 @@ function AttackHistory({ timeline, activeAttack }: { timeline: TimelineLine[]; a
   );
 }
 
-export default function App() {
-  const { state } = useLive();
+function NetworkDashboard() {
+  const { state, connected } = useLive();
   const nodes = Object.values(state.nodes).sort((a, b) => a.node_id.localeCompare(b.node_id));
 
   return (
     <div className="dashboard-shell">
       <header className="topbar">
-        <Wordmark />
+        <div className="dashboard-brand">
+          <Brand compact />
+          <span className="dashboard-agent-name"><i>Agent 01</i><strong>SIGNAL</strong></span>
+        </div>
         <div className="topbar-metrics" role="group" aria-label="Fleet totals">
           <div><strong>{state.counters.active_nodes}</strong><span>nodes</span></div>
           <div><strong>{state.counters.threats_detected}</strong><span>threats</span></div>
           <div><strong>{state.counters.filters_deployed}</strong><span>filters</span></div>
           <div><strong>{compactNumber(state.counters.frames_blocked)}</strong><span>blocked</span></div>
+        </div>
+        <div className="dashboard-actions">
+          <span className="connection-state" data-connected={connected || undefined}><i />{connected ? "System live" : "Connecting"}</span>
+          <button className="dashboard-back" type="button" onClick={() => navigate("home")}>All agents <span aria-hidden="true">↗</span></button>
         </div>
       </header>
 
@@ -273,4 +425,44 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function AgentWorkspace({ route, children }: { route: Exclude<AppRoute, "home">; children: ReactNode }) {
+  const agent = AGENTS.find((item) => item.route === route);
+  if (!agent) return null;
+
+  return (
+    <div className="agent-product-shell" data-tone={agent.tone}>
+      <header className="agent-product-nav">
+        <div className="agent-product-brand"><Brand compact /><span><i>{agent.eyebrow.split(" / ")[0]}</i><strong>{agent.name}</strong></span></div>
+        <nav aria-label="Switch security agent">
+          {AGENTS.map((item) => <button key={item.route} type="button" data-active={item.route === route || undefined} onClick={() => navigate(item.route)}>{item.name}</button>)}
+        </nav>
+        <button className="agent-home-link" type="button" onClick={() => navigate("home")}>All agents <span aria-hidden="true">↗</span></button>
+      </header>
+      {children}
+    </div>
+  );
+}
+
+function FeaturePage({ route }: { route: "phishing" | "mail" }) {
+  return (
+    <AgentWorkspace route={route}>
+      {route === "phishing" ? <BrowserSecurity /> : <EmailSecurity />}
+    </AgentWorkspace>
+  );
+}
+
+export default function App() {
+  const [route, setRoute] = useState<AppRoute>(() => routeFromHash(window.location.hash));
+
+  useEffect(() => {
+    const updateRoute = () => setRoute(routeFromHash(window.location.hash));
+    window.addEventListener("hashchange", updateRoute);
+    return () => window.removeEventListener("hashchange", updateRoute);
+  }, []);
+
+  if (route === "network") return <NetworkDashboard />;
+  if (route === "phishing" || route === "mail") return <FeaturePage route={route} />;
+  return <LandingPage />;
 }

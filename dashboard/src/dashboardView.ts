@@ -1,10 +1,10 @@
 import type { EventType, TimelineLine } from "./types";
 
 export type AttackStatus =
-  | "Devin processing"
-  | "Devin fixing"
-  | "Devin verifying"
-  | "Devin deploying"
+  | "Signal processing"
+  | "Signal fixing"
+  | "Signal verifying"
+  | "Signal deploying"
   | "Fix deployed";
 
 export interface AttackRecord {
@@ -24,13 +24,13 @@ export interface AttackPacket {
 }
 
 const STATUS_BY_EVENT: Partial<Record<EventType, AttackStatus>> = {
-  ANOMALY_DETECTED: "Devin processing",
-  AGENT_ANALYZING: "Devin processing",
-  FILTER_GENERATED: "Devin fixing",
-  VERIFYING: "Devin verifying",
-  VERIFY_FAILED: "Devin verifying",
-  VERIFY_PASSED: "Devin verifying",
-  OTA_DEPLOYING: "Devin deploying",
+  ANOMALY_DETECTED: "Signal processing",
+  AGENT_ANALYZING: "Signal processing",
+  FILTER_GENERATED: "Signal fixing",
+  VERIFYING: "Signal verifying",
+  VERIFY_FAILED: "Signal verifying",
+  VERIFY_PASSED: "Signal verifying",
+  OTA_DEPLOYING: "Signal deploying",
   DEPLOYED: "Fix deployed",
   FRAME_BLOCKED: "Fix deployed",
 };
@@ -64,7 +64,7 @@ export function selectAttackHistory(timeline: TimelineLine[], activeAttack: stri
     const related = timeline
       .slice(segmentStart, index + 1)
       .filter((line) => line.node_id === anomaly.node_id);
-    const status = related.map((line) => STATUS_BY_EVENT[line.type]).find(Boolean) ?? "Devin processing";
+    const status = related.map((line) => STATUS_BY_EVENT[line.type]).find(Boolean) ?? "Signal processing";
     const attackClass = parseAttackClass(related) ?? (attackIndex === 0 ? activeAttack : null);
 
     return {

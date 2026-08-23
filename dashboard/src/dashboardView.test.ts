@@ -44,7 +44,7 @@ describe("dashboard attack views", () => {
       nodeId: "esp-01",
       name: "Deauth flood",
       packetCount: 400,
-      status: "Devin verifying",
+      status: "Signal verifying",
     });
   });
 

@@ -4,7 +4,6 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
-  overflow: hidden;
 }
 
 html {
@@ -16,6 +15,4 @@ html {
   -webkit-font-smoothing: antialiased;
 }
 
-body {
-  min-width: 700px;
-}
+body { min-width: 320px; }
