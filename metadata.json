@@ -3,10 +3,23 @@
   "checkpoint_id": "01M0NZ1AXK3DQM9XEZG6J1XQGF",
   "strategy": "manual-commit",
   "branch": "integration",
-  "checkpoints_count": 15,
+  "checkpoints_count": 18,
   "files_touched": [
+    "backend/app/config.py",
+    "backend/app/link_agent_devin.py",
+    "backend/app/link_agents.py",
+    "backend/app/link_scout.py",
     "backend/app/main.py",
-    "backend/app/mockgen.py"
+    "backend/app/mockgen.py",
+    "backend/app/models.py",
+    "backend/app/orchestrator.py",
+    "backend/app/state.py",
+    "backend/tests/test_layering.py",
+    "backend/tests/test_link_agent_devin.py",
+    "backend/tests/test_link_scan.py",
+    "backend/tests/test_link_scout.py",
+    "dashboard/src/reducer.ts",
+    "dashboard/src/types.ts"
   ],
   "sessions": [
     {
@@ -14,6 +27,13 @@
       "transcript": "/0/full.jsonl",
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
       "prompt": ""
     }
   ],
