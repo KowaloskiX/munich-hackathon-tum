@@ -1,0 +1,58 @@
+run the devin case and check whether the logs work correctly also check for the email and phishing logs wheter they are correctly genersted also how they are genersted
+
+---
+
+push the main-integrated but dont merge to main
+
+---
+
+okej wszedlem teraz na branch verify i pytanie czy jestesmy w stanie go domergować do maina tak żeby nadal działało
+
+---
+
+let's go pushnijmy to na maina
+
+---
+
+okej dobra, co zostaje do ogarniecia. mamy tego autonomous agenta z raportami i innymi ale jak to teraz ogarnac
+
+---
+
+czyli agent powinien ogarnąć orchestracje tych wszystich feature'ow
+
+---
+
+a czy jest to calkowicie autonomiczne (raportowanie) i czy działa osint?
+
+---
+
+co to znaczy osint w stub. moze powinnismy wyzukiwac wszystkimi mozliwymi te informacje devinem
+
+---
+
+a jesteś w stanie zrobic mi opis?
+Short Description (max 300 chars)
+
+---
+
+write it more like we were talking about 1 man army for your company that manages cybersecurity
+
+---
+
+mozemy napisac cos w stylu 1 man army cybersecurity or sth
+
+---
+
+and what is the tech stack
+
+---
+
+a wylistuj mi to po kolei najwazniejsze
+
+---
+
+btw we use playwright or camoufox
+
+---
+
+a jak leci to sprawdzenie czy link jest wadliwy?
