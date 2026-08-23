@@ -118,17 +118,17 @@ void render() {
     if (alert) {
         display.setTextSize(2);
         display.setCursor(0, 15);
-        display.println("ATAK!");
+        display.println("ATTACK!");
         display.setTextSize(1);
         display.setCursor(0, 36);
         display.println(short_scenario_name(last_scenario));
         display.setCursor(0, 48);
-        display.printf("~%lu ramek/s SIM\n", static_cast<unsigned long>(displayed_rate));
+        display.printf("~%lu frames/s SIM\n", static_cast<unsigned long>(displayed_rate));
     } else {
         display.setTextSize(2);
         display.setCursor(0, 20);
-        display.println("BRAK");
-        display.println("ATAKU");
+        display.println("NO");
+        display.println("ATTACK");
     }
     display.setTextSize(1);
     display.setCursor(96, 56);
