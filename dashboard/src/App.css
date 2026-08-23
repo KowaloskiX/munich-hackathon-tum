@@ -1774,6 +1774,8 @@ button {
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
   padding: 0;
   overflow: hidden;
   border: var(--landing-border);
@@ -1816,11 +1818,12 @@ button {
 
 .command-lead-body {
   display: grid;
-  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
 }
 
 .command-lead-art {
   position: relative;
+  height: 300px;
   overflow: hidden;
   border-right: var(--landing-border);
   background: #fff;
@@ -1840,35 +1843,36 @@ button {
 .command-lead-copy {
   display: flex;
   flex-direction: column;
-  padding: 30px 30px 24px;
+  justify-content: center;
+  padding: 26px 30px;
 }
 
 .command-lead-copy strong {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-  font-size: clamp(56px, 7vw, 104px);
+  font-size: clamp(46px, 5vw, 72px);
   font-weight: 900;
-  line-height: 0.82;
+  line-height: 0.84;
   letter-spacing: -0.03em;
 }
 
 .command-lead-copy > span {
-  font-size: clamp(20px, 2.4vw, 30px);
+  font-size: clamp(19px, 2vw, 26px);
   font-weight: 850;
   line-height: 1.08;
   letter-spacing: -0.035em;
 }
 
 .command-lead-copy small {
-  margin-top: 14px;
-  max-width: 620px;
+  margin-top: 12px;
+  max-width: 560px;
   color: #6f6b64;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .command-lead-open {
-  margin: 26px 0 0;
+  margin: 22px 0 0;
 }
 
 /* The link from the coordinator down to the crew it directs. */

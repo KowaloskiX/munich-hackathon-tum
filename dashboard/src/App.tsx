@@ -104,8 +104,8 @@ const CREW: Agent[] = [
 // COMMAND is not a fourth peer — it sits above the crew and coordinates it.
 const COMMAND: Agent = {
   route: "command",
-  eyebrow: "04 / SECURITY COMMAND",
-  name: "COMMAND",
+  eyebrow: "SECURITY COMMAND",
+  name: "COMMANDER",
   title: "Turns every signal into company intelligence.",
   description: "Correlates the crew's evidence, researches campaigns and autonomously creates verified reports.",
   image: "/logo.jpg",
@@ -526,7 +526,7 @@ function AgentWorkspace({ route, children }: { route: Exclude<AppRoute, "home">;
   return (
     <div className="agent-product-shell" data-tone={agent.tone}>
       <header className="agent-product-nav">
-        <div className="agent-product-brand"><Brand compact /><span><i>{agent.eyebrow.split(" / ")[0]}</i><strong>{agent.name}</strong></span></div>
+        <div className="agent-product-brand"><Brand compact /><span><i>{agent.eyebrow.includes(" / ") ? agent.eyebrow.split(" / ")[0] : "HQ"}</i><strong>{agent.name}</strong></span></div>
         <nav aria-label="Switch security agent">
           {AGENTS.map((item) => <button key={item.route} type="button" data-active={item.route === route || undefined} onClick={() => navigate(item.route)}>{item.name}</button>)}
         </nav>
