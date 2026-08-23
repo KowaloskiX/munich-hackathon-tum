@@ -10,8 +10,13 @@ export const initialState: DashState = {
   stage: "idle",
   activeNode: null,
   activeAttack: null,
+  agent: { iterations: null, self_tpr: null, self_fpr: null },
+  agentStatus: null,
+  error: null,
   seq: 0,
 };
+
+const PROGRESS_PREFIX = "⏳";
 
 const STAGE_BY_TYPE: Partial<Record<LiveEvent["type"], DashState["stage"]>> = {
   ANOMALY_DETECTED: "trigger",
@@ -33,20 +38,31 @@ function describe(e: LiveEvent): { text: string; tone: TimelineLine["tone"] } {
       return { text: `${node} anomaly: ${p.count ?? "?"} frames in window`, tone: "warn" };
     case "AGENT_ANALYZING":
       return { text: `${node} agent analyzing (attempt ${p.attempt ?? 1})`, tone: "info" };
-    case "FILTER_GENERATED":
-      return { text: `${node} filter generated: ${p.attack_class ?? "?"}`, tone: "info" };
+    case "AGENT_STEP":
+      return { text: `${node} sandbox: ${p.text ?? ""}`, tone: "info" };
+    case "FILTER_GENERATED": {
+      const iters = p.iterations ? ` (${p.iterations} sandbox iters)` : "";
+      return { text: `${node} filter generated: ${p.attack_class ?? "?"}${iters}`, tone: "info" };
+    }
     case "VERIFYING":
       return { text: `${node} verifying filter (replay test)`, tone: "info" };
-    case "VERIFY_FAILED":
-      return { text: `${node} verify FAILED ${p.tests ?? ""} (fpr=${p.fpr ?? "?"})`, tone: "bad" };
+    case "VERIFY_FAILED": {
+      const why = p.reason ? ` — ${p.reason}` : ` (fpr=${p.fpr ?? "?"})`;
+      return { text: `${node} verify FAILED ${p.tests ?? ""}${why}`, tone: "bad" };
+    }
     case "VERIFY_PASSED":
       return { text: `${node} verify PASSED ${p.tests ?? ""}`, tone: "ok" };
     case "OTA_DEPLOYING":
       return { text: `${node} deploying filter OTA`, tone: "info" };
     case "DEPLOYED":
       return { text: `${node} PROTECTED: ${p.attack_class ?? "filter"} deployed`, tone: "ok" };
-    case "FRAME_BLOCKED":
+    case "FRAME_BLOCKED": {
+      if (p.source === "edge") {
+        const v = p.fw_version ? ` (filter ${p.fw_version})` : "";
+        return { text: `${node} blocked ${p.count ?? 0} frames at edge${v}`, tone: "ok" };
+      }
       return { text: `${node} blocked ${p.count ?? 1} attack frames`, tone: "ok" };
+    }
     default:
       return { text: e.type, tone: "info" };
   }
@@ -69,6 +85,10 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   const counters = { ...state.counters };
   let activeNode = state.activeNode;
   let activeAttack = state.activeAttack;
+  let agent = state.agent;
+  let agentStatus = state.agentStatus;
+  let error = state.error;
+  let appendLine = true;
 
   switch (e.type) {
     case "NODE_UP":
@@ -93,9 +113,27 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
       nodes = setNodeState(state, e.node_id, "ALERT");
       counters.threats_detected += 1;
       activeNode = e.node_id;
+      agent = { iterations: null, self_tpr: null, self_fpr: null };
+      agentStatus = null;
+      error = null;
       break;
+    case "AGENT_STEP": {
+      const text = String(e.payload.text ?? "");
+      if (text.startsWith(PROGRESS_PREFIX)) {
+        agentStatus = text; // live status — do not spam the timeline
+        appendLine = false;
+      } else if (text.toLowerCase().includes("unavailable")) {
+        error = text; // agent unreachable — surface loudly
+      }
+      break;
+    }
     case "FILTER_GENERATED":
       activeAttack = (e.payload.attack_class as string) ?? activeAttack;
+      agent = {
+        iterations: (e.payload.iterations as number) ?? null,
+        self_tpr: (e.payload.self_tpr as number) ?? null,
+        self_fpr: (e.payload.self_fpr as number) ?? null,
+      };
       break;
     case "OTA_DEPLOYING":
       nodes = setNodeState(state, e.node_id, "UPDATING");
@@ -103,6 +141,7 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
     case "DEPLOYED":
       nodes = setNodeState(state, e.node_id, "PROTECTED");
       counters.filters_deployed += 1;
+      agentStatus = null; // done working
       break;
     case "FRAME_BLOCKED": {
       const c = Number(e.payload.count ?? 1);
@@ -122,9 +161,33 @@ export function reduce(state: DashState, msg: WsMessage): DashState {
   counters.active_nodes = Object.values(nodes).filter((n) => n.state !== "OFFLINE").length;
 
   const stage = STAGE_BY_TYPE[e.type] ?? state.stage;
-  const { text, tone } = describe(e);
-  const line: TimelineLine = { id: state.seq, ts: e.ts, node_id: e.node_id, type: e.type, text, tone };
-  const timeline = [line, ...state.timeline].slice(0, 60);
+  let timeline = state.timeline;
+  if (appendLine) {
+    const { text, tone } = describe(e);
+    const incidentId = (e.payload.incident_id as string | undefined) ?? null;
+    const line: TimelineLine = {
+      id: state.seq,
+      ts: e.ts,
+      node_id: e.node_id,
+      type: e.type,
+      text,
+      tone,
+      incidentId,
+    };
+    timeline = [line, ...state.timeline].slice(0, 60);
+  }
 
-  return { ...state, nodes, counters, timeline, stage, activeNode, activeAttack, seq: state.seq + 1 };
+  return {
+    ...state,
+    nodes,
+    counters,
+    timeline,
+    stage,
+    activeNode,
+    activeAttack,
+    agent,
+    agentStatus,
+    error,
+    seq: state.seq + 1,
+  };
 }

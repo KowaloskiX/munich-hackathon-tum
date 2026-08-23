@@ -8,6 +8,7 @@ export type EventType =
   | "NODE_DOWN"
   | "ANOMALY_DETECTED"
   | "AGENT_ANALYZING"
+  | "AGENT_STEP"
   | "FILTER_GENERATED"
   | "VERIFYING"
   | "VERIFY_FAILED"
@@ -62,6 +63,13 @@ export interface TimelineLine {
   type: EventType;
   text: string;
   tone: "info" | "warn" | "ok" | "bad";
+  incidentId: string | null; // server incident id, for the report download
+}
+
+export interface AgentInfo {
+  iterations: number | null;
+  self_tpr: number | null;
+  self_fpr: number | null;
 }
 
 export interface DashState {
@@ -71,6 +79,9 @@ export interface DashState {
   stage: Stage;
   activeNode: string | null;
   activeAttack: string | null;
+  agent: AgentInfo;
+  agentStatus: string | null; // live heartbeat while the agent works
+  error: string | null; // set when the agent is unreachable
   seq: number;
 }
 

@@ -9,11 +9,13 @@ export type AttackStatus =
 
 export interface AttackRecord {
   id: number;
+  incidentId: string | null; // server incident id, for the report download
   ts: number;
   nodeId: string;
   name: string;
   packetCount: number;
   status: AttackStatus;
+  events: TimelineLine[]; // this incident's own thread, oldest -> newest
 }
 
 export interface AttackPacket {
@@ -36,7 +38,9 @@ const STATUS_BY_EVENT: Partial<Record<EventType, AttackStatus>> = {
 };
 
 export function selectFrameFeed(timeline: TimelineLine[], limit: number): TimelineLine[] {
-  return timeline.slice(0, Math.max(0, limit));
+  // `timeline` is newest-first; show the most recent `limit` in chronological
+  // order (oldest at top, newest at the bottom) so the defense loop reads top-down.
+  return timeline.slice(0, Math.max(0, limit)).reverse();
 }
 
 function parsePacketCount(text: string): number {
@@ -69,11 +73,13 @@ export function selectAttackHistory(timeline: TimelineLine[], activeAttack: stri
 
     return {
       id: anomaly.id,
+      incidentId: anomaly.incidentId ?? null,
       ts: anomaly.ts,
       nodeId: anomaly.node_id ?? "system",
       name: formatAttackName(attackClass),
       packetCount: parsePacketCount(anomaly.text),
       status,
+      events: related.slice().reverse(), // oldest -> newest for a readable thread
     };
   });
 }

@@ -12,6 +12,7 @@ import contextlib
 import json
 import re
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,12 @@ from .config import settings
 from .devin_client import DevinClient
 from .models import AgentIn, AgentOut, AnomalyStats
 from .prompts import SAMPLE_ATTACK, STRUCTURED_OUTPUT_SCHEMA, build_devin_prompt
+
+StepFn = Callable[[str], None]
+
+# Prefix marking a heartbeat/progress step (the dashboard shows these as a live,
+# update-in-place status line rather than appending each to the timeline).
+_PROGRESS_PREFIX = "⏳"
 
 _FILTERS_DIR = Path(__file__).resolve().parent.parent / "oracle/filters"
 
@@ -48,14 +55,39 @@ def _extract_json(raw: Any) -> dict[str, Any]:
     raise DevinAgentError(f"unexpected structured_output type: {type(raw).__name__}")
 
 
+def _opt_float(data: dict[str, Any], key: str) -> float | None:
+    val = data.get(key)
+    return float(val) if isinstance(val, int | float) else None
+
+
+def _clean_c(code: str) -> str:
+    """Strip markdown fences a model sometimes wraps around the code.
+
+    The oracle compiles filter_c_code verbatim, so ```c ... ``` or stray prose
+    would be a syntax error. Extract the largest fenced block if present, else
+    just trim surrounding fence lines.
+    """
+    s = code.strip()
+    if "```" in s:
+        blocks = re.findall(r"```(?:[a-zA-Z+]*)?\n?(.*?)```", s, re.DOTALL)
+        if blocks:
+            s = max(blocks, key=len).strip()
+    return s
+
+
 def _to_agent_out(data: dict[str, Any]) -> AgentOut:
     if "filter_c_code" not in data:
         raise DevinAgentError("structured_output missing 'filter_c_code'")
+    compiled = data.get("compiled")
     return AgentOut(
         attack_class=str(data.get("attack_class", "unknown")),
         confidence=float(data.get("confidence", 0.0)),
-        filter_c_code=str(data["filter_c_code"]),
+        filter_c_code=_clean_c(str(data["filter_c_code"])),
         explanation=str(data.get("explanation", "")),
+        iterations=int(data.get("iterations", 0) or 0),
+        compiled=bool(compiled) if compiled is not None else None,
+        self_tpr=_opt_float(data, "self_tpr"),
+        self_fpr=_opt_float(data, "self_fpr"),
     )
 
 
@@ -70,8 +102,12 @@ class DevinAgent:
         self.last_usd: float | None = None
         self.last_cost_final: bool = False
         self.last_duration_s: int | None = None
+        self._on_step: StepFn | None = None
+        self._seen_events: set[str] = set()
+        self._msg_cursor: str | None = None
 
-    def call(self, payload: AgentIn) -> AgentOut:
+    def call(self, payload: AgentIn, on_step: StepFn | None = None) -> AgentOut:
+        self._on_step = on_step
         trace = tracing.start_trace(
             "devin.agent",
             input={"frame_hex": payload.frame_hex, "stats": payload.anomaly_stats.model_dump()},
@@ -100,6 +136,7 @@ class DevinAgent:
         session = self._poll(trace)
         data = _extract_json(session.structured_output)
         out = _to_agent_out(data)
+        out.session_url = self.session_url  # surface for the incident report
 
         # Cost: acus_consumed is provisional while running. Re-fetch once to get
         # the latest value, and record whether it is final (session stopped).
@@ -167,19 +204,43 @@ class DevinAgent:
                 self.client.terminate(self._session_id)
             self._session_id = None
 
+    def _drain_messages(self) -> None:
+        """Forward new Devin narration messages to on_step (deduped)."""
+        if self._on_step is None or self._session_id is None:
+            return
+        with contextlib.suppress(Exception):
+            items, cursor = self.client.list_messages(self._session_id, after=self._msg_cursor)
+            if cursor:
+                self._msg_cursor = cursor
+            for msg in items:
+                event_id = str(msg.get("event_id") or "")
+                if event_id in self._seen_events:
+                    continue
+                self._seen_events.add(event_id)
+                if msg.get("source") == "devin" and msg.get("message"):
+                    self._on_step(str(msg["message"]))
+
     def _poll(self, trace: tracing.Trace) -> Any:
         assert self._session_id is not None
-        deadline = time.monotonic() + settings.devin_timeout_s
+        start = time.monotonic()
+        deadline = start + settings.devin_timeout_s
         polls = 0
         while True:
+            self._drain_messages()
             session = self.client.get_session(self._session_id)
             polls += 1
             if session.has_output:
+                self._drain_messages()  # flush any final narration
                 with tracing.span(
                     trace, "devin.poll_done", output={"polls": polls, "status": session.status}
                 ):
                     pass
                 return session
+            # Constant heartbeat so the UI shows progress during the long wait.
+            if self._on_step is not None:
+                elapsed = int(time.monotonic() - start)
+                detail = session.status_detail or session.status or "working"
+                self._on_step(f"{_PROGRESS_PREFIX} Devin working {elapsed}s ({detail})")
             if session.is_dead:
                 raise DevinAgentError(
                     f"session {self._session_id} ended ({session.status}/"
@@ -201,13 +262,31 @@ def build_mock_client(filter_code: str | None = None) -> DevinClient:
         "confidence": 0.95,
         "filter_c_code": code,
         "explanation": "Blocks 802.11 mgmt deauth/disassoc frames; data/beacons pass.",
+        "iterations": 2,
+        "compiled": True,
+        "self_tpr": 1.0,
+        "self_fpr": 0.0,
     }
+    mock_messages = [
+        {
+            "event_id": "m1",
+            "source": "devin",
+            "message": "Wrote filter.c, compiled with gcc -Wall.",
+        },
+        {
+            "event_id": "m2",
+            "source": "devin",
+            "message": "Ran ./test: TPR=1.000 FPR=0.000 — passing.",
+        },
+    ]
     state = {"gets": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         if request.method == "DELETE":
             return httpx.Response(200, json={"ok": True})
+        if request.method == "GET" and path.endswith("/messages"):
+            return httpx.Response(200, json={"items": mock_messages, "end_cursor": None})
         if request.method == "POST" and path.endswith("/messages"):
             return httpx.Response(200, json={"ok": True})
         if request.method == "POST" and path.endswith("/sessions"):
@@ -285,11 +364,14 @@ def main(argv: list[str] | None = None) -> int:
     agent = DevinAgent(client=build_mock_client() if args.mock else None)
     from .oracle import run_oracle
 
+    def on_step(msg: str) -> None:
+        print(f"  🤖 sandbox: {msg}")
+
     rc = 0
     try:
         for attempt in range(args.retries + 1):
             try:
-                out = agent.call(payload)
+                out = agent.call(payload, on_step=on_step)
             except DevinAgentError as exc:
                 print(f"❌ Devin agent failed: {exc}")
                 rc = 1
@@ -299,6 +381,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"attack_class : {out.attack_class}")
             print(f"confidence   : {out.confidence}")
             print(f"explanation  : {out.explanation}")
+            if out.self_tpr is not None:
+                print(
+                    f"sandbox      : {out.iterations} iterations, compiled={out.compiled}, "
+                    f"self TPR={out.self_tpr} FPR={out.self_fpr}"
+                )
             if agent.session_url:
                 print(f"session      : {agent.session_url}")
             if agent.last_acus is not None:

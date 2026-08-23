@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
+from functools import partial
 
 from .agents import get_agent
 from .models import (
@@ -17,16 +18,19 @@ from .models import (
     AgentOut,
     AnomalyIn,
     EventType,
+    Heartbeat,
     LiveEvent,
     NodeState,
     OracleOut,
 )
 from .oracle import run_oracle
+from .prompts import SAMPLE_BENIGN
 from .state import AppState
 
 MAX_RETRIES = 2
+AGENT_CONN_RETRIES = 4  # extra tries on a transient network error (e.g. DNS blip)
 
-AgentFn = Callable[[AgentIn], AgentOut]
+AgentFn = Callable[..., AgentOut]  # (AgentIn, on_step=None) -> AgentOut
 OracleFn = Callable[[str], OracleOut]
 
 
@@ -38,6 +42,8 @@ async def handle_anomaly(
     oracle_call: OracleFn = run_oracle,
     step_delay: float = 0.6,
     max_retries: int = MAX_RETRIES,
+    agent_conn_retries: int = AGENT_CONN_RETRIES,
+    conn_backoff: float = 2.0,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> bool:
     """Run one full autonomous loop for an anomaly. Returns True if deployed.
@@ -50,8 +56,29 @@ async def handle_anomaly(
         agent_call = get_agent()
     node_id = anomaly.node_id
 
+    # A durable record for this incident: the report endpoint reads it, and the
+    # dashboard groups the live stream by its id (stamped into every payload).
+    incident = state.create_incident(node_id, anomaly.timestamp)
+    incident.frames = len(anomaly.frame_hex)
+
     def emit(etype: EventType, **payload: object) -> None:
-        state.emit(LiveEvent(type=etype, node_id=node_id, ts=time.time(), payload=payload))
+        payload["incident_id"] = incident.id
+        event = LiveEvent(type=etype, node_id=node_id, ts=time.time(), payload=payload)
+        incident.events.append(event)
+        state.emit(event)
+
+    # The agent runs in a worker thread (to_thread); marshal its narration back
+    # onto the loop thread before touching the (non-thread-safe) event queue.
+    loop = asyncio.get_running_loop()
+
+    def on_step(msg: str) -> None:
+        loop.call_soon_threadsafe(lambda: emit(EventType.AGENT_STEP, text=msg))
+
+    # Auto-register an unknown node so a fresh sniffer (or a manual /ingest)
+    # shows up in the fleet instead of an anomaly against a node nobody sees.
+    if node_id not in state.nodes:
+        state.apply_heartbeat(Heartbeat(node_id=node_id, timestamp=anomaly.timestamp))
+        emit(EventType.NODE_UP)
 
     state.set_node_state(node_id, NodeState.ALERT)
     emit(
@@ -59,6 +86,7 @@ async def handle_anomaly(
         frames=len(anomaly.frame_hex),
         subtype=anomaly.anomaly_stats.subtype,
         count=anomaly.anomaly_stats.count_in_window,
+        attack_class=anomaly.guessed_type or "unknown",
     )
 
     agent_in = AgentIn(frame_hex=anomaly.frame_hex, anomaly_stats=anomaly.anomaly_stats)
@@ -68,12 +96,47 @@ async def handle_anomaly(
     for attempt in range(max_retries + 1):
         await sleep(step_delay)
         emit(EventType.AGENT_ANALYZING, attempt=attempt + 1)
-        agent_out = await asyncio.to_thread(agent_call, agent_in)
+        # Retry transient network errors (DNS blip, dropped connection) before
+        # giving up — a single hiccup reaching Devin must not kill the incident.
+        agent_out = None
+        for conn_try in range(agent_conn_retries + 1):
+            try:
+                agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
+                break
+            except OSError as exc:
+                if conn_try < agent_conn_retries:
+                    # ⏳-prefixed: shows as live status, not a loud error yet.
+                    emit(
+                        EventType.AGENT_STEP,
+                        text=f"⏳ agent connection failed ({exc}); "
+                        f"retry {conn_try + 1}/{agent_conn_retries}",
+                    )
+                    await sleep(conn_backoff)
+                    continue
+                emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
+                state.set_node_state(node_id, NodeState.ALERT)
+                return False
+            except Exception as exc:
+                emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
+                state.set_node_state(node_id, NodeState.ALERT)
+                return False
+        assert agent_out is not None
         emit(
             EventType.FILTER_GENERATED,
             attack_class=agent_out.attack_class,
             confidence=agent_out.confidence,
+            iterations=agent_out.iterations,
+            self_tpr=agent_out.self_tpr,
+            self_fpr=agent_out.self_fpr,
+            compiled=agent_out.compiled,
         )
+        incident.attack_class = agent_out.attack_class
+        incident.confidence = agent_out.confidence
+        incident.iterations = agent_out.iterations
+        incident.self_tpr = agent_out.self_tpr
+        incident.self_fpr = agent_out.self_fpr
+        incident.filter_c_code = agent_out.filter_c_code
+        incident.session_url = agent_out.session_url
 
         await sleep(step_delay)
         emit(EventType.VERIFYING, attempt=attempt + 1)
@@ -84,10 +147,19 @@ async def handle_anomaly(
             "tests": f"{verdict.tests_passed}/{verdict.tests_total}",
             "attack_class": agent_out.attack_class,
         }
+        incident.oracle = verdict  # keep the verdict (pass or fail) for the report
         if verdict.passed:
             emit(EventType.VERIFY_PASSED, **result_payload)
             break
-        emit(EventType.VERIFY_FAILED, attempt=attempt + 1, **result_payload)
+        # Surface WHY it failed (compile error / unparseable) so the dashboard
+        # shows a reason instead of a cryptic 0/0. First non-empty log line.
+        reason = next((ln.strip() for ln in verdict.log.splitlines() if ln.strip()), "")
+        emit(
+            EventType.VERIFY_FAILED,
+            attempt=attempt + 1,
+            reason=reason[:200],
+            **result_payload,
+        )
         # Feed the failure back so the agent narrows its next attempt.
         agent_in = AgentIn(
             frame_hex=anomaly.frame_hex,
@@ -106,10 +178,20 @@ async def handle_anomaly(
     state.set_node_state(node_id, NodeState.UPDATING)
     emit(EventType.OTA_DEPLOYING, attack_class=agent_out.attack_class)
 
+    # Publish the real filter for OTA (a node can pull + load it) and bump fw.
+    sample_frames = [*anomaly.frame_hex, *SAMPLE_BENIGN]
+    state.set_deployed_filter(
+        node_id, agent_out.filter_c_code, agent_out.attack_class, sample_frames
+    )
+
     await sleep(step_delay)
     state.set_node_state(node_id, NodeState.PROTECTED)
+    incident.deployed = True
+    incident.deployed_ts = time.time()
     emit(EventType.DEPLOYED, attack_class=agent_out.attack_class)
 
-    # The now-protected node starts dropping the attack traffic.
-    emit(EventType.FRAME_BLOCKED, count=anomaly.anomaly_stats.count_in_window or 42)
+    # The backend is the brain: detect -> Devin -> oracle -> publish the filter.
+    # It does NOT enforce. Enforcement happens in the traffic path on the
+    # sentinel-edge gateway, which pulls this filter over /firmware, drops
+    # matching frames, and reports real counts back via POST /enforcement.
     return True

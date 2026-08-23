@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.agent_devin import DevinAgent, DevinAgentError, build_mock_client
+from app.agent_devin import DevinAgent, DevinAgentError, _clean_c, build_mock_client
 from app.devin_client import DevinClient
 from app.models import AgentIn, AnomalyStats
 from app.prompts import build_devin_prompt
@@ -30,12 +30,35 @@ def _good_output() -> dict:
     }
 
 
+def test_clean_c_strips_markdown_fences():
+    body = "bool block_frame(const uint8_t *f, size_t n){return false;}"
+    assert _clean_c(f"Here you go:\n```c\n{body}\n```\n") == body
+    plain = "bool block_frame(const uint8_t *f, size_t n){return true;}"
+    assert _clean_c(plain) == plain
+
+
 def test_call_returns_filter_that_passes_oracle():
     from app.oracle import run_oracle
 
     out = DevinAgent(client=build_mock_client()).call(_payload())
     assert out.attack_class == "deauth_flood"
     assert run_oracle(out.filter_c_code).passed is True
+
+
+def test_streams_sandbox_steps_and_parses_self_test():
+    steps: list[str] = []
+    out = DevinAgent(client=build_mock_client()).call(_payload(), on_step=steps.append)
+    # Devin's narration streamed once each (deduped by event_id across polls);
+    # progress heartbeats (⏳) are separate and excluded here.
+    narration = [s for s in steps if not s.startswith("⏳")]
+    assert len(narration) == 2
+    assert any("compiled" in s for s in narration)
+    assert any(s.startswith("⏳") for s in steps)  # heartbeat present too
+    # self-test evidence parsed from structured_output.
+    assert out.iterations == 2
+    assert out.self_tpr == 1.0
+    assert out.self_fpr == 0.0
+    assert out.compiled is True
 
 
 def test_prompt_contains_frames_signature_and_spec():

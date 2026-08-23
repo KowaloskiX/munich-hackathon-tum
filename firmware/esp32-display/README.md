@@ -25,6 +25,7 @@ alarmu, więc przypadkowe naciśnięcie nie ukryje incydentu.
 | LCD | GC9A01A, SPI, 240×240 |
 | LCD MISO / MOSI / SCLK | GPIO12 / GPIO11 / GPIO10 |
 | LCD CS / DC / RST / BL | GPIO9 / GPIO8 / GPIO14 / GPIO2 |
+| LCD SPI clock | 40 MHz (official TFT_eSPI Setup302 profile) |
 | Dotyk | CST816S, I²C address `0x15` |
 | Touch SDA / SCL / RST / IRQ | GPIO6 / GPIO7 / GPIO13 / GPIO5 |
 | Flash / PSRAM | 16 MB / 2 MB Quad SPI (QSPI) |
@@ -158,7 +159,7 @@ może jedynie odświeżyć TTL.
 ## WebSocket
 
 Po ustawieniu `HMI_ENABLE_WEBSOCKET=1` firmware łączy się również z
-`/live?node_id=hmi-01`. Autorytatywna wiadomość ma typ `SYSTEM_STATUS`, a
+`/v1/hmi/live?node_id=hmi-01`. Autorytatywna wiadomość ma typ `SYSTEM_STATUS`, a
 `payload` jest dokładnie takim samym snapshotem jak odpowiedź HTTP. Pola
 kolejności w zewnętrznej kopercie muszą dokładnie zgadzać się z polami w
 `payload`:
@@ -196,6 +197,14 @@ Eventy etapów pipeline, takie jak `ANOMALY_DETECTED` czy `DEPLOYED`, są przez
 HMI ignorowane. Nie zawierają kompletnego stanu agregatu i nie mogą ani włączyć,
 ani wyczyścić alarmu. Każda zmiana zagrożenia musi wygenerować pełny,
 uporządkowany `SYSTEM_STATUS`.
+
+### Multicast dla sieci z izolacją klientów
+
+Jeżeli WLAN blokuje bezpośrednie TCP między klientami, ustaw
+`HMI_ENABLE_MULTICAST=1`. Backend uruchomiony z `HARDWARE_MULTICAST=1`
+publikuje ten sam pełny `SYSTEM_STATUS` na `239.255.77.78:37778`. Równe,
+identyczne sekwencje są akceptowane wyłącznie jako odświeżenie TTL; starsze lub
+sprzeczne statusy nadal są odrzucane.
 
 ## Walidacja
 

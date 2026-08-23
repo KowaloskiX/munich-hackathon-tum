@@ -112,6 +112,20 @@ class DevinClient:
         )
         resp.raise_for_status()
 
+    def list_messages(
+        self, session_id: str, after: str | None = None, first: int = 100
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """Return (messages, end_cursor) for a session — Devin's narration feed."""
+        params: dict[str, Any] = {"first": first}
+        if after:
+            params["after"] = after
+        resp = self._client.get(f"{self._sessions_base()}/{session_id}/messages", params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        items = data.get("items", []) if isinstance(data, dict) else []
+        cursor = data.get("end_cursor") if isinstance(data, dict) else None
+        return items, cursor
+
     def terminate(self, session_id: str) -> None:
         """Tear down the session's VM immediately (stops any idle billing)."""
         resp = self._client.delete(f"{self._sessions_base()}/{session_id}")

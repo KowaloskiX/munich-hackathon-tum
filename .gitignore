@@ -34,3 +34,8 @@ esp-*/.vscode/
 # Secrets
 .env
 firmware/esp32-display/include/secrets.h
+firmware/esp32-sniffer/include/secrets.h
+
+# edge enforcement artifacts (compiled filters)
+backend/deployed/
+deployed/

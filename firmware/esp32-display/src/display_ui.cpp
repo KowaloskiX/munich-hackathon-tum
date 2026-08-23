@@ -32,6 +32,8 @@ DisplayUi::DisplayUi() : oled_(U8G2_R0, U8X8_PIN_NONE) {}
 
 void DisplayUi::begin() {
 #if HMI_DISPLAY_KIND == 1
+  Serial.printf("[display] initializing TFT %dx%d, SPI=%u Hz\n", TFT_WIDTH,
+                TFT_HEIGHT, SPI_FREQUENCY);
 #if TFT_BL >= 0
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, TFT_BACKLIGHT_ON == HIGH ? LOW : HIGH);
@@ -55,10 +57,14 @@ void DisplayUi::begin() {
     tft_.drawString("DISPLAY ERROR", tft_.width() / 2, tft_.height() / 2, 2);
     return;
   }
+  Serial.println("[display] GC9A01A ready; backlight enabled");
 #else
+  Serial.printf("[display] initializing SSD1306 at 0x%02X\n",
+                HMI_OLED_ADDRESS);
   Wire.begin(HMI_OLED_SDA, HMI_OLED_SCL);
   oled_.setI2CAddress(HMI_OLED_ADDRESS << 1);
   oled_.begin();
+  Serial.println("[display] SSD1306 ready");
 #endif
   initialized_ = true;
 }

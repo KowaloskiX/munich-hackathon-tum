@@ -66,3 +66,25 @@ def test_seq_advances_on_status_change():
     assert same == first  # SAFE -> SAFE, no bump
     bumped = stream.build(_attacked_state()).seq
     assert bumped > first  # SAFE -> ATTACK bumps
+
+
+def test_system_status_event_wraps_the_authoritative_snapshot():
+    stream = HmiStream()
+    event = stream.event(_attacked_state(), node_id="hmi-01")
+
+    assert event.type == "SYSTEM_STATUS"
+    assert event.node_id == "hmi-01"
+    assert event.event_id
+    assert event.stream_id == event.payload.stream_id
+    assert event.stream_generation == event.payload.stream_generation
+    assert event.seq == event.payload.seq
+    assert event.payload.status == "ATTACK"
+
+
+def test_seq_advances_when_metrics_change():
+    state = _attacked_state()
+    stream = HmiStream()
+    first = stream.build(state).seq
+    state.counters.frames_blocked = 20
+
+    assert stream.build(state).seq > first
