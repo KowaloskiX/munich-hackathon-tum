@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import ipaddress
 import json
+import re
 import time
 from collections.abc import Callable
+from email.utils import parseaddr
 from functools import partial
 from pathlib import Path
 from urllib.parse import urlparse
@@ -46,6 +49,36 @@ def _fingerprint(*parts: object) -> str:
 def _domain(value: str) -> str:
     candidate = value.rsplit("@", 1)[-1] if "@" in value else value
     return (urlparse(candidate).hostname or candidate).casefold().strip(' <>"')
+
+
+def _email_address(value: str) -> str:
+    address = parseaddr(value)[1].casefold().strip()
+    return address if "@" in address and _domain(address) else ""
+
+
+def _email_addresses(payload: EmailPayload) -> list[str]:
+    return sorted(
+        filter(
+            None,
+            {
+                _email_address(payload.from_address),
+                _email_address(payload.reply_to),
+                _email_address(payload.return_path),
+            },
+        )
+    )
+
+
+def _public_ips(value: str) -> list[str]:
+    addresses: set[str] = set()
+    for token in re.split(r"[\s,;=()\[\]<>]+", value):
+        try:
+            address = ipaddress.ip_address(token.strip(".\"'"))
+        except ValueError:
+            continue
+        if address.is_global:
+            addresses.add(address.compressed)
+    return sorted(addresses)
 
 
 def mandatory_report_reasons(
@@ -98,6 +131,25 @@ def verify_command_decision(
             errors.append("report cites no evidence")
         if not decision.recommendations:
             errors.append("report contains no recommended actions")
+        has_observable_entities = any(
+            (
+                item.source is EvidenceSource.SIGNAL
+                or item.verdict.casefold() in {"flagged", "malicious", "inconclusive"}
+                or (item.risk_score or 0) >= 70
+            )
+            and any(
+                (
+                    item.entities.domains,
+                    item.entities.urls,
+                    item.entities.ips,
+                    item.entities.macs,
+                    item.entities.emails,
+                )
+            )
+            for item in observations
+        )
+        if has_observable_entities and not decision.attacker_context:
+            errors.append("report omits attacker-context analysis")
     return errors
 
 
@@ -190,8 +242,8 @@ class CommandService:
         trigger: bool = True,
         provenance: EvidenceProvenance = EvidenceProvenance.LIVE,
     ) -> int:
-        sender_domain = _domain(payload.from_address)
-        domains = [sender_domain] if sender_domain else []
+        emails = _email_addresses(payload)
+        domains = [_domain(address) for address in emails]
         domains.extend(link.host.casefold() for link in payload.links if link.host)
         observation = IntelligenceObservation(
             occurred_ts=payload.received_at,
@@ -212,7 +264,8 @@ class CommandService:
             entities=EvidenceEntities(
                 domains=sorted(set(domains)),
                 urls=[link.url for link in payload.links],
-                emails=[payload.from_address],
+                ips=_public_ips(payload.authentication_results),
+                emails=emails,
             ),
             source_ref=str(analysis_id),
             provenance=provenance,
@@ -382,8 +435,11 @@ class CommandService:
     def _demo_email_observation(
         self, payload: EmailPayload, report: ThreatReport
     ) -> IntelligenceObservation:
-        sender_domain = _domain(payload.from_address)
-        domains = [sender_domain, *(link.host for link in payload.links)]
+        emails = _email_addresses(payload)
+        domains = [
+            *(_domain(address) for address in emails),
+            *(link.host for link in payload.links),
+        ]
         return IntelligenceObservation(
             occurred_ts=payload.received_at,
             recorded_ts=time.time(),
@@ -399,7 +455,8 @@ class CommandService:
             entities=EvidenceEntities(
                 domains=sorted(set(filter(None, domains))),
                 urls=[link.url for link in payload.links],
-                emails=[payload.from_address],
+                ips=_public_ips(payload.authentication_results),
+                emails=emails,
                 brands=["Microsoft"] if "Microsoft" in payload.subject else [],
             ),
             source_ref=payload.gmail_message_id,

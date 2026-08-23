@@ -51,6 +51,7 @@ def render_command_markdown(report: CommandReport) -> str:
     lines.extend(
         f"- **{item.entity}** ({item.confidence * 100:.0f}%): {item.finding} "
         f"[evidence {', '.join(map(str, item.evidence_ids))}]"
+        + (f" — Sources: {', '.join(item.sources)}" if item.sources else "")
         for item in report.attacker_context
     )
     lines.extend(["", "## Autonomous actions completed"])
