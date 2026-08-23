@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0P2XJA74070JC5V5M2WVDPN",
+  "strategy": "manual-commit",
+  "branch": "codex/staged-adaptive-demo-reset",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "backend/app/agent_stub.py",
+    "backend/app/edge/filter_runtime.py",
+    "backend/app/edge/filter_store.py",
+    "backend/app/edge/gateway.py",
+    "backend/app/hardware_multicast.py",
+    "backend/app/main.py",
+    "backend/app/models.py",
+    "backend/app/oracle.py",
+    "backend/app/orchestrator.py",
+    "backend/app/state.py",
+    "backend/tests/test_edge_gateway.py",
+    "backend/tests/test_hardware_routes.py",
+    "backend/tests/test_oracle.py",
+    "backend/tests/test_orchestrator.py",
+    "backend/tests/test_state.py",
+    "dashboard/src/App.css",
+    "dashboard/src/App.tsx",
+    "dashboard/src/api.test.ts",
+    "dashboard/src/api.ts",
+    "dashboard/src/types.ts",
+    "firmware/esp32-sniffer/README.md",
+    "firmware/esp32-sniffer/include/app_config.h",
+    "firmware/esp32-sniffer/lib/SnifferCore/src/anomaly_detector.cpp",
+    "firmware/esp32-sniffer/lib/SnifferCore/src/anomaly_detector.h",
+    "firmware/esp32-sniffer/src/main.cpp",
+    "firmware/esp32-sniffer/test/test_sniffer_core/test_main.cpp"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
