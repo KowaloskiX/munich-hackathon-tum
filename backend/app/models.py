@@ -37,6 +37,8 @@ class EventType(StrEnum):
     LINK_BROWSING = "LINK_BROWSING"
     LINK_RESEARCHING = "LINK_RESEARCHING"
     LINK_VERDICT = "LINK_VERDICT"
+    # --- unified cross-domain feed (email + link + esp land here) ---
+    INCIDENT_CREATED = "INCIDENT_CREATED"
 
 
 # --- Contract 1: ESP -> POST /ingest -------------------------------------
@@ -120,6 +122,38 @@ class LinkVerdict(BaseModel):
     reasoning: str = ""
     browse_score: float | None = None
     research_score: float | None = None
+
+
+# --- Unified cross-domain feed (email + link + esp land in one list) ----
+class IncidentSource(StrEnum):
+    EMAIL = "EMAIL"
+    LINK = "LINK"
+    ESP = "ESP"
+
+
+class IncidentSeverity(StrEnum):
+    INFO = "INFO"
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
+
+
+class Incident(BaseModel):
+    id: int
+    ts: float
+    source: IncidentSource
+    severity: IncidentSeverity
+    title: str
+    summary: str = ""
+    verdict: str = ""
+    risk_score: int | None = None
+    status: str = "OPEN"
+    ref: str = ""  # domain ref: url / node_id / gmail_message_id
+    url: str = ""
+
+
+class IncidentList(BaseModel):
+    items: list[Incident]
+    next_cursor: int | None = None
 
 
 # --- WebSocket /live event (drives the dashboard) ------------------------
@@ -503,3 +537,91 @@ class GmailMessage(BaseModel):
 class GmailAttachmentData(BaseModel):
     data: str
     size: int = 0
+
+
+# --- Durable attack-response analytics / agent memory -------------------
+class PatchAttemptOutcome(StrEnum):
+    AGENT_FAILED = "agent_failed"
+    ORACLE_FAILED = "oracle_failed"
+    ORACLE_PASSED = "oracle_passed"
+
+
+class AttackResponseOutcome(StrEnum):
+    AGENT_FAILED = "agent_failed"
+    VERIFICATION_FAILED = "verification_failed"
+    DEPLOYED = "deployed"
+
+
+class DeploymentStatus(StrEnum):
+    NOT_ATTEMPTED = "not_attempted"
+    PUBLISHED = "published"
+
+
+class AgentConnectionFailure(BaseModel):
+    try_number: int
+    ts: float
+    error_type: str
+    message: str
+
+
+class AttackCaptureSummary(BaseModel):
+    frame_count: int
+    sha256: str
+    rssi: int | None = None
+    stats: AnomalyStats
+
+
+class PatchAttemptLog(BaseModel):
+    attempt_number: int
+    started_ts: float
+    completed_ts: float | None = None
+    duration_ms: int | None = None
+    outcome: PatchAttemptOutcome | None = None
+    approach_summary: str = ""
+    attack_class: str | None = None
+    confidence: float | None = None
+    agent_iterations: int = 0
+    compiled: bool | None = None
+    self_tpr: float | None = None
+    self_fpr: float | None = None
+    session_url: str | None = None
+    filter_sha256: str | None = None
+    filter_c_code: str | None = None
+    oracle: OracleOut | None = None
+    failure_reason: str | None = None
+    connection_errors: list[AgentConnectionFailure] = Field(default_factory=list)
+
+
+class AttackResponseSummary(BaseModel):
+    attack_type: str
+    successful_attempt: int | None = None
+    successful_approach: str | None = None
+    failed_approaches: list[str] = Field(default_factory=list)
+    final_failure_reason: str | None = None
+
+
+class DeploymentLog(BaseModel):
+    status: DeploymentStatus = DeploymentStatus.NOT_ATTEMPTED
+    started_ts: float | None = None
+    completed_ts: float | None = None
+    duration_ms: int | None = None
+    firmware_version: str | None = None
+    filter_sha256: str | None = None
+
+
+class AttackResponseLog(BaseModel):
+    schema_version: int = 1
+    response_id: str
+    incident_id: str
+    node_id: str
+    detected_ts: float
+    response_started_ts: float
+    completed_ts: float | None = None
+    total_response_ms: int | None = None
+    agent_backend: str = "unknown"
+    initial_attack_guess: str
+    capture: AttackCaptureSummary
+    outcome: AttackResponseOutcome | None = None
+    summary: AttackResponseSummary
+    attempts: list[PatchAttemptLog] = Field(default_factory=list)
+    deployment: DeploymentLog = Field(default_factory=DeploymentLog)

@@ -30,6 +30,7 @@ const EVENT_NAMES: Record<TimelineLine["type"], string> = {
   LINK_BROWSING: "Browser analysis",
   LINK_RESEARCHING: "Reputation check",
   LINK_VERDICT: "Link verdict",
+  INCIDENT_CREATED: "Incident",
 };
 
 function formatClock(ts: number): string {

@@ -34,6 +34,8 @@ from .models import (
     FirmwarePayload,
     FleetSnapshot,
     Heartbeat,
+    IncidentList,
+    IncidentSource,
     IncidentSummary,
     LinkScanIn,
     LiveEvent,
@@ -73,6 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         tasks.append(asyncio.create_task(publish_hmi_status(state, hmi_stream)))
     if settings.email_security_enabled:
         email_service = get_email_service()
+        email_service.incident_sink = state.add_feed_item
         tasks.append(asyncio.create_task(email_service.worker_loop()))
         tasks.append(asyncio.create_task(email_service.maintenance_loop()))
         email_service.start_subscriber(asyncio.get_running_loop())
@@ -109,6 +112,17 @@ async def health() -> dict[str, str]:
 @app.get("/nodes", response_model=FleetSnapshot)
 async def get_nodes() -> FleetSnapshot:
     return state.snapshot()
+
+
+@app.get("/feed", response_model=IncidentList)
+async def get_feed(
+    source: IncidentSource | None = None,
+    cursor: int | None = None,
+    limit: int = 50,
+) -> IncidentList:
+    """Unified cross-domain feed (email + link + esp) for analysis. Distinct
+    from GET /incidents, the ESP-only incident-report list."""
+    return state.list_feed(source=source, cursor=cursor, limit=min(limit, 200))
 
 
 @app.get("/v1/hmi/status", response_model=HmiStatus)

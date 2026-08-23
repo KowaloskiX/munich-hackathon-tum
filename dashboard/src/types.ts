@@ -19,7 +19,30 @@ export type EventType =
   | "LINK_SUBMITTED"
   | "LINK_BROWSING"
   | "LINK_RESEARCHING"
-  | "LINK_VERDICT";
+  | "LINK_VERDICT"
+  | "INCIDENT_CREATED";
+
+export type IncidentSource = "EMAIL" | "LINK" | "ESP";
+export type IncidentSeverity = "INFO" | "WARNING" | "CRITICAL";
+
+export interface Incident {
+  id: number;
+  ts: number;
+  source: IncidentSource;
+  severity: IncidentSeverity;
+  title: string;
+  summary: string;
+  verdict: string;
+  risk_score: number | null;
+  status: string;
+  ref: string;
+  url: string;
+}
+
+export interface IncidentList {
+  items: Incident[];
+  next_cursor: number | null;
+}
 
 export interface NodeView {
   node_id: string;
@@ -86,6 +109,7 @@ export interface DashState {
   agent: AgentInfo;
   agentStatus: string | null; // live heartbeat while the agent works
   error: string | null; // set when the agent is unreachable
+  feed: Incident[]; // unified cross-domain feed (email + link + esp)
   seq: number;
 }
 

@@ -11,20 +11,34 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from functools import partial
+from pathlib import Path
+from uuid import uuid4
 
 from .agents import get_agent
+from .attack_log import append_attack_response, capture_sha256, filter_sha256
+from .config import settings
 from .link_agents import get_link_scout
 from .models import (
+    AgentConnectionFailure,
     AgentIn,
     AgentOut,
     AnomalyIn,
+    AttackCaptureSummary,
+    AttackResponseLog,
+    AttackResponseOutcome,
+    AttackResponseSummary,
+    DeploymentStatus,
     EventType,
     Heartbeat,
+    IncidentSeverity,
+    IncidentSource,
     LinkScanIn,
     LinkVerdict,
     LiveEvent,
     NodeState,
     OracleOut,
+    PatchAttemptLog,
+    PatchAttemptOutcome,
 )
 from .oracle import run_oracle
 from .prompts import SAMPLE_BENIGN
@@ -50,6 +64,7 @@ async def handle_anomaly(
     agent_conn_retries: int = AGENT_CONN_RETRIES,
     conn_backoff: float = 2.0,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    attack_log_path: Path | None = None,
 ) -> bool:
     """Run one full autonomous loop for an anomaly. Returns True if deployed.
 
@@ -65,12 +80,91 @@ async def handle_anomaly(
     # dashboard groups the live stream by its id (stamped into every payload).
     incident = state.create_incident(node_id, anomaly.timestamp)
     incident.frames = len(anomaly.frame_hex)
+    response_started_ts = time.time()
+    initial_attack_guess = anomaly.guessed_type or "unknown"
+    response_log = AttackResponseLog(
+        response_id=str(uuid4()),
+        incident_id=incident.id,
+        node_id=node_id,
+        detected_ts=anomaly.timestamp,
+        response_started_ts=response_started_ts,
+        agent_backend=settings.agent,
+        initial_attack_guess=initial_attack_guess,
+        capture=AttackCaptureSummary(
+            frame_count=len(anomaly.frame_hex),
+            sha256=capture_sha256(anomaly.frame_hex),
+            rssi=anomaly.rssi,
+            stats=anomaly.anomaly_stats,
+        ),
+        summary=AttackResponseSummary(attack_type=initial_attack_guess),
+    )
 
     def emit(etype: EventType, **payload: object) -> None:
         payload["incident_id"] = incident.id
         event = LiveEvent(type=etype, node_id=node_id, ts=time.time(), payload=payload)
         incident.events.append(event)
         state.emit(event)
+
+    async def persist_response(
+        outcome: AttackResponseOutcome, final_failure_reason: str | None = None
+    ) -> None:
+        completed_ts = time.time()
+        response_log.completed_ts = completed_ts
+        response_log.total_response_ms = max(0, round((completed_ts - response_started_ts) * 1000))
+        response_log.outcome = outcome
+        resolved_attack = next(
+            (
+                attempt.attack_class
+                for attempt in reversed(response_log.attempts)
+                if attempt.attack_class
+            ),
+            initial_attack_guess,
+        )
+        successful_approach = next(
+            (
+                attempt.approach_summary
+                for attempt in reversed(response_log.attempts)
+                if attempt.outcome is PatchAttemptOutcome.ORACLE_PASSED
+            ),
+            None,
+        )
+        successful_attempt = next(
+            (
+                attempt.attempt_number
+                for attempt in response_log.attempts
+                if attempt.outcome is PatchAttemptOutcome.ORACLE_PASSED
+            ),
+            None,
+        )
+        failed_approaches = [
+            f"{attempt.approach_summary} Failure: {attempt.failure_reason}"
+            for attempt in response_log.attempts
+            if attempt.outcome is PatchAttemptOutcome.ORACLE_FAILED
+        ]
+        response_log.summary = AttackResponseSummary(
+            attack_type=resolved_attack,
+            successful_attempt=successful_attempt,
+            successful_approach=successful_approach,
+            failed_approaches=failed_approaches,
+            final_failure_reason=final_failure_reason,
+        )
+        path = attack_log_path or Path(settings.attack_responses_path)
+        try:
+            await asyncio.to_thread(append_attack_response, path, response_log)
+        except Exception as exc:
+            # Analytics must never prevent an independently verified deployment.
+            emit(EventType.AGENT_STEP, text=f"attack response log failed: {exc}")
+
+    def complete_attempt(
+        patch_attempt: PatchAttemptLog,
+        outcome: PatchAttemptOutcome,
+        failure_reason: str | None = None,
+    ) -> None:
+        completed_ts = time.time()
+        patch_attempt.completed_ts = completed_ts
+        patch_attempt.duration_ms = max(0, round((completed_ts - patch_attempt.started_ts) * 1000))
+        patch_attempt.outcome = outcome
+        patch_attempt.failure_reason = failure_reason
 
     # The agent runs in a worker thread (to_thread); marshal its narration back
     # onto the loop thread before touching the (non-thread-safe) event queue.
@@ -93,6 +187,15 @@ async def handle_anomaly(
         count=anomaly.anomaly_stats.count_in_window,
         attack_class=anomaly.guessed_type or "unknown",
     )
+    state.add_feed_item(
+        source=IncidentSource.ESP,
+        severity=IncidentSeverity.WARNING,
+        title=f"{node_id}: {anomaly.anomaly_stats.frame_type} anomaly",
+        summary=f"{anomaly.anomaly_stats.count_in_window} frames in window "
+        f"(subtype {anomaly.anomaly_stats.subtype})",
+        ref=node_id,
+        report_id=incident.id,
+    )
 
     agent_in = AgentIn(frame_hex=anomaly.frame_hex, anomaly_stats=anomaly.anomaly_stats)
     verdict: OracleOut | None = None
@@ -101,6 +204,8 @@ async def handle_anomaly(
     for attempt in range(max_retries + 1):
         await sleep(step_delay)
         emit(EventType.AGENT_ANALYZING, attempt=attempt + 1)
+        patch_attempt = PatchAttemptLog(attempt_number=attempt + 1, started_ts=time.time())
+        response_log.attempts.append(patch_attempt)
         # Retry transient network errors (DNS blip, dropped connection) before
         # giving up — a single hiccup reaching Devin must not kill the incident.
         agent_out = None
@@ -109,6 +214,14 @@ async def handle_anomaly(
                 agent_out = await asyncio.to_thread(partial(agent_call, agent_in, on_step=on_step))
                 break
             except OSError as exc:
+                patch_attempt.connection_errors.append(
+                    AgentConnectionFailure(
+                        try_number=conn_try + 1,
+                        ts=time.time(),
+                        error_type=type(exc).__name__,
+                        message=str(exc),
+                    )
+                )
                 if conn_try < agent_conn_retries:
                     # ⏳-prefixed: shows as live status, not a loud error yet.
                     emit(
@@ -120,12 +233,28 @@ async def handle_anomaly(
                     continue
                 emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
                 state.set_node_state(node_id, NodeState.ALERT)
+                failure_reason = f"{type(exc).__name__}: {exc}"
+                complete_attempt(patch_attempt, PatchAttemptOutcome.AGENT_FAILED, failure_reason)
+                await persist_response(AttackResponseOutcome.AGENT_FAILED, failure_reason)
                 return False
             except Exception as exc:
                 emit(EventType.AGENT_STEP, text=f"agent unavailable: {exc}")
                 state.set_node_state(node_id, NodeState.ALERT)
+                failure_reason = f"{type(exc).__name__}: {exc}"
+                complete_attempt(patch_attempt, PatchAttemptOutcome.AGENT_FAILED, failure_reason)
+                await persist_response(AttackResponseOutcome.AGENT_FAILED, failure_reason)
                 return False
         assert agent_out is not None
+        patch_attempt.approach_summary = agent_out.explanation
+        patch_attempt.attack_class = agent_out.attack_class
+        patch_attempt.confidence = agent_out.confidence
+        patch_attempt.agent_iterations = agent_out.iterations
+        patch_attempt.compiled = agent_out.compiled
+        patch_attempt.self_tpr = agent_out.self_tpr
+        patch_attempt.self_fpr = agent_out.self_fpr
+        patch_attempt.session_url = agent_out.session_url
+        patch_attempt.filter_sha256 = filter_sha256(agent_out.filter_c_code)
+        patch_attempt.filter_c_code = agent_out.filter_c_code
         emit(
             EventType.FILTER_GENERATED,
             attack_class=agent_out.attack_class,
@@ -153,12 +282,17 @@ async def handle_anomaly(
             "attack_class": agent_out.attack_class,
         }
         incident.oracle = verdict  # keep the verdict (pass or fail) for the report
+        patch_attempt.oracle = verdict
         if verdict.passed:
+            complete_attempt(patch_attempt, PatchAttemptOutcome.ORACLE_PASSED)
             emit(EventType.VERIFY_PASSED, **result_payload)
             break
         # Surface WHY it failed (compile error / unparseable) so the dashboard
         # shows a reason instead of a cryptic 0/0. First non-empty log line.
         reason = next((ln.strip() for ln in verdict.log.splitlines() if ln.strip()), "")
+        if not reason:
+            reason = f"oracle rejected patch: TPR={verdict.tpr:.3f}, FPR={verdict.fpr:.3f}"
+        complete_attempt(patch_attempt, PatchAttemptOutcome.ORACLE_FAILED, reason)
         emit(
             EventType.VERIFY_FAILED,
             attempt=attempt + 1,
@@ -176,16 +310,20 @@ async def handle_anomaly(
     if verdict is None or not verdict.passed:
         # Exhausted retries — leave node in ALERT for a human. No deploy.
         state.set_node_state(node_id, NodeState.ALERT)
+        failure_reason = response_log.attempts[-1].failure_reason
+        await persist_response(AttackResponseOutcome.VERIFICATION_FAILED, failure_reason)
         return False
 
     assert agent_out is not None
     await sleep(step_delay)
     state.set_node_state(node_id, NodeState.UPDATING)
     emit(EventType.OTA_DEPLOYING, attack_class=agent_out.attack_class)
+    deployment_started_ts = time.time()
+    response_log.deployment.started_ts = deployment_started_ts
 
     # Publish the real filter for OTA (a node can pull + load it) and bump fw.
     sample_frames = [*anomaly.frame_hex, *SAMPLE_BENIGN]
-    state.set_deployed_filter(
+    firmware_version = state.set_deployed_filter(
         node_id, agent_out.filter_c_code, agent_out.attack_class, sample_frames
     )
 
@@ -193,12 +331,20 @@ async def handle_anomaly(
     state.set_node_state(node_id, NodeState.PROTECTED)
     incident.deployed = True
     incident.deployed_ts = time.time()
+    response_log.deployment.status = DeploymentStatus.PUBLISHED
+    response_log.deployment.completed_ts = incident.deployed_ts
+    response_log.deployment.duration_ms = max(
+        0, round((incident.deployed_ts - deployment_started_ts) * 1000)
+    )
+    response_log.deployment.firmware_version = firmware_version
+    response_log.deployment.filter_sha256 = filter_sha256(agent_out.filter_c_code)
     emit(EventType.DEPLOYED, attack_class=agent_out.attack_class)
 
     # The backend is the brain: detect -> Devin -> oracle -> publish the filter.
     # It does NOT enforce. Enforcement happens in the traffic path on the
     # sentinel-edge gateway, which pulls this filter over /firmware, drops
     # matching frames, and reports real counts back via POST /enforcement.
+    await persist_response(AttackResponseOutcome.DEPLOYED)
     return True
 
 
@@ -248,4 +394,19 @@ async def handle_link_scan(
         brand=verdict.impersonated_brand,
         signals=verdict.top_signals,
     )
+    if verdict.verdict in ("malicious", "suspicious"):
+        state.add_feed_item(
+            source=IncidentSource.LINK,
+            severity=(
+                IncidentSeverity.CRITICAL
+                if verdict.verdict == "malicious"
+                else IncidentSeverity.WARNING
+            ),
+            title=f"Suspicious link: {scan.url}",
+            summary=verdict.reasoning,
+            verdict=verdict.verdict,
+            risk_score=round((1.0 - verdict.legit_score) * 100),
+            ref=scan.url,
+            url=scan.url,
+        )
     return verdict

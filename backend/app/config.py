@@ -5,6 +5,9 @@ Keeps all runtime knobs in one typed place instead of scattered os.environ reads
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,7 +22,7 @@ class Settings(BaseSettings):
 
     # Devin external API (v3). PATs (cog_...) and service-user keys use v3;
     # the legacy v1 endpoints reject PATs with 403.
-    devin_api_key: str = ""
+    devin_api_key: str = Field(default="", repr=False)
     devin_base_url: str = "https://api.devin.ai/v3"
     devin_org_id: str = ""  # auto-discovered via GET /self when blank
     devin_poll_interval_s: float = 5.0
@@ -54,9 +57,14 @@ class Settings(BaseSettings):
     dashboard_url: str = "http://localhost:5173"
     app_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Append-only JSONL analytics/memory for completed autonomous attack responses.
+    attack_responses_path: str = str(
+        Path(__file__).resolve().parent.parent / "data" / "attack_responses.jsonl"
+    )
+
     # Langfuse (local instance is fine, e.g. http://localhost:3000).
     langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
+    langfuse_secret_key: str = Field(default="", repr=False)
     langfuse_host: str = "http://localhost:3000"
 
     @property

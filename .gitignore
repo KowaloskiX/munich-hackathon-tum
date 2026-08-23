@@ -40,3 +40,6 @@ firmware/esp32-sniffer/include/secrets.h
 # edge enforcement artifacts (compiled filters)
 backend/deployed/
 deployed/
+
+# Runtime attack-response memory
+backend/data/attack_responses.json
