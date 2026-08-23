@@ -1,8 +1,11 @@
 """Full autonomous loop: fail -> retry -> pass -> deploy, with real oracle."""
 
 import asyncio
+import json
+from pathlib import Path
 
 from app.agent_stub import call_agent
+from app.attack_log import read_attack_responses
 from app.models import AnomalyIn, AnomalyStats, EventType
 from app.orchestrator import handle_anomaly
 from app.state import AppState
@@ -14,7 +17,7 @@ async def _nosleep(_: float) -> None:
     return None
 
 
-def _run_loop() -> tuple[bool, AppState]:
+def _run_loop(attack_log_path: Path | None = None) -> tuple[bool, AppState]:
     state = AppState()
     anomaly = AnomalyIn(
         node_id="esp-01",
@@ -28,6 +31,7 @@ def _run_loop() -> tuple[bool, AppState]:
             state,
             anomaly,
             agent_call=call_agent,
+            attack_log_path=attack_log_path,
             step_delay=0.0,
             sleep=_nosleep,
         )
@@ -169,3 +173,95 @@ def test_default_agent_resolves_from_config():
     )
     deployed = asyncio.run(handle_anomaly(state, anomaly, step_delay=0.0, sleep=_nosleep))
     assert deployed is True
+
+
+def test_attack_response_log_keeps_failed_and_successful_approaches(tmp_path):
+    path = tmp_path / "attack_responses.jsonl"
+    deployed, state = _run_loop(path)
+
+    assert deployed is True
+    lines = path.read_text().splitlines()
+    assert len(lines) == 1
+    response = json.loads(lines[0])
+    incident = next(iter(state.incidents.values()))
+    assert response["incident_id"] == incident.id
+    assert response["node_id"] == "esp-01"
+    assert response["outcome"] == "deployed"
+    assert response["capture"]["frame_count"] == 1
+    assert len(response["capture"]["sha256"]) == 64
+    assert response["agent_backend"] == "stub"
+    assert response["summary"]["attack_type"] == "deauth_flood"
+    assert response["summary"]["successful_attempt"] == 2
+    assert "Narrowed to 802.11" in response["summary"]["successful_approach"]
+    assert len(response["summary"]["failed_approaches"]) == 1
+    assert "block all mgmt" in response["summary"]["failed_approaches"][0]
+
+    failed, successful = response["attempts"]
+    assert failed["outcome"] == "oracle_failed"
+    assert failed["oracle"]["passed"] is False
+    assert failed["failure_reason"]
+    assert successful["outcome"] == "oracle_passed"
+    assert successful["oracle"]["passed"] is True
+    assert len(successful["filter_sha256"]) == 64
+    assert "block_frame" in successful["filter_c_code"]
+
+    deployment = response["deployment"]
+    assert deployment["status"] == "published"
+    assert deployment["firmware_version"] == "v2"
+    assert deployment["duration_ms"] >= 0
+    assert response["total_response_ms"] >= deployment["duration_ms"]
+
+
+def test_attack_response_log_records_terminal_agent_failure(tmp_path):
+    def boom(_payload, on_step=None):
+        raise ConnectionError("Devin DNS lookup failed")
+
+    path = tmp_path / "attack_responses.jsonl"
+    state = AppState()
+    anomaly = AnomalyIn(
+        node_id="esp-07",
+        timestamp=1.0,
+        frame_hex=DEAUTH,
+        anomaly_stats=AnomalyStats(subtype=12, count_in_window=5),
+        guessed_type="deauth_flood",
+    )
+    deployed = asyncio.run(
+        handle_anomaly(
+            state,
+            anomaly,
+            agent_call=boom,
+            attack_log_path=path,
+            agent_conn_retries=0,
+            step_delay=0.0,
+            sleep=_nosleep,
+        )
+    )
+
+    assert deployed is False
+    response = json.loads(path.read_text().splitlines()[0])
+    assert response["outcome"] == "agent_failed"
+    assert response["summary"]["successful_approach"] is None
+    assert "DNS lookup failed" in response["summary"]["final_failure_reason"]
+    assert response["attempts"][0]["outcome"] == "agent_failed"
+    assert response["attempts"][0]["connection_errors"][0]["try_number"] == 1
+    assert response["deployment"]["status"] == "not_attempted"
+
+
+def test_attack_response_log_appends_with_unique_response_ids(tmp_path):
+    path = tmp_path / "attack_responses.jsonl"
+    _run_loop(path)
+
+    # A legacy line written before agent_backend existed still parses; the model
+    # fills the default ("unknown") on read.
+    lines = path.read_text().splitlines()
+    legacy = json.loads(lines[0])
+    legacy.pop("agent_backend")
+    path.write_text(json.dumps(legacy) + "\n")
+
+    _run_loop(path)
+
+    responses = read_attack_responses(path)
+    assert len(responses) == 2
+    assert responses[0].agent_backend == "unknown"
+    assert responses[1].agent_backend == "stub"
+    assert responses[0].response_id != responses[1].response_id

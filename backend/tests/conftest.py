@@ -8,7 +8,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _isolate_external(monkeypatch):
+def _isolate_external(monkeypatch, tmp_path):
     """No test may touch a real Langfuse or a real Devin session."""
     from app import agents
     from app.config import settings
@@ -18,6 +18,7 @@ def _isolate_external(monkeypatch):
     monkeypatch.setattr(settings, "agent", "stub")  # never resolve real Devin
     monkeypatch.setattr(settings, "email_agent", "stub")
     monkeypatch.setattr(settings, "email_security_enabled", False)
+    monkeypatch.setattr(settings, "attack_responses_path", str(tmp_path / "attack_responses.jsonl"))
     agents.get_agent.cache_clear()
     yield
     agents.get_agent.cache_clear()
